@@ -19,7 +19,7 @@ export default function LoginPage() {
     // Redirect based on user type
     if (true) {
       // Admin user - redirect to admin dashboard
-      router.push('/users');
+      router.push('/pages/users');
     } else {
       // Regular user - redirect to main dashboard
       router.push('/dashboard');
