@@ -140,7 +140,7 @@ export default function LoginForm({
         if (msg.includes('password')) {
           errorMessage = 'Wrong Password';
           setErrors({ password: errorMessage });
-        } else if (msg.includes('not found') || msg.includes('user')) {
+        } else if (msg.includes('not found')) {
           errorMessage = 'User not found';
           setErrors({ userId: errorMessage });
         } else if (msg.includes('inactive')) {

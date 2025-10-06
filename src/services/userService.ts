@@ -110,7 +110,7 @@ class UserService {
         throw new Error('Password must be exactly 8 characters');
       }
 
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/users/signin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
