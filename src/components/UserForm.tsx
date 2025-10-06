@@ -65,6 +65,7 @@ export default function UserForm({
   ];
 
   const validateField = useCallback((name: keyof UserFormData, value: string): string | undefined => {
+    console.log('Validating field:', name, value);
     switch (name) {
       case 'userId':
         if (!value.trim()) {
@@ -121,7 +122,9 @@ export default function UserForm({
         if (!value) {
           return 'User Type is required';
         }
-        if (!USER_VALIDATION_RULES.userType.allowedValues.includes(value as UserType)) {
+        // Check if the value is a valid UserType enum value (A, U, G, M, O)
+        const validUserTypes = Object.values(UserType) as string[];
+        if (!validUserTypes.includes(value)) {
           return 'Invalid User Type';
         }
         break;
@@ -437,7 +440,7 @@ export default function UserForm({
             ref={userTypeRef}
             label="User Type *"
             value={formData.userType}
-            onChange={(value) => handleInputChange('userType', value)}
+            onChange={(e) => handleInputChange('userType', e.target.value)}
             options={userTypeOptions}
             error={errors.userType}
             disabled={loading}
