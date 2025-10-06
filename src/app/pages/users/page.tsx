@@ -5,13 +5,12 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { Table } from '@/components/ui/Table';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
 import { Modal } from '@/components/ui/Modal';
 import { userService } from '@/services/userService';
 import UserForm from '@/components/UserForm';
 import {
   UserResponse,
-  UserListResponse,
   UserSearchRequest,
   PaginationInfo,
   UserType,
@@ -84,7 +83,7 @@ export default function UsersPage() {
       };
 
       const response = await userService.listUsers(searchParams);
-      
+      console.log('Fetched users:', response);
       setState(prev => ({
         ...prev,
         users: response.users,
@@ -106,7 +105,7 @@ export default function UsersPage() {
   const handleSearch = useCallback(async () => {
     const params: UserSearchRequest = {
       ...DEFAULT_PAGINATION,
-      page: 1,
+      page: 0,
     };
 
     if (searchTerm.trim()) {
@@ -124,20 +123,12 @@ export default function UsersPage() {
   const handleClearSearch = useCallback(async () => {
     setSearchTerm('');
     setFilterUserType('');
-    await fetchUsers({ ...DEFAULT_PAGINATION, page: 1 });
+    await fetchUsers({ ...DEFAULT_PAGINATION, page: 0 });
   }, [fetchUsers]);
 
   // Pagination handlers
   const handlePageChange = useCallback(async (page: number) => {
     await fetchUsers({ page });
-  }, [fetchUsers]);
-
-  const handleSort = useCallback(async (column: keyof UserResponse, order: 'asc' | 'desc') => {
-    await fetchUsers({
-      sortBy: column,
-      sortOrder: order,
-      page: 1,
-    });
   }, [fetchUsers]);
 
   // Modal handlers
@@ -273,6 +264,7 @@ export default function UsersPage() {
   // Effects
   useEffect(() => {
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -291,47 +283,7 @@ export default function UsersPage() {
     }
   }, [message]);
 
-  // Table configuration
-  const tableColumns = [
-    { key: 'userId' as const, label: 'User ID', sortable: true, width: '15%' },
-    { key: 'firstName' as const, label: 'First Name', sortable: true, width: '20%' },
-    { key: 'lastName' as const, label: 'Last Name', sortable: true, width: '20%' },
-    { key: 'userType' as const, label: 'User Type', sortable: true, width: '15%' },
-    { key: 'createdAt' as const, label: 'Created', sortable: true, width: '15%' },
-    { key: 'actions' as const, label: 'Actions', sortable: false, width: '15%' },
-  ];
-
-  const tableData = state.users.map(user => ({
-    ...user,
-    userType: USER_TYPE_LABELS[user.userType as UserType] || user.userType,
-    createdAt: new Date(user.createdAt).toLocaleDateString(),
-    actions: (
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => openModal('view', user)}
-        >
-          View
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => openModal('edit', user)}
-        >
-          Edit
-        </Button>
-        <Button
-          size="sm"
-          variant="destructive"
-          onClick={() => openModal('delete', user)}
-        >
-          Delete
-        </Button>
-      </div>
-    ),
-  }));
-
+  // User type options for filter dropdown
   const userTypeOptions = [
     { value: '', label: 'All Types' },
     ...Object.values(UserType).map(type => ({
@@ -430,7 +382,7 @@ export default function UsersPage() {
               ref={filterSelectRef}
               label="User Type"
               value={filterUserType}
-              onChange={(value) => setFilterUserType(value as UserType | '')}
+              onChange={(e) => setFilterUserType(e.target.value as UserType | '')}
               options={userTypeOptions}
             />
             
@@ -511,19 +463,119 @@ export default function UsersPage() {
               </div>
             </div>
           ) : (
-            <Table
-              columns={tableColumns}
-              data={tableData}
-              loading={state.loading}
-              selectable={true}
-              selectedRows={selectedUsers}
-              onSelectRow={handleSelectUser}
-              onSelectAll={handleSelectAll}
-              onSort={handleSort}
-              pagination={state.pagination}
-              onPageChange={handlePageChange}
-              emptyMessage="No users found. Click 'Add User' to create the first user."
-            />
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {selectedUsers.length >= 0 && (
+                      <TableHead className="w-12">
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.length === state.users.length && state.users.length > 0}
+                          onChange={(e) => handleSelectAll(e.target.checked)}
+                          className="rounded border-gray-300"
+                        />
+                      </TableHead>
+                    )}
+                    <TableHead>User ID</TableHead>
+                    <TableHead>First Name</TableHead>
+                    <TableHead>Last Name</TableHead>
+                    <TableHead>User Type</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {state.loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex justify-center items-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                          <span className="ml-3">Loading users...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : state.users.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                        No users found. Click &apos;Add User&apos; to create the first user.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    state.users.map((user) => (
+                      <TableRow key={user.userId}>
+                        <TableCell>
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.includes(user.userId)}
+                            onChange={(e) => handleSelectUser(user.userId, e.target.checked)}
+                            className="rounded border-gray-300"
+                          />
+                        </TableCell>
+                        <TableCell className="font-mono">{user.userId}</TableCell>
+                        <TableCell>{user.firstName}</TableCell>
+                        <TableCell>{user.lastName}</TableCell>
+                        <TableCell>{USER_TYPE_LABELS[user.userType as UserType] || user.userType}</TableCell>
+                        <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openModal('view', user)}
+                            >
+                              View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => openModal('edit', user)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => openModal('delete', user)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              {state.pagination && state.pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t">
+                  <div className="text-sm text-gray-700">
+                    Showing page {state.pagination.currentPage} of {state.pagination.totalPages}
+                    {' '}({state.pagination.totalItems} total users)
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!state.pagination.hasPreviousPage}
+                      onClick={() => handlePageChange(state.pagination!.currentPage - 1)}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!state.pagination.hasNextPage}
+                      onClick={() => handlePageChange(state.pagination!.currentPage + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
@@ -551,7 +603,6 @@ export default function UsersPage() {
           isOpen={true}
           onClose={closeModal}
           title="Add New User"
-          size="lg"
         >
           <UserForm
             onSave={handleCreateUser}
@@ -566,7 +617,6 @@ export default function UsersPage() {
           isOpen={true}
           onClose={closeModal}
           title={`Edit User: ${modal.user.userId}`}
-          size="lg"
         >
           <div className="p-6">
             <p className="text-sm text-gray-600 mb-4">
@@ -592,7 +642,6 @@ export default function UsersPage() {
           isOpen={true}
           onClose={closeModal}
           title={`View User: ${modal.user.userId}`}
-          size="md"
         >
           <div className="p-6">
             <div className="space-y-4">
@@ -631,7 +680,7 @@ export default function UsersPage() {
               <Button onClick={closeModal} variant="outline">
                 Close
               </Button>
-              <Button onClick={() => openModal('edit', modal.user)}>
+              <Button onClick={() => modal.user && openModal('edit', modal.user)}>
                 Edit User
               </Button>
             </div>
@@ -644,7 +693,6 @@ export default function UsersPage() {
           isOpen={true}
           onClose={closeModal}
           title="Confirm Delete"
-          size="sm"
         >
           <div className="p-6">
             <p className="text-sm text-gray-900 mb-4">

@@ -31,7 +31,7 @@ export default function UserList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo>({
-    currentPage: 1,
+    currentPage: 0,
     totalPages: 1,
     totalItems: 0,
     itemsPerPage: 10,
@@ -62,7 +62,7 @@ export default function UserList({
       }
 
       const response: UserListResponse = await userService.listUsers(params);
-      
+      console.log('Fetched users in list:', response);
       setUsers(response.users || []);
       setPagination(response.pagination);
       setSelectedUserIndex(-1);

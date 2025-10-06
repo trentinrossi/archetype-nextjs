@@ -324,7 +324,7 @@ export const USER_VALIDATION_RULES: UserValidationRules = {
 
 // Default pagination settings
 export const DEFAULT_PAGINATION: PaginationRequest = {
-  page: 1,
+  page: 0,
   limit: 10,
   sortBy: 'userId',
   sortOrder: 'asc',

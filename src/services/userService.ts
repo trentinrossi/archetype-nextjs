@@ -190,11 +190,6 @@ class UserService {
         ...DEFAULT_PAGINATION,
         ...searchParams,
       };
-
-      // Validate pagination parameters
-      if (params.page && params.page < 1) {
-        params.page = 1;
-      }
       
       if (params.limit && (params.limit < 1 || params.limit > 100)) {
         params.limit = DEFAULT_PAGINATION.limit;
@@ -214,9 +209,9 @@ class UserService {
       return {
         users: Array.isArray(data.users) ? data.users : [],
         pagination: data.pagination || {
-          currentPage: params.page || 1,
+          currentPage: params.page,
           totalPages: 1,
-          totalItems: 0,
+          totalItems: data.users ? data.users.length : 0,
           itemsPerPage: params.limit || 10,
           hasNextPage: false,
           hasPreviousPage: false,
