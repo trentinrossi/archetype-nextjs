@@ -22,32 +22,12 @@ export default function Home() {
           Welcome to the Next.js application archetype. A modern frontend template ready for your features.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md">
-          <div className="rounded-lg border border-border bg-muted px-5 py-4 opacity-60">
-            <h2 className="text-lg font-semibold text-muted-foreground mb-2">
-              Your Features
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Implement your features following the archetype patterns.
-            </p>
-          </div>
-          
-          <div className="rounded-lg border border-border bg-muted px-5 py-4 opacity-60">
-            <h2 className="text-lg font-semibold text-muted-foreground mb-2">
-              Ready to Build
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Add types, services, and pages for your domain.
-            </p>
-          </div>
-        </div>
-
         <div className="flex gap-4 items-center flex-col sm:flex-row">
           <Link
             className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-primary text-primary-foreground gap-2 hover:bg-primary/90 font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="/archetype.md"
+            href="/login"
           >
-            Get Started
+            Login
           </Link>
           <a
             className="rounded-full border border-solid border-border transition-colors flex items-center justify-center hover:bg-muted font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
