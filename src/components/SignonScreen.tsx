@@ -1,17 +1,29 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { userSecurityService } from '@/services/userSecurityService';
-import { SignonRequestDTO, SignonResponseDTO } from '@/types/userSecurity';
+import { SignonRequestDTO, SignonResponseDTO, ERROR_CODES } from '@/types/userSecurity';
 
-const SignonPage: React.FC = () => {
+interface SignonScreenProps {
+  onSignonSuccess?: (response: SignonResponseDTO) => void;
+  onExit?: () => void;
+  className?: string;
+}
+
+const SignonScreen: React.FC<SignonScreenProps> = ({
+  onSignonSuccess,
+  onExit,
+  className = ''
+}) => {
   const router = useRouter();
   const [userId, setUserId] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [successMessage, setSuccessMessage] = useState<string>('');
+  const [userIdError, setUserIdError] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>('');
+  const [rememberMe, setRememberMe] = useState<boolean>(false);
 
   const userIdRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -21,123 +33,152 @@ const SignonPage: React.FC = () => {
     if (userIdRef.current) {
       userIdRef.current.focus();
     }
-
-    // Check if user is already authenticated
-    if (userSecurityService.isAuthenticated()) {
-      const session = userSecurityService.getCurrentSession();
-      if (session) {
-        redirectToDashboard(session.userType);
-      }
-    }
   }, []);
 
-  const clearMessages = () => {
+  const clearErrors = () => {
     setErrorMessage('');
-    setSuccessMessage('');
+    setUserIdError('');
+    setPasswordError('');
   };
 
-  const redirectToDashboard = (userType: 'ADMIN' | 'GENERAL') => {
-    if (userType === 'ADMIN') {
-      router.push('/admin/dashboard');
-    } else {
-      router.push('/user/dashboard');
-    }
-  };
+  const validateFields = (): boolean => {
+    let isValid = true;
+    clearErrors();
 
-  const handleSignon = async () => {
     if (!userId.trim()) {
-      setErrorMessage('Please enter User ID');
-      if (userIdRef.current) {
-        userIdRef.current.focus();
-      }
-      return;
+      setUserIdError('Please enter User ID');
+      isValid = false;
+    } else if (userId.length > 8) {
+      setUserIdError('User ID cannot exceed 8 characters');
+      isValid = false;
     }
 
     if (!password.trim()) {
-      setErrorMessage('Please enter Password');
-      if (passwordRef.current) {
-        passwordRef.current.focus();
-      }
+      setPasswordError('Please enter Password');
+      isValid = false;
+    } else if (password.length > 8) {
+      setPasswordError('Password cannot exceed 8 characters');
+      isValid = false;
+    }
+
+    return isValid;
+  };
+
+  const handleSignon = async () => {
+    if (!validateFields()) {
       return;
     }
 
     setIsLoading(true);
-    clearMessages();
+    clearErrors();
 
     try {
       const signonRequest: SignonRequestDTO = {
-        userId: userId.trim().toUpperCase(),
-        password: password,
+        userId: userId.trim(),
+        password: password.trim(),
         systemId: 'COSGN00C',
-        workstationId: typeof window !== 'undefined' ? window.location.hostname : 'WEB'
+        workstationId: typeof window !== 'undefined' ? window.location.hostname : undefined
       };
 
-      const response = await userSecurityService.signon(signonRequest, false);
+      const response = await userSecurityService.signon(signonRequest, rememberMe);
 
       if (response.success && response.data) {
         const signonData = response.data;
         
-        if (signonData.success && signonData.userType) {
-          setSuccessMessage(`Welcome ${signonData.userName || signonData.userId}!`);
-          
-          // Small delay to show success message before redirect
-          setTimeout(() => {
-            redirectToDashboard(signonData.userType!);
-          }, 1000);
-        } else {
-          // Handle signon failure based on COSGN00C business rules
-          switch (signonData.errorCode) {
-            case 'INVALID_CREDENTIALS':
-              setErrorMessage('Wrong Password');
-              break;
-            case 'USER_NOT_FOUND':
-              setErrorMessage('User not found');
-              break;
-            case 'USER_INACTIVE':
-              setErrorMessage('User account is inactive');
-              break;
-            default:
-              setErrorMessage(signonData.errorMessage || 'Authentication failed');
-              break;
-          }
-
-          // Clear password field on failed attempt
+        if (signonData.success) {
+          // Clear form
+          setUserId('');
           setPassword('');
-          if (passwordRef.current) {
-            passwordRef.current.focus();
+          
+          // Call success callback if provided
+          if (onSignonSuccess) {
+            onSignonSuccess(signonData);
+          } else {
+            // Default redirection based on user type
+            if (signonData.userType === 'ADMIN') {
+              router.push('/admin/dashboard');
+            } else {
+              router.push('/dashboard');
+            }
           }
+        } else {
+          // Handle authentication failure
+          handleSignonError(signonData.errorCode, signonData.errorMessage, signonData.remainingAttempts);
         }
       } else {
-        setErrorMessage(response.error?.message || 'System error occurred');
-        setPassword('');
-        if (passwordRef.current) {
-          passwordRef.current.focus();
-        }
+        // Handle API error
+        setErrorMessage(response.error?.message || 'Authentication failed. Please try again.');
       }
     } catch (error) {
       console.error('Signon error:', error);
-      setErrorMessage('System error occurred');
-      setPassword('');
-      if (passwordRef.current) {
-        passwordRef.current.focus();
-      }
+      setErrorMessage('System error occurred. Please try again later.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleSignonError = (errorCode?: string, errorMessage?: string, remainingAttempts?: number) => {
+    switch (errorCode) {
+      case ERROR_CODES.INVALID_CREDENTIALS:
+        setErrorMessage('Wrong Password');
+        break;
+      
+      case ERROR_CODES.USER_NOT_FOUND:
+        setErrorMessage('User not found');
+        break;
+      
+      case ERROR_CODES.USER_INACTIVE:
+        setErrorMessage('User account is inactive');
+        break;
+      
+      case ERROR_CODES.USER_LOCKED:
+        setErrorMessage('User account is locked');
+        break;
+      
+      case ERROR_CODES.PASSWORD_EXPIRED:
+        setErrorMessage('Password has expired');
+        break;
+      
+      case ERROR_CODES.SYSTEM_ERROR:
+        setErrorMessage('System error occurred');
+        break;
+      
+      default:
+        setErrorMessage(errorMessage || 'Authentication failed');
+        break;
+    }
+  };
+
   const handleExit = async () => {
+    setIsLoading(true);
+    
     try {
       await userSecurityService.exit();
-      setSuccessMessage('Thank you for using CardDemo application');
       
-      setTimeout(() => {
-        if (typeof window !== 'undefined') {
-          window.close();
-        }
-      }, 2000);
+      if (onExit) {
+        onExit();
+      } else {
+        // Show thank you message
+        setErrorMessage('Thank you for using CardDemo application');
+        setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            window.close();
+          }
+        }, 2000);
+      }
     } catch (error) {
       console.error('Exit error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInvalidKey = async () => {
+    try {
+      await userSecurityService.invalidateKey();
+      setErrorMessage('Invalid key pressed');
+    } catch (error) {
+      console.error('Invalid key error:', error);
     }
   };
 
@@ -149,14 +190,29 @@ const SignonPage: React.FC = () => {
           handleSignon();
         }
         break;
-
+      
       case 'F3':
         event.preventDefault();
         if (!isLoading) {
           handleExit();
         }
         break;
-
+      
+      case 'F1':
+      case 'F2':
+      case 'F4':
+      case 'F5':
+      case 'F6':
+      case 'F7':
+      case 'F8':
+      case 'F9':
+      case 'F10':
+      case 'F11':
+      case 'F12':
+        event.preventDefault();
+        handleInvalidKey();
+        break;
+      
       default:
         // Allow normal key processing
         break;
@@ -166,8 +222,10 @@ const SignonPage: React.FC = () => {
   const handleUserIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value.length <= 8) {
-      setUserId(value.toUpperCase());
-      clearMessages();
+      setUserId(value);
+      if (userIdError) {
+        setUserIdError('');
+      }
     }
   };
 
@@ -175,7 +233,9 @@ const SignonPage: React.FC = () => {
     const value = e.target.value;
     if (value.length <= 8) {
       setPassword(value);
-      clearMessages();
+      if (passwordError) {
+        setPasswordError('');
+      }
     }
   };
 
@@ -190,7 +250,7 @@ const SignonPage: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
+      className={`min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ${className}`}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
     >
@@ -224,10 +284,15 @@ const SignonPage: React.FC = () => {
                 onKeyDown={handleUserIdKeyDown}
                 placeholder="Enter User ID (max 8 chars)"
                 maxLength={8}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${
+                  userIdError ? 'border-red-500' : 'border-gray-300'
+                } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
                 disabled={isLoading}
                 autoComplete="username"
               />
+              {userIdError && (
+                <p className="mt-1 text-sm text-red-600">{userIdError}</p>
+              )}
             </div>
 
             {/* Password Field */}
@@ -245,24 +310,30 @@ const SignonPage: React.FC = () => {
                 onKeyDown={handleKeyDown}
                 placeholder="Enter Password (max 8 chars)"
                 maxLength={8}
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${
+                  passwordError ? 'border-red-500' : 'border-gray-300'
+                } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
                 disabled={isLoading}
                 autoComplete="current-password"
               />
+              {passwordError && (
+                <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+              )}
             </div>
           </div>
 
-          {/* Success Message */}
-          {successMessage && (
-            <div className="bg-green-50 border border-green-200 rounded-md p-3">
-              <p className="text-sm text-green-800">{successMessage}</p>
-            </div>
-          )}
-
           {/* Error Message */}
           {errorMessage && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3">
-              <p className="text-sm text-red-800">{errorMessage}</p>
+            <div className={`p-3 rounded-md ${
+              errorMessage.includes('Thank you') 
+                ? 'bg-green-50 border border-green-200' 
+                : 'bg-red-50 border border-red-200'
+            }`}>
+              <p className={`text-sm ${
+                errorMessage.includes('Thank you') ? 'text-green-800' : 'text-red-800'
+              }`}>
+                {errorMessage}
+              </p>
             </div>
           )}
 
@@ -299,4 +370,4 @@ const SignonPage: React.FC = () => {
   );
 };
 
-export default SignonPage;
+export default SignonScreen;
