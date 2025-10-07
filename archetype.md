@@ -23,21 +23,25 @@ archetype-nextjs/
 │   ├── vercel.svg
 │   └── window.svg
 └── src/
-    ├── api/                             # API routes (Next.js API routes)
-    |   ├── auth/                        # Example API routes for 'auth' feature
-    |   |   └── login/
-    |   |       └── route.ts              # POST login route
-    |   ├── users/                       # Example API routes for 'users' feature
-    |   |   ├── [id].ts                   # GET, PUT, DELETE user by ID
-    |   |   ├── email/                   # Nested route for user by email
-    |   |   |   └── [email].ts            # GET user by email
-    |   |   └── index.ts                  # GET all users, POST new user
-    │   └── items/                       # Example API routes for 'items' feature
-    │       ├── [id].ts                   # GET, PUT, DELETE item by ID
-    │       ├── name/                    # Nested route for item by name
-    │       │   └── [name].ts             # GET item by name
-    │       └── index.ts                  # GET all items, POST new item
     ├── app/                             # Next.js App Router directory
+    │   ├── api/                         # API routes (Next.js API routes)
+    │   |   ├── auth/                    # Example API routes for 'auth' feature
+    │   |   |   └── login/
+    │   |   |       └── route.ts          # POST login route
+    │   |   ├── users/                   # Example API routes for 'users' feature
+    │   |   |   ├── [id]/
+    │   |   |   |   └── route.ts          # GET, PUT, DELETE user by ID
+    │   |   |   ├── email/               # Nested route for user by email
+    │   |   |   |   └── [email]/
+    │   |   |   |       └── route.ts      # GET user by email
+    │   |   |   └── route.ts              # GET all users, POST new user
+    │   │   └── items/                   # Example API routes for 'items' feature
+    │   │       ├── [id]/
+    │   │       |   └── route.ts          # GET, PUT, DELETE item by ID
+    │   │       ├── name/                # Nested route for item by name
+    │   │       │   └── [name]/
+    │   │       |       └── route.ts      # GET item by name
+    │   │       └── route.ts              # GET all items, POST new item
     │   ├── favicon.ico                  # Application favicon
     │   ├── globals.css                  # Global styles with TailwindCSS v4
     │   ├── layout.tsx                   # Root layout component
@@ -99,7 +103,7 @@ archetype-nextjs/
   - Forward requests with proper headers
   - Process API responses
 
-### 5. API Layer (`/src/api`)
+### 5. API Layer (`/src/app/api`)
 
 - **Purpose**: API routes and backend communication
 - **Responsibilities**:
@@ -155,7 +159,7 @@ To implement a new feature, follow these **4 steps exactly** and **do not modify
 
 #### Step 1: Add New Types (`/src/types`)
 
-#### Step 2: Add New API routes (`/src/api`)
+#### Step 2: Add New API routes (`/src/app/api`)
 
 #### Step 3: Add New Service (`/src/services`)
 
@@ -176,7 +180,7 @@ When implementing new features, **DO NOT** change:
 When implementing new features, **ONLY**:
 
 - ✅ **Add new type files** in `/src/types/`
-- ✅ **Add new API route files** in `/src/api/`
+- ✅ **Add new API route files** in `/src/app/api/`
 - ✅ **Add new service files** in `/src/services/`
 - ✅ **Add new page directories** in `/src/app/`
 
