@@ -19,9 +19,8 @@ archetype-nextjs/
 └── src/
     ├── api/                             # API routes (Next.js API routes)
     |   ├── auth/                        # Example API routes for 'auth' feature
-    |   |   ├── login.ts                  # POST login
-    |   |   ├── logout.ts                 # POST logout
-    |   |   └── register.ts               # POST register
+    |   |   └── login/
+    |   |       └── route.ts              # POST login route
     |   ├── users/                       # Example API routes for 'users' feature
     |   |   ├── [id].ts                   # GET, PUT, DELETE user by ID
     |   |   ├── email/                   # Nested route for user by email
@@ -490,6 +489,7 @@ When implementing new features, **DO NOT** change:
 When implementing new features, **ONLY**:
 
 - ✅ **Add new type files** in `/src/types/`
+- ✅ **Add new API route files** in `/src/api/`
 - ✅ **Add new service files** in `/src/services/`
 - ✅ **Add new page directories** in `/src/app/`
 
@@ -500,6 +500,7 @@ When implementing new features, **ONLY**:
 - **Services**: camelCase (e.g., `itemService.ts`, `apiClient.ts`)
 - **Types**: camelCase (e.g., `item.ts`, `apiTypes.ts`)
 - **Utilities**: camelCase (e.g., `formatDate.ts`, `validation.ts`)
+- **API Routes**: lowercase (e.g., `route.ts`, `[id].ts`)
 
 ### Naming Conventions
 
