@@ -563,7 +563,7 @@ export async function GET(
 // Another methods here (PUT, DELETE, etc.)
 ```
 
-### 4. Services Layer (`/src/services`)
+### 6. Services Layer (`/src/services`)
 
 - **Purpose**: API communication and data fetching
 - **Responsibilities**:
