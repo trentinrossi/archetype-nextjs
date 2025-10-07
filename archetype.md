@@ -16,6 +16,12 @@ archetype-nextjs/
 ├── postcss.config.mjs                   # PostCSS configuration for TailwindCSS
 ├── tsconfig.json                        # TypeScript configuration
 ├── archetype.md                         # This archetype guide
+├── public/                              # Static assets
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
 └── src/
     ├── api/                             # API routes (Next.js API routes)
     |   ├── auth/                        # Example API routes for 'auth' feature
@@ -32,14 +38,12 @@ archetype-nextjs/
     │       │   └── [name].ts             # GET item by name
     │       └── index.ts                  # GET all items, POST new item
     ├── app/                             # Next.js App Router directory
-    │   ├── items/                       # Example page for 'items' feature
-    │   │   └── page.tsx                  # Items page component
-    |   ├── login/                        # Login page component
-    |   │   └── page.tsx                  # Login page component
+    │   ├── favicon.ico                  # Application favicon
     │   ├── globals.css                  # Global styles with TailwindCSS v4
     │   ├── layout.tsx                   # Root layout component
     │   └── page.tsx                     # Home page component
     ├── components/                      # Reusable UI components
+    │   ├── ProtectedRoute.tsx           # Route protection component for authentication
     │   └── ui/                          # Base UI component library
     │       ├── Button.tsx               # Button component
     │       ├── Input.tsx                # Input component
@@ -47,8 +51,14 @@ archetype-nextjs/
     │       ├── Select.tsx               # Select component
     │       ├── Table.tsx                # Table component
     │       └── index.ts                 # Component exports
-    ├── services/                        # API service layer (empty - ready for implementation)
-    └── types/                           # TypeScript type definitions (empty - ready for implementation)
+    ├── contexts/                        # React Context providers
+    │   └── AuthContext.tsx              # Authentication context provider
+    ├── lib/                             # Library utilities and helpers
+    │   └── auth-middleware.ts           # Authentication middleware utilities
+    ├── services/                        # API service layer
+    │   └── authService.ts               # Authentication service
+    └── types/                           # TypeScript type definitions
+        └── auth.ts                      # Authentication type definitions
 ```
 
 ## Architecture Layers
@@ -276,9 +286,209 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 Input.displayName = 'Input';
 
 export { Input };
+
+// components/ProtectedRoute.tsx
+'use client';
+
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
+export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, loading, router]);
+
+  if (loading) {
+    return <div>Checking authentication...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <div>Redirecting to login...</div>;
+  }
+
+  return <>{children}</>;
+}
 ```
 
-### 3. API Layer (`/src/api`)
+### 3. Contexts Layer (`/src/contexts`)
+
+- **Purpose**: React Context providers for global state management
+- **Responsibilities**:
+  - Manage application-wide state
+  - Provide authentication state and methods
+  - Handle user session management
+  - Coordinate between services and components
+
+**Example Structure:**
+
+```tsx
+// contexts/AuthContext.tsx
+'use client';
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { authService } from '@/services/authService';
+import { UserResponse, UserCreate } from '@/types/auth';
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: UserResponse | null;
+  loading: boolean;
+  login: (username: string, password: string) => Promise<boolean>;
+  register: (userData: UserCreate) => Promise<boolean>;
+  logout: () => void;
+  refreshToken: () => Promise<boolean>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<UserResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const token = authService.getToken();
+      const savedUserData = authService.getUser();
+
+      if (token && savedUserData) {
+        try {
+          const currentUser = await authService.getCurrentUser();
+          setUser(currentUser);
+          setIsAuthenticated(true);
+          authService.setUser(currentUser);
+        } catch (error) {
+          console.error('Token validation failed:', error);
+          authService.removeToken();
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
+  }, []);
+
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      const tokenResponse = await authService.login({ username, password });
+      authService.setToken(tokenResponse.access_token);
+
+      const userResponse = await authService.getCurrentUser();
+      authService.setUser(userResponse);
+
+      setUser(userResponse);
+      setIsAuthenticated(true);
+      return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = () => {
+    authService.removeToken();
+    setUser(null);
+    setIsAuthenticated(false);
+  };
+
+  return (
+    <AuthContext.Provider value={{ 
+      isAuthenticated, 
+      user, 
+      loading, 
+      login, 
+      logout, 
+      refreshToken 
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+```
+
+### 4. Library Layer (`/src/lib`)
+
+- **Purpose**: Utility functions and middleware helpers
+- **Responsibilities**:
+  - Provide reusable utility functions
+  - Handle authentication middleware logic
+  - Forward requests with proper headers
+  - Process API responses
+
+**Example Structure:**
+
+```typescript
+// lib/auth-middleware.ts
+import { NextRequest } from 'next/server';
+
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:8000';
+
+export function getAuthHeaders(request: NextRequest): Record<string, string> {
+  const authorization = request.headers.get('authorization');
+  
+  return {
+    'Content-Type': 'application/json',
+    ...(authorization && { Authorization: authorization }),
+  };
+}
+
+export async function forwardAuthRequest(
+  endpoint: string,
+  method: string,
+  request: NextRequest,
+  body?: unknown
+): Promise<Response> {
+  const headers = getAuthHeaders(request);
+  
+  const fetchOptions: RequestInit = {
+    method,
+    headers,
+  };
+  
+  if (body) {
+    fetchOptions.body = JSON.stringify(body);
+  }
+  
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
+  
+  return response;
+}
+
+export async function handleAuthApiResponse(response: Response) {
+  try {
+    const data = await response.json();
+    return { data, status: response.status, ok: response.ok };
+  } catch (error) {
+    console.error('Failed to parse API response:', error);
+    return {
+      data: { error: 'Failed to parse response' },
+      status: 500,
+      ok: false
+    };
+  }
+}
+```
+
+### 5. API Layer (`/src/api`)
 
 - **Purpose**: API routes and backend communication
 - **Responsibilities**:
@@ -287,6 +497,34 @@ export { Input };
   - Handle API responses and errors
 
 **Example Structure:**
+
+```jsx
+import { NextRequest, NextResponse } from 'next/server';
+import { forwardAuthRequest, handleAuthApiResponse } from '@/lib/auth-middleware';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    const response = await forwardAuthRequest(
+      '/api/v1/auth/login',
+      'POST',
+      request,
+      body
+    );
+    
+    const result = await handleAuthApiResponse(response);
+    
+    return NextResponse.json(result.data, { status: result.status });
+  } catch (error) {
+    console.error('Error in login API route:', error);
+    return NextResponse.json(
+      { error: 'Failed to process login request' },
+      { status: 500 }
+    );
+  }
+}
+```
 
 ```typescript
 // api/items/[id]/route.ts
@@ -412,9 +650,116 @@ class ItemService {
 }
 
 export const itemService = new ItemService();
+
+// services/authService.ts
+import { Token, UserCreate, UserLogin, UserResponse } from "@/types/auth";
+
+const API_BASE_URL = '/api';
+
+class AuthService {
+  private isRefreshing = false;
+  private refreshSubscribers: Array<(token: string) => void> = [];
+
+  private getAuthHeaders(): Record<string, string> {
+    const token = localStorage.getItem('access_token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+  }
+
+  async login(credentials: UserLogin): Promise<Token> {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Login failed');
+    }
+
+    return response.json();
+  }
+
+  async register(userData: UserCreate): Promise<UserResponse> {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Registration failed');
+    }
+
+    return response.json();
+  }
+
+  async getCurrentUser(): Promise<UserResponse> {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to get user info');
+    }
+
+    return response.json();
+  }
+
+  async refreshToken(): Promise<Token> {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error('Token refresh failed');
+    }
+
+    return response.json();
+  }
+
+  // Token management helpers
+  setToken(token: string): void {
+    localStorage.setItem('access_token', token);
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem('access_token');
+  }
+
+  removeToken(): void {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
+  }
+
+  setUser(userResponse: UserResponse): void {
+    localStorage.setItem('user', JSON.stringify(userResponse.user));
+  }
+
+  getUser(): UserResponse['user'] | null {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return null;
+    
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      localStorage.removeItem('user');
+      return null;
+    }
+  }
+}
+
+export const authService = new AuthService();
 ```
 
-### 4. Types Layer (`/src/types`)
+### 7. Types Layer (`/src/types`)
 
 - **Purpose**: TypeScript type definitions and interfaces
 - **Responsibilities**:
@@ -435,6 +780,46 @@ export interface Item {
   status: 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
+}
+
+// types/auth.ts
+export interface UserLogin {
+  username: string;
+  password: string;
+}
+
+export interface UserCreate {
+  username: string;
+  email: string;
+  password: string;
+  full_name?: string;
+}
+
+export interface Token {
+  access_token: string;
+  token_type: string;
+}
+
+export interface UserResponse {
+  message: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    full_name?: string;
+    role: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+  }
+}
+
+export interface HTTPValidationError {
+  detail: Array<{
+    loc: Array<string | number>;
+    msg: string;
+    type: string;
+  }>;
 }
 ```
 
