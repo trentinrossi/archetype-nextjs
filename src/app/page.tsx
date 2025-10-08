@@ -3,8 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { Box, CircularProgress, Typography } from '@mui/material';
-import ProtectedRoute from "@/components/ProtectedRoute";
 
 function HomePage() {
   const router = useRouter();
@@ -12,31 +10,22 @@ function HomePage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/dashboard');
+      // Redirect authenticated users to admin menu
+      router.replace('/admin');
+    } else {
+      // Redirect unauthenticated users to sign-on
+      router.replace('/signon');
     }
   }, [isAuthenticated, router]);
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      flexDirection: 'column',
-      gap: 2
-    }}>
-      <CircularProgress size={60} />
-      <Typography variant="h6" color="text.secondary">
-        Redirecting to dashboard...
-      </Typography>
-    </Box>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Loading application...</p>
+      </div>
+    </div>
   );
 }
 
-export default function Home() {
-  return (
-    <ProtectedRoute>
-      <HomePage />
-    </ProtectedRoute>
-  );
-}
+export default HomePage;
