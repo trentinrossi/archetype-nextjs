@@ -292,7 +292,7 @@ export enum Permission {
 // Business logic types for COSGN00C
 export interface COSGN00CRequest {
   functionKey: string;
-  username?: string;
+  userId?: string;
   password?: string;
   action: 'SIGNON' | 'EXIT' | 'INVALID_KEY' | 'VALIDATE';
 }

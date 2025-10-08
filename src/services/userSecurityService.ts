@@ -111,11 +111,12 @@ class UserSecurityService {
     options: RequestInit = {}
   ): Promise<ServiceResponse<T>> {
     try {
+      console.log('Making request to:', `${this.baseUrl}${url}`, options);
       const response = await fetch(`${this.baseUrl}${url}`, {
         ...options,
         headers: {
           ...this.getAuthHeaders(),
-          ...options.headers,
+          ...options.headers
         },
       });
 
@@ -131,7 +132,7 @@ class UserSecurityService {
 
   // COSGN00C - Authentication Business Logic
   private async executeCOSGN00C(request: COSGN00CRequest): Promise<ServiceResponse<COSGN00CResponse>> {
-    const response = await this.makeRequest<COSGN00CResponse>('/auth/cosgn00c', {
+    const response = await this.makeRequest<COSGN00CResponse>('/users/signin', {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -144,7 +145,7 @@ class UserSecurityService {
     try {
       const cosgn00cRequest: COSGN00CRequest = {
         functionKey: 'F1',
-        username: credentials.username,
+        userId: credentials.username,
         password: credentials.password,
         action: 'SIGNON',
       };
@@ -158,7 +159,7 @@ class UserSecurityService {
         };
       }
 
-      const response = await this.makeRequest<SignonResponseDTO>('/auth/signon', {
+      const response = await this.makeRequest<SignonResponseDTO>('/users/signin', {
         method: 'POST',
         body: JSON.stringify(credentials),
       });
@@ -208,7 +209,7 @@ class UserSecurityService {
     try {
       const cosgn00cRequest: COSGN00CRequest = {
         functionKey: 'INVALID',
-        username: request.username,
+        userId: request.username,
         action: 'INVALID_KEY',
       };
 
