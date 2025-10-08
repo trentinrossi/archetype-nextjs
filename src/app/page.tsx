@@ -12,7 +12,7 @@ function HomePage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/dashboard');
+      router.replace('/');
     }
   }, [isAuthenticated, router]);
 
@@ -27,7 +27,7 @@ function HomePage() {
     }}>
       <CircularProgress size={60} />
       <Typography variant="h6" color="text.secondary">
-        Redirecting to dashboard...
+        Redirecting to home...
       </Typography>
     </Box>
   );

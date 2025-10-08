@@ -173,7 +173,6 @@ When implementing new features, **DO NOT** change:
 - ❌ **CSS Files** (`globals.css`, TailwindCSS configuration) - Styling is already configured
 - ❌ **Root Layout** (`app/layout.tsx`) - Global layout should remain unchanged
 - ❌ **Configuration Files** (`next.config.ts`, `tsconfig.json`, etc.) - Core setup is complete
-- ❌ **Existing Features** - This is a clean template with no existing feature implementations
 
 ### What TO Add/Modify
 
@@ -183,6 +182,14 @@ When implementing new features, **ONLY**:
 - ✅ **Add new API route files** in `/src/app/api/`
 - ✅ **Add new service files** in `/src/services/`
 - ✅ **Add new page directories** in `/src/app/`
+
+### What you CAN Modify
+
+- ✅ **Change the context provider** in `/src/contexts/` if needed to meet API requirements
+- ✅ **Change the auth service** in `/src/services/` if needed to meet API requirements
+- ✅ **Change the middleware** in `/src/lib/` if needed to meet API requirements for shared logic
+- ✅ **Change the API routes** in `/src/app/api/` if needed to meet API requirements
+- ✅ **Change the page file** in `/src/app/` if needed to meet UI requirements and API routes
 
 ### File Naming Conventions
 
@@ -203,16 +210,6 @@ When implementing new features, **ONLY**:
 - **Props Interfaces**: PascalCase with "Props" suffix (e.g., `ButtonProps`, `ItemCardProps`)
 - **Event Handlers**: "handle" prefix (e.g., `handleClick`, `handleSubmit`, `handleChange`)
 
-### Standard Patterns
-
-- **Server Components**: Default for pages and layouts (no 'use client')
-- **Client Components**: Use `'use client'` directive when needed
-- **Async Pages**: Use `async function` for server components with data fetching
-- **Error Handling**: Use `error.tsx` and `not-found.tsx` for route-level errors
-- **Loading States**: Use `loading.tsx` for route-level loading UI
-- **Layouts**: Use `layout.tsx` for shared UI between routes
-- **Metadata**: Export `metadata` object or `generateMetadata` function
-
 ## Available Dependencies
 
 - **Next.js 15.5.3**: React framework with App Router
@@ -223,13 +220,3 @@ When implementing new features, **ONLY**:
 - **ESLint 9**: Code linting with flat config format
 - **PostCSS**: CSS processing for TailwindCSS integration
 - **MUI (Material-UI)**: Component library for React
-
-### Key Technology Features
-
-- **App Router**: File-system based routing with layouts and nested routes
-- **Server Components**: React components that render on the server
-- **Turbopack**: Faster alternative to Webpack for builds and dev server
-- **TailwindCSS v4**: Latest version with `@import "tailwindcss"` syntax
-- **TypeScript Path Mapping**: `@/*` alias for clean imports
-- **Font Optimization**: Automatic optimization of Google Fonts (Geist)
-- **Image Optimization**: Built-in Next.js Image component for performance
