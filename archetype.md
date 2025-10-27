@@ -72,9 +72,7 @@ archetype-nextjs/
 - **Purpose**: Next.js App Router for routing and layout management
 - **Responsibilities**:
   - Define application routes and pages
-  - Manage layouts and metadata
   - Handle server and client components
-  - Configure global styles and fonts
 
 ### 2. Components Layer (`/src/components`)
 
@@ -157,13 +155,142 @@ This archetype is provided as a **clean template** ready for feature implementat
 
 To implement a new feature, follow these **4 steps exactly** and **do not modify** existing application parts:
 
-#### Step 1: Add New Types (`/src/types`)
+#### Step 1: Add New Types (`/src/types/product.ts`)
 
-#### Step 2: Add New API routes (`/src/app/api`)
+```tsx
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+}
+```
 
-#### Step 3: Add New Service (`/src/services`)
+#### Step 2: Add New API routes (`/src/app/api/products/route.ts`)
+
+```tsx
+import { NextRequest, NextResponse } from 'next/server';
+import { forwardAuthRequest, handleAuthApiResponse } from '@/lib/auth-middleware';
+
+export async function GET(request: NextRequest) {
+  try {
+    const response = await forwardAuthRequest(
+      '/api/v1/products',
+      'GET',
+      request
+    );
+    
+    const result = await handleAuthApiResponse(response);
+    
+    return NextResponse.json(result.data, { status: result.status });
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch products' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    const response = await forwardAuthRequest(
+      '/api/v1/configurations',
+      'POST',
+      request,
+      body
+    );
+    
+    const result = await handleAuthApiResponse(response);
+    
+    return NextResponse.json(result.data, { status: result.status });
+  } catch (error) {
+    console.error('Error creating configuration:', error);
+    return NextResponse.json(
+      { error: 'Failed to create configuration' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+#### Step 3: Add New Service (`/src/services/productService.ts`)
+
+```tsx
+import { Product } from '@/types/product';
+import { getAuthHeaders } from '@/lib/auth-middleware';
+
+const API_BASE_URL = '/api';
+
+class ProductService {
+private getAuthHeaders(): Record<string, string> {
+    const token = localStorage.getItem('access_token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+  }
+
+  async getProducts(): Promise<Product[]> {
+    const response = await fetch(`${API_BASE_URL}/products`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch products');
+    }
+    return response.json();
+  }
+}
+```
 
 #### Step 4: Add New Page (`/src/app/products`)
+
+```tsx
+import React, { useEffect, useState } from 'react';
+import { ProductService } from '@/services/productService';
+
+const productService = new ProductService();
+
+const ProductsPage: React.FC = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const data = await productService.getProducts();
+        setProducts(data);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div>
+      <h1>Products</h1>
+      <ul>
+        {products.map((product) => (
+          <li key={product.id}>{product.name}</li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default ProductsPage;
+```
 
 ### What NOT to Modify
 
