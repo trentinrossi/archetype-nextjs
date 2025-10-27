@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:8080';
 
 export function getAuthHeaders(request: NextRequest): Record<string, string> {
   const authorization = request.headers.get('authorization');
