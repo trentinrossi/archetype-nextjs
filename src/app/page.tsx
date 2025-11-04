@@ -1,42 +1,33 @@
 'use client';
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import { Box, CircularProgress, Typography } from '@mui/material';
-import ProtectedRoute from "@/components/ProtectedRoute";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
-function HomePage() {
+export default function HomePage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.replace('/');
+    if (!loading) {
+      if (isAuthenticated && user) {
+        if (user.userType === 'A') {
+          router.push('/admin');
+        } else {
+          router.push('/menu');
+        }
+      } else {
+        router.push('/login');
+      }
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, user, loading, router]);
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      flexDirection: 'column',
-      gap: 2
-    }}>
-      <CircularProgress size={60} />
-      <Typography variant="h6" color="text.secondary">
-        Redirecting to home...
-      </Typography>
-    </Box>
-  );
-}
-
-export default function Home() {
-  return (
-    <ProtectedRoute>
-      <HomePage />
-    </ProtectedRoute>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    </div>
   );
 }

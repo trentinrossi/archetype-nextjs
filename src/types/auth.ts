@@ -1,38 +1,41 @@
-export interface UserLogin {
-  username: string;
+// Authentication types for User and Security Administration
+
+export interface LoginRequest {
+  userId: string;
   password: string;
+}
+
+export interface LoginResponse {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  userType: 'A' | 'R';
+  message: string;
+}
+
+export interface AuthUser {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  userType: 'A' | 'R';
+}
+
+export interface AuthState {
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+export interface UserResponse {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  userType: 'A' | 'R';
 }
 
 export interface UserCreate {
   username: string;
-  email: string;
   password: string;
-  full_name?: string;
-}
-
-export interface Token {
-  access_token: string;
-  token_type: string;
-}
-
-export interface UserResponse {
-  message: string;
-  user: {
-    id: string;
-    username: string;
-    email: string;
-    full_name?: string;
-    role: string;
-    is_active: boolean;
-    created_at: string;
-    updated_at: string;
-  }
-}
-
-export interface HTTPValidationError {
-  detail: Array<{
-    loc: Array<string | number>;
-    msg: string;
-    type: string;
-  }>;
+  email: string;
+  fullName: string;
 }
