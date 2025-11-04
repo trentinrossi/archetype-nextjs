@@ -81,80 +81,51 @@ const TransactionsPage: React.FC = () => {
   };
 
   const columns = [
-    {
-      key: 'transactionId',
-      header: 'Transaction ID',
-      render: (transaction: Transaction) => (
-        <span className="font-medium text-gray-900 font-mono text-sm">{transaction.transactionId}</span>
-      ),
-    },
-    {
-      key: 'cardNumber',
-      header: 'Card Number',
-      render: (transaction: Transaction) => (
-        <span className="text-gray-900 font-mono">****{transaction.cardNumber.slice(-4)}</span>
-      ),
-    },
-    {
-      key: 'accountId',
-      header: 'Account ID',
-      render: (transaction: Transaction) => (
-        <span className="text-gray-900">{transaction.accountId}</span>
-      ),
-    },
-    {
-      key: 'description',
-      header: 'Description',
-      render: (transaction: Transaction) => (
-        <div className="max-w-xs">
-          <div className="text-gray-900 truncate">{transaction.transactionDescription}</div>
-          {transaction.merchantName && (
-            <div className="text-xs text-gray-500">{transaction.merchantName}</div>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'amount',
-      header: 'Amount',
-      render: (transaction: Transaction) => (
-        <span className={`font-medium ${
-          transaction.transactionAmount >= 0 ? 'text-green-600' : 'text-red-600'
-        }`}>
-          {formatCurrency(transaction.transactionAmount)}
-        </span>
-      ),
-    },
-    {
-      key: 'source',
-      header: 'Source',
-      render: (transaction: Transaction) => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          {transaction.transactionSource}
-        </span>
-      ),
-    },
-    {
-      key: 'timestamp',
-      header: 'Date & Time',
-      render: (transaction: Transaction) => (
-        <span className="text-gray-900 text-sm">{formatDateTime(transaction.originalTimestamp)}</span>
-      ),
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (transaction: Transaction) => (
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => handleViewDetails(transaction.transactionId)}
-        >
-          View
-        </Button>
-      ),
-    },
+    { key: 'transactionId', label: 'Transaction ID' },
+    { key: 'cardNumber', label: 'Card Number' },
+    { key: 'accountId', label: 'Account ID' },
+    { key: 'description', label: 'Description' },
+    { key: 'amount', label: 'Amount' },
+    { key: 'source', label: 'Source' },
+    { key: 'timestamp', label: 'Date & Time' },
+    { key: 'actions', label: 'Actions' },
   ];
+
+  const tableData = filteredTransactions.map(transaction => ({
+    transactionId: <span className="font-medium text-gray-900 font-mono text-sm">{transaction.transactionId}</span>,
+    cardNumber: <span className="text-gray-900 font-mono">****{transaction.cardNumber.slice(-4)}</span>,
+    accountId: <span className="text-gray-900">{transaction.accountId}</span>,
+    description: (
+      <div className="max-w-xs">
+        <div className="text-gray-900 truncate">{transaction.transactionDescription}</div>
+        {transaction.merchantName && (
+          <div className="text-xs text-gray-500">{transaction.merchantName}</div>
+        )}
+      </div>
+    ),
+    amount: (
+      <span className={`font-medium ${
+        transaction.transactionAmount >= 0 ? 'text-green-600' : 'text-red-600'
+      }`}>
+        {formatCurrency(transaction.transactionAmount)}
+      </span>
+    ),
+    source: (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        {transaction.transactionSource}
+      </span>
+    ),
+    timestamp: <span className="text-gray-900 text-sm">{formatDateTime(transaction.originalTimestamp)}</span>,
+    actions: (
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => handleViewDetails(transaction.transactionId)}
+      >
+        View
+      </Button>
+    ),
+  }));
 
   if (loading) {
     return (
@@ -248,11 +219,7 @@ const TransactionsPage: React.FC = () => {
         </div>
       ) : (
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <Table
-            data={filteredTransactions}
-            columns={columns}
-            keyExtractor={(transaction) => transaction.transactionId}
-          />
+          <Table columns={columns} data={tableData} />
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
             <p className="text-sm text-gray-700">
               Showing <span className="font-medium">{filteredTransactions.length}</span> of{' '}

@@ -110,79 +110,56 @@ const CardsPage: React.FC = () => {
   };
 
   const columns = [
-    {
-      key: 'cardNumber',
-      header: 'Card Number',
-      render: (card: Card) => (
-        <span className="font-medium text-gray-900 font-mono">{maskCardNumber(card.cardNumber)}</span>
-      ),
-    },
-    {
-      key: 'embossedName',
-      header: 'Cardholder Name',
-      render: (card: Card) => (
-        <span className="text-gray-900">{card.embossedName}</span>
-      ),
-    },
-    {
-      key: 'accountId',
-      header: 'Account ID',
-      render: (card: Card) => (
-        <span className="text-gray-900">{card.accountId}</span>
-      ),
-    },
-    {
-      key: 'expirationDate',
-      header: 'Expiration Date',
-      render: (card: Card) => (
-        <span className="text-gray-900">{formatDate(card.expirationDate)}</span>
-      ),
-    },
-    {
-      key: 'activeStatus',
-      header: 'Status',
-      render: (card: Card) => (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            card.activeStatus === 'Y'
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800'
-          }`}
-        >
-          {card.activeStatus === 'Y' ? 'Active' : 'Inactive'}
-        </span>
-      ),
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (card: Card) => (
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleViewDetails(card.cardNumber)}
-          >
-            View
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleEdit(card.cardNumber)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => handleDeleteClick(card.cardNumber)}
-          >
-            Delete
-          </Button>
-        </div>
-      ),
-    },
+    { key: 'cardNumber', label: 'Card Number' },
+    { key: 'embossedName', label: 'Cardholder Name' },
+    { key: 'accountId', label: 'Account ID' },
+    { key: 'expirationDate', label: 'Expiration Date' },
+    { key: 'activeStatus', label: 'Status' },
+    { key: 'actions', label: 'Actions' },
   ];
+
+  const tableData = filteredCards.map(card => ({
+    cardNumber: <span className="font-medium text-gray-900 font-mono">{maskCardNumber(card.cardNumber)}</span>,
+    embossedName: <span className="text-gray-900">{card.embossedName}</span>,
+    accountId: <span className="text-gray-900">{card.accountId}</span>,
+    expirationDate: <span className="text-gray-900">{formatDate(card.expirationDate)}</span>,
+    activeStatus: (
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          card.activeStatus === 'Y'
+            ? 'bg-green-100 text-green-800'
+            : 'bg-red-100 text-red-800'
+        }`}
+      >
+        {card.activeStatus === 'Y' ? 'Active' : 'Inactive'}
+      </span>
+    ),
+    actions: (
+      <div className="flex gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => handleViewDetails(card.cardNumber)}
+        >
+          View
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => handleEdit(card.cardNumber)}
+        >
+          Edit
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => handleDeleteClick(card.cardNumber)}
+        >
+          Delete
+        </Button>
+      </div>
+    ),
+  }));
 
   if (loading) {
     return (
@@ -279,11 +256,7 @@ const CardsPage: React.FC = () => {
         </div>
       ) : (
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <Table
-            data={filteredCards}
-            columns={columns}
-            keyExtractor={(card) => card.cardNumber}
-          />
+          <Table columns={columns} data={tableData} />
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
             <p className="text-sm text-gray-700">
               Showing <span className="font-medium">{filteredCards.length}</span> of{' '}

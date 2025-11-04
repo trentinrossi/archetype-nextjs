@@ -111,93 +111,60 @@ const AccountsPage: React.FC = () => {
   };
 
   const columns = [
-    {
-      key: 'accountId',
-      header: 'Account ID',
-      render: (account: Account) => (
-        <span className="font-medium text-gray-900">{account.accountId}</span>
-      ),
-    },
-    {
-      key: 'activeStatus',
-      header: 'Status',
-      render: (account: Account) => (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            account.activeStatus === 'Y'
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800'
-          }`}
-        >
-          {account.activeStatus === 'Y' ? 'Active' : 'Inactive'}
-        </span>
-      ),
-    },
-    {
-      key: 'currentBalance',
-      header: 'Current Balance',
-      render: (account: Account) => (
-        <span className="text-gray-900">{formatCurrency(account.currentBalance)}</span>
-      ),
-    },
-    {
-      key: 'creditLimit',
-      header: 'Credit Limit',
-      render: (account: Account) => (
-        <span className="text-gray-900">{formatCurrency(account.creditLimit)}</span>
-      ),
-    },
-    {
-      key: 'cashCreditLimit',
-      header: 'Cash Credit Limit',
-      render: (account: Account) => (
-        <span className="text-gray-900">{formatCurrency(account.cashCreditLimit)}</span>
-      ),
-    },
-    {
-      key: 'openDate',
-      header: 'Open Date',
-      render: (account: Account) => (
-        <span className="text-gray-900">{formatDate(account.openDate)}</span>
-      ),
-    },
-    {
-      key: 'groupId',
-      header: 'Group ID',
-      render: (account: Account) => (
-        <span className="text-gray-900">{account.groupId}</span>
-      ),
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (account: Account) => (
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleViewDetails(account.accountId)}
-          >
-            View
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleEdit(account.accountId)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => handleDeleteClick(account.accountId)}
-          >
-            Delete
-          </Button>
-        </div>
-      ),
-    },
+    { key: 'accountId', label: 'Account ID' },
+    { key: 'activeStatus', label: 'Status' },
+    { key: 'currentBalance', label: 'Current Balance' },
+    { key: 'creditLimit', label: 'Credit Limit' },
+    { key: 'cashCreditLimit', label: 'Cash Credit Limit' },
+    { key: 'openDate', label: 'Open Date' },
+    { key: 'groupId', label: 'Group ID' },
+    { key: 'actions', label: 'Actions' },
   ];
+
+  const tableData = filteredAccounts.map(account => ({
+    accountId: <span className="font-medium text-gray-900">{account.accountId}</span>,
+    activeStatus: (
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          account.activeStatus === 'Y'
+            ? 'bg-green-100 text-green-800'
+            : 'bg-red-100 text-red-800'
+        }`}
+      >
+        {account.activeStatus === 'Y' ? 'Active' : 'Inactive'}
+      </span>
+    ),
+    currentBalance: <span className="text-gray-900">{formatCurrency(account.currentBalance)}</span>,
+    creditLimit: <span className="text-gray-900">{formatCurrency(account.creditLimit)}</span>,
+    cashCreditLimit: <span className="text-gray-900">{formatCurrency(account.cashCreditLimit)}</span>,
+    openDate: <span className="text-gray-900">{formatDate(account.openDate)}</span>,
+    groupId: <span className="text-gray-900">{account.groupId}</span>,
+    actions: (
+      <div className="flex gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => handleViewDetails(account.accountId)}
+        >
+          View
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => handleEdit(account.accountId)}
+        >
+          Edit
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => handleDeleteClick(account.accountId)}
+        >
+          Delete
+        </Button>
+      </div>
+    ),
+  }));
 
   if (loading) {
     return (
@@ -299,11 +266,7 @@ const AccountsPage: React.FC = () => {
         </div>
       ) : (
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <Table
-            data={filteredAccounts}
-            columns={columns}
-            keyExtractor={(account) => account.accountId}
-          />
+          <Table columns={columns} data={tableData} />
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
             <p className="text-sm text-gray-700">
               Showing <span className="font-medium">{filteredAccounts.length}</span> of{' '}

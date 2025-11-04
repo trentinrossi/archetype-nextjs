@@ -105,99 +105,70 @@ const CustomersPage: React.FC = () => {
   };
 
   const columns = [
-    {
-      key: 'customerId',
-      header: 'Customer ID',
-      render: (customer: Customer) => (
-        <span className="font-medium text-gray-900">{customer.customerId}</span>
-      ),
-    },
-    {
-      key: 'name',
-      header: 'Name',
-      render: (customer: Customer) => (
-        <div>
-          <div className="font-medium text-gray-900">
-            {customer.firstName} {customer.middleName} {customer.lastName}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'dateOfBirth',
-      header: 'Date of Birth',
-      render: (customer: Customer) => (
-        <span className="text-gray-900">{formatDate(customer.dateOfBirth)}</span>
-      ),
-    },
-    {
-      key: 'ssn',
-      header: 'SSN',
-      render: (customer: Customer) => (
-        <span className="text-gray-900 font-mono">{maskSSN(customer.ssn)}</span>
-      ),
-    },
-    {
-      key: 'address',
-      header: 'Address',
-      render: (customer: Customer) => (
-        <div className="text-sm text-gray-900">
-          <div>{customer.addressLine1}</div>
-          {customer.addressLine2 && <div>{customer.addressLine2}</div>}
-          <div>{customer.stateCode} {customer.zipCode}</div>
-        </div>
-      ),
-    },
-    {
-      key: 'phoneNumber',
-      header: 'Phone',
-      render: (customer: Customer) => (
-        <span className="text-gray-900">{customer.phoneNumber1}</span>
-      ),
-    },
-    {
-      key: 'ficoScore',
-      header: 'FICO Score',
-      render: (customer: Customer) => (
-        <span className={`font-medium ${
-          customer.ficoCreditScore >= 700 ? 'text-green-600' :
-          customer.ficoCreditScore >= 600 ? 'text-yellow-600' :
-          'text-red-600'
-        }`}>
-          {customer.ficoCreditScore || 'N/A'}
-        </span>
-      ),
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (customer: Customer) => (
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleViewDetails(customer.customerId)}
-          >
-            View
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleEdit(customer.customerId)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => handleDeleteClick(customer.customerId)}
-          >
-            Delete
-          </Button>
-        </div>
-      ),
-    },
+    { key: 'customerId', label: 'Customer ID' },
+    { key: 'name', label: 'Name' },
+    { key: 'dateOfBirth', label: 'Date of Birth' },
+    { key: 'ssn', label: 'SSN' },
+    { key: 'address', label: 'Address' },
+    { key: 'phoneNumber', label: 'Phone' },
+    { key: 'ficoScore', label: 'FICO Score' },
+    { key: 'actions', label: 'Actions' },
   ];
+
+  const tableData = filteredCustomers.map(customer => ({
+    customerId: <span className="font-medium text-gray-900">{customer.customerId}</span>,
+    name: (
+      <div>
+        <div className="font-medium text-gray-900">
+          {customer.firstName} {customer.middleName} {customer.lastName}
+        </div>
+      </div>
+    ),
+    dateOfBirth: <span className="text-gray-900">{formatDate(customer.dateOfBirth)}</span>,
+    ssn: <span className="text-gray-900 font-mono">{maskSSN(customer.ssn)}</span>,
+    address: (
+      <div className="text-sm text-gray-900">
+        <div>{customer.addressLine1}</div>
+        {customer.addressLine2 && <div>{customer.addressLine2}</div>}
+        <div>{customer.stateCode} {customer.zipCode}</div>
+      </div>
+    ),
+    phoneNumber: <span className="text-gray-900">{customer.phoneNumber1}</span>,
+    ficoScore: (
+      <span className={`font-medium ${
+        customer.ficoCreditScore >= 700 ? 'text-green-600' :
+        customer.ficoCreditScore >= 600 ? 'text-yellow-600' :
+        'text-red-600'
+      }`}>
+        {customer.ficoCreditScore || 'N/A'}
+      </span>
+    ),
+    actions: (
+      <div className="flex gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => handleViewDetails(customer.customerId)}
+        >
+          View
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => handleEdit(customer.customerId)}
+        >
+          Edit
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => handleDeleteClick(customer.customerId)}
+        >
+          Delete
+        </Button>
+      </div>
+    ),
+  }));
 
   if (loading) {
     return (
@@ -278,11 +249,7 @@ const CustomersPage: React.FC = () => {
         </div>
       ) : (
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <Table
-            data={filteredCustomers}
-            columns={columns}
-            keyExtractor={(customer) => customer.customerId}
-          />
+          <Table columns={columns} data={tableData} />
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
             <p className="text-sm text-gray-700">
               Showing <span className="font-medium">{filteredCustomers.length}</span> of{' '}
