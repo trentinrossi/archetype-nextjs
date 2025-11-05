@@ -4,12 +4,13 @@
 
 This is a Next.js 15.5.3 application archetype with React 19, TypeScript 5, TailwindCSS v4, and Turbopack. It follows a modern component-based architecture pattern for building frontend applications with App Router and server components.
 
-**Important**: This archetype is a **working template** with established patterns. The documentation uses placeholder examples (like 'widgets', 'gadgets') to demonstrate implementation patterns. When implementing new features:
+**Important**: This archetype is a **working template** with established patterns. The documentation references the **widgets** feature as a **real, working implementation example** in the codebase. When implementing new features:
 
-1. **Follow the established patterns** shown in the examples
+1. **Follow the established patterns** shown in the widgets implementation
 2. **Use existing UI components** without modification
 3. **Do not alter** the core application structure, CSS, or configuration files
 4. **Only add new files** in the appropriate layer directories
+5. **Reference `/src/app/widgets`, `/src/types/widget.ts`, and `/src/services/widgetService.ts`** as working examples
 
 ## Project Structure
 
@@ -754,7 +755,27 @@ export default function EditWidgetPage() {
 
 ## Development Guidelines
 
-### Important: Template Philosophy
+### Important: Working Example Implementation
+
+This archetype includes a **complete, working widget feature** that serves as the reference implementation:
+
+- **Types**: `/src/types/widget.ts` - Widget interfaces and types
+- **API Routes**: 
+  - `/src/app/api/widgets/route.ts` - List and create endpoints
+  - `/src/app/api/widgets/[id]/route.ts` - Get, update, delete by ID
+  - `/src/app/api/widgets/category/[category]/route.ts` - Filter by category
+- **Service**: `/src/services/widgetService.ts` - Widget API client
+- **Pages**:
+  - `/src/app/widgets/page.tsx` - List page with filtering
+  - `/src/app/widgets/[id]/page.tsx` - Detail page
+  - `/src/app/widgets/[id]/edit/page.tsx` - Edit page
+  - `/src/app/widgets/new/page.tsx` - Create page
+
+**Use this widget implementation as your guide when creating new features!**
+
+---
+
+### Template Philosophy
 
 This archetype provides a **working template** with established patterns. When implementing new features:
 
