@@ -275,7 +275,7 @@ export async function GET(
 ```typescript
 import { Widget, CreateWidgetRequest } from '@/types/widget';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = '/api'; // <-- DO NOT MODIFY THIS LINE
 
 class WidgetService {
   private getAuthHeaders(): Record<string, string> {
