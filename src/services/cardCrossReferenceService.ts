@@ -1,6 +1,6 @@
 import { CardCrossReference, CreateCardCrossReferenceRequest, ApiError } from '@/types/cardCrossReference';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = '/api';
 
 class CardCrossReferenceService {
   private getAuthHeaders(): Record<string, string> {
