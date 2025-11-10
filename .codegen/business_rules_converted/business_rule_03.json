@@ -1,0 +1,1154 @@
+{
+  "application_metadata": {
+    "name": "COCRDUPC - Credit Card Update Program",
+    "description": "A credit card management system program that handles the process of updating credit card details including cardholder name, card status, and expiration date for specific credit cards associated with accounts",
+    "domain": "Financial Services - Credit Card Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "CreditCard",
+        "description": "Represents a credit card with its associated details and status",
+        "attributes": [
+          {
+            "name": "account_id",
+            "type": "Numeric",
+            "length": 11,
+            "required": true,
+            "description": "Account ID associated with the credit card"
+          },
+          {
+            "name": "card_number",
+            "type": "Numeric",
+            "length": 16,
+            "required": true,
+            "description": "Credit card number - primary identifier"
+          },
+          {
+            "name": "cardholder_name",
+            "type": "Alphanumeric",
+            "length": 50,
+            "required": true,
+            "description": "Name of the cardholder - editable field"
+          },
+          {
+            "name": "card_status",
+            "type": "Alphanumeric",
+            "length": 1,
+            "required": true,
+            "description": "Card active status - Y for active, N for inactive"
+          },
+          {
+            "name": "cvv_code",
+            "type": "Numeric",
+            "length": 3,
+            "required": true,
+            "description": "Card Verification Value - not editable"
+          },
+          {
+            "name": "expiration_month",
+            "type": "Numeric",
+            "length": 2,
+            "required": true,
+            "description": "Expiration month (01-12) - editable field"
+          },
+          {
+            "name": "expiration_year",
+            "type": "Numeric",
+            "length": 4,
+            "required": true,
+            "description": "Expiration year (1950-2099) - editable field"
+          },
+          {
+            "name": "expiration_day",
+            "type": "Numeric",
+            "length": 2,
+            "required": true,
+            "description": "Expiration day - not editable by user"
+          },
+          {
+            "name": "expiration_date",
+            "type": "Alphanumeric",
+            "length": 10,
+            "required": true,
+            "description": "Formatted expiration date stored as YYYY-MM-DD"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "belongs_to",
+            "cardinality": "many_to_one"
+          }
+        ]
+      },
+      {
+        "name": "Account",
+        "description": "Customer account that owns credit cards",
+        "attributes": [
+          {
+            "name": "account_id",
+            "type": "Numeric",
+            "length": 11,
+            "required": true,
+            "description": "Unique account identifier"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "CreditCard",
+            "relationship_type": "has_many",
+            "cardinality": "one_to_many"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Credit Card Search and Retrieval",
+        "description": "Users can search for a specific credit card using account ID and card number combination",
+        "category": "Data Retrieval",
+        "logic": "Retrieve credit card details from the card data store based on provided account ID and card number. The card number serves as the primary key for lookup.",
+        "conditions": [
+          "Account ID must be provided and valid",
+          "Card number must be provided and valid",
+          "Card record must exist in the system"
+        ],
+        "actions": [
+          "Validate account ID format (11-digit numeric, non-zero)",
+          "Validate card number format (16-digit numeric, non-zero)",
+          "Retrieve card record using card number as key",
+          "Display card details if found",
+          "Display error message if card not found or validation fails"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Cardholder Name Update",
+        "description": "Allows modification of the cardholder name with specific format requirements",
+        "category": "Data Update",
+        "logic": "Cardholder name can be updated but must contain only alphabetic characters and spaces. The name is converted to uppercase before storage.",
+        "conditions": [
+          "Card must be successfully retrieved",
+          "New name must not be blank",
+          "New name must contain only alphabets and spaces"
+        ],
+        "actions": [
+          "Accept new cardholder name input",
+          "Validate name contains only alphabets and spaces",
+          "Convert name to uppercase",
+          "Update card record with new name upon confirmation"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Card Status Management",
+        "description": "Controls the active/inactive status of credit cards",
+        "category": "Status Management",
+        "logic": "Card status can be toggled between active (Y) and inactive (N) states",
+        "conditions": [
+          "Card must be successfully retrieved",
+          "Status value must be either Y or N"
+        ],
+        "actions": [
+          "Accept status input (Y or N)",
+          "Validate status is either Y or N",
+          "Update card status upon confirmation"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Card Expiration Date Update",
+        "description": "Allows modification of card expiration month and year with validation",
+        "category": "Data Update",
+        "logic": "Expiration month and year can be updated within valid ranges. The expiration day is not editable by users.",
+        "conditions": [
+          "Card must be successfully retrieved",
+          "Expiration month must be between 01 and 12",
+          "Expiration year must be between 1950 and 2099"
+        ],
+        "actions": [
+          "Accept expiration month input",
+          "Accept expiration year input",
+          "Validate month is between 01-12",
+          "Validate year is between 1950-2099",
+          "Format expiration date as YYYY-MM-DD",
+          "Update card record with new expiration date upon confirmation"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Update Confirmation Requirement",
+        "description": "All changes must be explicitly confirmed by the user before being committed",
+        "category": "Transaction Control",
+        "logic": "After validation of all changes, the system prompts for user confirmation before updating the database",
+        "conditions": [
+          "All input validations must pass",
+          "At least one field must have changed",
+          "User must explicitly confirm changes"
+        ],
+        "actions": [
+          "Display all proposed changes",
+          "Wait for user confirmation",
+          "Proceed with update only upon confirmation",
+          "Cancel update if user declines"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Concurrent Modification Detection",
+        "description": "Prevents data loss from concurrent updates by detecting changes made by other users",
+        "category": "Data Integrity",
+        "logic": "Before updating, the system checks if the record was modified by another user since it was retrieved. If changes are detected, the update is rejected and fresh data is displayed.",
+        "conditions": [
+          "Record must be locked for update",
+          "Original values must match current database values"
+        ],
+        "actions": [
+          "Lock record for update",
+          "Compare current database values with originally retrieved values",
+          "If values differ, reject update and display current values",
+          "If values match, proceed with update",
+          "Release lock after update or rejection"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "No Changes Detection",
+        "description": "System detects when no actual changes have been made to prevent unnecessary updates",
+        "category": "Optimization",
+        "logic": "Compares new input values with original values (case-insensitive) to determine if any actual changes were made",
+        "conditions": [
+          "All validations pass",
+          "New values are compared with original values using case-insensitive comparison"
+        ],
+        "actions": [
+          "Convert both old and new values to uppercase for comparison",
+          "If all values match, display 'no changes detected' message",
+          "Skip update process if no changes detected"
+        ]
+      },
+      {
+        "id": "BR008",
+        "name": "Record Locking for Updates",
+        "description": "Ensures data integrity by locking records during update operations",
+        "category": "Concurrency Control",
+        "logic": "When user confirms changes, the system locks the record to prevent concurrent modifications",
+        "conditions": [
+          "User has confirmed changes",
+          "Record must be available for locking"
+        ],
+        "actions": [
+          "Attempt to lock record for update",
+          "If lock fails, display error message and abort update",
+          "If lock succeeds, proceed with concurrent modification check",
+          "Release lock after update completion or failure"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "account_id",
+        "rule": "Must be an 11-digit numeric value, not all zeros, and not blank",
+        "error_message": "Invalid account ID format",
+        "severity": "error"
+      },
+      {
+        "field": "card_number",
+        "rule": "Must be a 16-digit numeric value, not all zeros, and not blank",
+        "error_message": "Invalid card number format",
+        "severity": "error"
+      },
+      {
+        "field": "cardholder_name",
+        "rule": "Must contain only alphabetic characters and spaces, cannot be blank",
+        "error_message": "Card name must contain only letters and spaces",
+        "severity": "error"
+      },
+      {
+        "field": "card_status",
+        "rule": "Must be either 'Y' (active) or 'N' (inactive), cannot be blank",
+        "error_message": "Card status must be Y or N",
+        "severity": "error"
+      },
+      {
+        "field": "expiration_month",
+        "rule": "Must be a numeric value between 01 and 12, cannot be blank",
+        "error_message": "Expiration month must be between 01 and 12",
+        "severity": "error"
+      },
+      {
+        "field": "expiration_year",
+        "rule": "Must be a numeric value between 1950 and 2099, cannot be blank",
+        "error_message": "Expiration year must be between 1950 and 2099",
+        "severity": "error"
+      },
+      {
+        "field": "account_card_combination",
+        "rule": "The combination of account ID and card number must exist in the system",
+        "error_message": "Account and card combination not found",
+        "severity": "error"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Format Expiration Date",
+        "description": "Formats the expiration date components into a standardized date string",
+        "formula": "YYYY-MM-DD where YYYY is year, MM is month, DD is day",
+        "input_fields": [
+          "expiration_year",
+          "expiration_month",
+          "expiration_day"
+        ],
+        "output_field": "expiration_date"
+      },
+      {
+        "name": "Uppercase Name Conversion",
+        "description": "Converts cardholder name to uppercase for storage and comparison",
+        "formula": "UPPER-CASE(cardholder_name)",
+        "input_fields": [
+          "cardholder_name"
+        ],
+        "output_field": "cardholder_name_uppercase"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Credit Card Update Process",
+        "description": "Complete workflow for searching, viewing, modifying, and updating credit card details",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize screen and receive user input for account ID and card number",
+            "conditions": [
+              "User is authenticated",
+              "Screen is displayed"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Validate search criteria (account ID and card number)",
+            "conditions": [
+              "Account ID is 11-digit numeric and not all zeros",
+              "Card number is 16-digit numeric and not all zeros"
+            ],
+            "next_step": "3_if_valid_else_1"
+          },
+          {
+            "step_number": 3,
+            "action": "Retrieve card details from database using card number as key",
+            "conditions": [
+              "Search criteria is valid"
+            ],
+            "next_step": "4_if_found_else_1"
+          },
+          {
+            "step_number": 4,
+            "action": "Display card details including account ID, card number, cardholder name, status, CVV, and expiration date",
+            "conditions": [
+              "Card record found"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Allow user to modify editable fields (name, status, expiration month, expiration year)",
+            "conditions": [
+              "Card details are displayed"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Validate all modified fields",
+            "conditions": [
+              "User has entered changes"
+            ],
+            "next_step": "7_if_valid_else_5"
+          },
+          {
+            "step_number": 7,
+            "action": "Check if any actual changes were made (case-insensitive comparison)",
+            "conditions": [
+              "All validations passed"
+            ],
+            "next_step": "8_if_changes_else_5"
+          },
+          {
+            "step_number": 8,
+            "action": "Prompt user for confirmation to save changes",
+            "conditions": [
+              "Changes detected and validated"
+            ],
+            "next_step": "9_if_confirmed_else_5"
+          },
+          {
+            "step_number": 9,
+            "action": "Lock record for update",
+            "conditions": [
+              "User confirmed changes"
+            ],
+            "next_step": "10_if_locked_else_error"
+          },
+          {
+            "step_number": 10,
+            "action": "Check for concurrent modifications by comparing with original values",
+            "conditions": [
+              "Record is locked"
+            ],
+            "next_step": "11_if_no_conflict_else_4"
+          },
+          {
+            "step_number": 11,
+            "action": "Update card record with new values",
+            "conditions": [
+              "No concurrent modifications detected"
+            ],
+            "next_step": "12_if_success_else_error"
+          },
+          {
+            "step_number": 12,
+            "action": "Display success message and reset for new search",
+            "conditions": [
+              "Update completed successfully"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "User Navigation Flow",
+        "description": "Handles user navigation through the application including exits and cancellations",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Check for exit request (F3 key)",
+            "conditions": [
+              "User pressed F3"
+            ],
+            "next_step": "2_exit"
+          },
+          {
+            "step_number": 2,
+            "action": "Determine return destination (menu or previous program)",
+            "conditions": [
+              "Exit requested"
+            ],
+            "next_step": "3_exit"
+          },
+          {
+            "step_number": 3,
+            "action": "Reset search criteria if returning to card list",
+            "conditions": [
+              "Returning to card list screen"
+            ],
+            "next_step": "4_exit"
+          },
+          {
+            "step_number": 4,
+            "action": "Commit transaction and transfer control to destination program",
+            "conditions": [
+              "Exit processing complete"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 5,
+            "action": "Check for cancel/refresh request (F12 key)",
+            "conditions": [
+              "User pressed F12",
+              "Card details are displayed"
+            ],
+            "next_step": "6_refresh"
+          },
+          {
+            "step_number": 6,
+            "action": "Re-fetch and display original card details",
+            "conditions": [
+              "Refresh requested"
+            ],
+            "next_step": "display_details"
+          },
+          {
+            "step_number": 7,
+            "action": "Check for confirmation request (F5 key)",
+            "conditions": [
+              "User pressed F5",
+              "Changes are validated and awaiting confirmation"
+            ],
+            "next_step": "update_process"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "Card Data Store",
+        "type": "Database",
+        "purpose": "Store and retrieve credit card information",
+        "data_exchanged": [
+          "account_id",
+          "card_number",
+          "cardholder_name",
+          "card_status",
+          "cvv_code",
+          "expiration_date"
+        ],
+        "trigger_conditions": [
+          "User searches for a card",
+          "User confirms card updates"
+        ]
+      },
+      {
+        "name": "Transaction Processing System",
+        "type": "System",
+        "purpose": "Handle transaction control and commit/rollback operations",
+        "data_exchanged": [
+          "transaction_status",
+          "commit_confirmation"
+        ],
+        "trigger_conditions": [
+          "User exits the program",
+          "Update is successfully completed"
+        ]
+      },
+      {
+        "name": "Common Application Area",
+        "type": "Shared Memory",
+        "purpose": "Share data between programs in the application suite",
+        "data_exchanged": [
+          "account_id",
+          "card_number",
+          "from_program",
+          "to_program",
+          "transaction_id",
+          "user_data"
+        ],
+        "trigger_conditions": [
+          "Program initialization",
+          "Program exit",
+          "Navigation between programs"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Credit Card Administrator",
+        "Customer Service Representative"
+      ],
+      "permissions": [
+        {
+          "role": "Credit Card Administrator",
+          "resource": "CreditCard",
+          "actions": [
+            "view",
+            "update_name",
+            "update_status",
+            "update_expiration"
+          ]
+        },
+        {
+          "role": "Customer Service Representative",
+          "resource": "CreditCard",
+          "actions": [
+            "view",
+            "update_name",
+            "update_expiration"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be signed on to the system",
+        "User credentials are validated before program access",
+        "User data is maintained throughout the session"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "NOTFND",
+        "condition": "Card record not found for given account ID and card number combination",
+        "business_impact": "User cannot view or update card details",
+        "suggested_action": "Verify account ID and card number are correct and try again"
+      },
+      {
+        "error_code": "LOCK_FAILED",
+        "condition": "Unable to lock record for update",
+        "business_impact": "Update cannot proceed, data integrity maintained",
+        "suggested_action": "Wait and retry the update operation"
+      },
+      {
+        "error_code": "CONCURRENT_MODIFICATION",
+        "condition": "Record was modified by another user between retrieval and update",
+        "business_impact": "Update is rejected to prevent data loss",
+        "suggested_action": "Review the current data and re-enter changes if still needed"
+      },
+      {
+        "error_code": "UPDATE_FAILED",
+        "condition": "Database update operation failed after successful lock",
+        "business_impact": "Changes are not saved, record lock is released",
+        "suggested_action": "Retry the update operation or contact system administrator"
+      },
+      {
+        "error_code": "INVALID_ACCOUNT_ID",
+        "condition": "Account ID is blank, not numeric, all zeros, or not 11 digits",
+        "business_impact": "Search cannot be performed",
+        "suggested_action": "Enter a valid 11-digit account ID"
+      },
+      {
+        "error_code": "INVALID_CARD_NUMBER",
+        "condition": "Card number is blank, not numeric, all zeros, or not 16 digits",
+        "business_impact": "Search cannot be performed",
+        "suggested_action": "Enter a valid 16-digit card number"
+      },
+      {
+        "error_code": "INVALID_NAME",
+        "condition": "Cardholder name is blank or contains non-alphabetic characters (excluding spaces)",
+        "business_impact": "Update cannot proceed",
+        "suggested_action": "Enter a valid name containing only letters and spaces"
+      },
+      {
+        "error_code": "INVALID_STATUS",
+        "condition": "Card status is blank or not Y or N",
+        "business_impact": "Update cannot proceed",
+        "suggested_action": "Enter Y for active or N for inactive"
+      },
+      {
+        "error_code": "INVALID_EXPIRY_MONTH",
+        "condition": "Expiration month is blank or not between 01 and 12",
+        "business_impact": "Update cannot proceed",
+        "suggested_action": "Enter a valid month between 01 and 12"
+      },
+      {
+        "error_code": "INVALID_EXPIRY_YEAR",
+        "condition": "Expiration year is blank or not between 1950 and 2099",
+        "business_impact": "Update cannot proceed",
+        "suggested_action": "Enter a valid year between 1950 and 2099"
+      },
+      {
+        "error_code": "NO_CHANGES",
+        "condition": "No actual changes detected in the input data",
+        "business_impact": "Update is skipped to avoid unnecessary database operations",
+        "suggested_action": "Make changes to at least one field or cancel the operation"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "CCRDUPA",
+        "name": "Credit Card Update Screen",
+        "purpose": "Display and allow modification of credit card details",
+        "screen_type": "data_entry_and_display",
+        "navigation_from": [
+          "Main Menu",
+          "Card List Screen"
+        ],
+        "navigation_to": [
+          "Main Menu",
+          "Card List Screen",
+          "Previous Program"
+        ],
+        "sections": [
+          {
+            "name": "Search Criteria",
+            "type": "input",
+            "fields": [
+              {
+                "name": "account_id",
+                "label": "Account ID",
+                "type": "numeric",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "11-digit numeric, not all zeros",
+                "help_text": "Enter the 11-digit account ID"
+              },
+              {
+                "name": "card_number",
+                "label": "Card Number",
+                "type": "numeric",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "16-digit numeric, not all zeros",
+                "help_text": "Enter the 16-digit card number"
+              }
+            ]
+          },
+          {
+            "name": "Card Details Display",
+            "type": "display_and_input",
+            "fields": [
+              {
+                "name": "cvv_code",
+                "label": "CVV Code",
+                "type": "numeric",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Card verification value - display only"
+              },
+              {
+                "name": "cardholder_name",
+                "label": "Cardholder Name",
+                "type": "text",
+                "input_output": "both",
+                "required": true,
+                "default_value": "",
+                "validation": "Alphabets and spaces only, max 50 characters",
+                "help_text": "Enter cardholder name (letters and spaces only)"
+              },
+              {
+                "name": "card_status",
+                "label": "Card Status",
+                "type": "text",
+                "input_output": "both",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be Y or N",
+                "help_text": "Enter Y for active, N for inactive"
+              },
+              {
+                "name": "expiration_day",
+                "label": "Expiration Day",
+                "type": "numeric",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Day of expiration - display only"
+              },
+              {
+                "name": "expiration_month",
+                "label": "Expiration Month",
+                "type": "numeric",
+                "input_output": "both",
+                "required": true,
+                "default_value": "",
+                "validation": "01-12",
+                "help_text": "Enter expiration month (01-12)"
+              },
+              {
+                "name": "expiration_year",
+                "label": "Expiration Year",
+                "type": "numeric",
+                "input_output": "both",
+                "required": true,
+                "default_value": "",
+                "validation": "1950-2099",
+                "help_text": "Enter expiration year (1950-2099)"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Search Card",
+            "trigger": "Enter key after entering search criteria",
+            "description": "Searches for and displays the credit card details",
+            "backend_process": "Search for Credit Card",
+            "success_navigation": "Display card details on same screen",
+            "error_handling": "Display error message and highlight invalid fields"
+          },
+          {
+            "name": "Update Card",
+            "trigger": "Enter key after modifying card details",
+            "description": "Validates changes and prompts for confirmation",
+            "backend_process": "Validate User Input",
+            "success_navigation": "Display confirmation prompt",
+            "error_handling": "Display validation errors and highlight invalid fields"
+          },
+          {
+            "name": "Confirm Update",
+            "trigger": "F5 key when changes are validated",
+            "description": "Commits the changes to the database",
+            "backend_process": "Update Card Details",
+            "success_navigation": "Display success message and reset for new search",
+            "error_handling": "Display error message based on failure type"
+          },
+          {
+            "name": "Cancel Changes",
+            "trigger": "F12 key when viewing card details",
+            "description": "Refreshes the screen with original card data",
+            "backend_process": "Display Card Details",
+            "success_navigation": "Redisplay original card details",
+            "error_handling": "None"
+          },
+          {
+            "name": "Exit",
+            "trigger": "F3 key",
+            "description": "Exits the program and returns to previous screen or menu",
+            "backend_process": "Handle User Navigation",
+            "success_navigation": "Return to calling program or main menu",
+            "error_handling": "None"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "Card not yet searched",
+            "affected_fields": [
+              "cvv_code",
+              "cardholder_name",
+              "card_status",
+              "expiration_day",
+              "expiration_month",
+              "expiration_year"
+            ],
+            "behavior": "Hide or disable all card detail fields"
+          },
+          {
+            "condition": "Card found and displayed",
+            "affected_fields": [
+              "account_id",
+              "card_number"
+            ],
+            "behavior": "Make fields read-only (protected)"
+          },
+          {
+            "condition": "Card found and displayed",
+            "affected_fields": [
+              "cardholder_name",
+              "card_status",
+              "expiration_month",
+              "expiration_year"
+            ],
+            "behavior": "Make fields editable (unprotected)"
+          },
+          {
+            "condition": "Card found and displayed",
+            "affected_fields": [
+              "cvv_code",
+              "expiration_day"
+            ],
+            "behavior": "Display as read-only"
+          },
+          {
+            "condition": "Validation error on field",
+            "affected_fields": [
+              "any_invalid_field"
+            ],
+            "behavior": "Highlight field in red"
+          },
+          {
+            "condition": "Changes validated and awaiting confirmation",
+            "affected_fields": [
+              "all_fields"
+            ],
+            "behavior": "Display confirmation prompt message"
+          },
+          {
+            "condition": "Update successful",
+            "affected_fields": [
+              "all_card_detail_fields"
+            ],
+            "behavior": "Clear all fields and reset for new search"
+          },
+          {
+            "condition": "Concurrent modification detected",
+            "affected_fields": [
+              "all_editable_fields"
+            ],
+            "behavior": "Refresh with current database values"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "Main Menu",
+        "to_screen": "Credit Card Update Screen",
+        "trigger": "User selects credit card update option",
+        "conditions": [
+          "User is authenticated"
+        ]
+      },
+      {
+        "from_screen": "Card List Screen",
+        "to_screen": "Credit Card Update Screen",
+        "trigger": "User selects a specific card to update",
+        "conditions": [
+          "Card is selected from list",
+          "Account ID and card number are passed"
+        ]
+      },
+      {
+        "from_screen": "Credit Card Update Screen",
+        "to_screen": "Main Menu",
+        "trigger": "F3 key pressed and no previous program",
+        "conditions": [
+          "User confirms exit"
+        ]
+      },
+      {
+        "from_screen": "Credit Card Update Screen",
+        "to_screen": "Previous Program",
+        "trigger": "F3 key pressed and previous program exists",
+        "conditions": [
+          "Previous program information is available"
+        ]
+      },
+      {
+        "from_screen": "Credit Card Update Screen",
+        "to_screen": "Card List Screen",
+        "trigger": "F3 key pressed when coming from card list",
+        "conditions": [
+          "Previous screen was card list",
+          "Search criteria is reset"
+        ]
+      },
+      {
+        "from_screen": "Credit Card Update Screen",
+        "to_screen": "Credit Card Update Screen",
+        "trigger": "F12 key pressed to refresh",
+        "conditions": [
+          "Card details are currently displayed"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "FOUND_CARDS",
+        "type": "info",
+        "message": "Card found - details displayed",
+        "context": "After successful card search"
+      },
+      {
+        "code": "NOTFND_COMBO",
+        "type": "error",
+        "message": "Account and card combination not found",
+        "context": "When search returns no results"
+      },
+      {
+        "code": "INVALID_ACCT",
+        "type": "error",
+        "message": "Invalid account ID format",
+        "context": "When account ID validation fails"
+      },
+      {
+        "code": "INVALID_CARD",
+        "type": "error",
+        "message": "Invalid card number format",
+        "context": "When card number validation fails"
+      },
+      {
+        "code": "NAME_BLANK",
+        "type": "error",
+        "message": "Cardholder name cannot be blank",
+        "context": "When name field is empty"
+      },
+      {
+        "code": "NAME_ALPHA_ONLY",
+        "type": "error",
+        "message": "Card name must contain only letters and spaces",
+        "context": "When name contains invalid characters"
+      },
+      {
+        "code": "STATUS_BLANK",
+        "type": "error",
+        "message": "Card status cannot be blank",
+        "context": "When status field is empty"
+      },
+      {
+        "code": "STATUS_YN_ONLY",
+        "type": "error",
+        "message": "Card status must be Y or N",
+        "context": "When status is not Y or N"
+      },
+      {
+        "code": "MONTH_INVALID",
+        "type": "error",
+        "message": "Expiration month must be between 01 and 12",
+        "context": "When expiration month is out of range"
+      },
+      {
+        "code": "YEAR_INVALID",
+        "type": "error",
+        "message": "Expiration year must be between 1950 and 2099",
+        "context": "When expiration year is out of range"
+      },
+      {
+        "code": "CONFIRM_CHANGES",
+        "type": "info",
+        "message": "Press F5 to confirm changes",
+        "context": "After successful validation of changes"
+      },
+      {
+        "code": "UPDATE_SUCCESS",
+        "type": "success",
+        "message": "Card details updated successfully",
+        "context": "After successful database update"
+      },
+      {
+        "code": "LOCK_ERROR",
+        "type": "error",
+        "message": "Unable to lock record for update",
+        "context": "When record cannot be locked"
+      },
+      {
+        "code": "CONCURRENT_MOD",
+        "type": "warning",
+        "message": "Record was changed by another user - displaying current data",
+        "context": "When concurrent modification is detected"
+      },
+      {
+        "code": "UPDATE_FAILED",
+        "type": "error",
+        "message": "Update failed - please try again",
+        "context": "When database update fails"
+      },
+      {
+        "code": "NO_CHANGES",
+        "type": "info",
+        "message": "No changes detected",
+        "context": "When submitted data matches original data"
+      },
+      {
+        "code": "FILE_ERROR",
+        "type": "error",
+        "message": "Database error occurred",
+        "context": "When database operation fails unexpectedly"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Card Search Flow",
+      "description": "Flow of data from user input through search to display",
+      "source": "User Input",
+      "destination": "Screen Display",
+      "data_elements": [
+        "account_id",
+        "card_number",
+        "cardholder_name",
+        "card_status",
+        "cvv_code",
+        "expiration_month",
+        "expiration_year",
+        "expiration_day"
+      ],
+      "transformations": [
+        "Validate account ID format",
+        "Validate card number format",
+        "Retrieve card record from database",
+        "Convert cardholder name to uppercase for display",
+        "Format expiration date components"
+      ]
+    },
+    {
+      "name": "Card Update Flow",
+      "description": "Flow of data from user modifications through validation to database update",
+      "source": "User Input",
+      "destination": "Database",
+      "data_elements": [
+        "cardholder_name",
+        "card_status",
+        "expiration_month",
+        "expiration_year"
+      ],
+      "transformations": [
+        "Validate cardholder name (alphabets and spaces only)",
+        "Validate card status (Y or N)",
+        "Validate expiration month (01-12)",
+        "Validate expiration year (1950-2099)",
+        "Convert cardholder name to uppercase",
+        "Format expiration date as YYYY-MM-DD",
+        "Check for concurrent modifications",
+        "Update database record"
+      ]
+    },
+    {
+      "name": "Program Navigation Flow",
+      "description": "Flow of control and data between programs",
+      "source": "Credit Card Update Program",
+      "destination": "Calling Program or Menu",
+      "data_elements": [
+        "account_id",
+        "card_number",
+        "from_program",
+        "to_program",
+        "transaction_id",
+        "last_mapset"
+      ],
+      "transformations": [
+        "Determine return destination",
+        "Reset search criteria if returning to card list",
+        "Commit transaction",
+        "Transfer control to destination program"
+      ]
+    },
+    {
+      "name": "Error Message Flow",
+      "description": "Flow of error information from validation to user display",
+      "source": "Validation Logic",
+      "destination": "Screen Display",
+      "data_elements": [
+        "error_code",
+        "error_message",
+        "field_identifier"
+      ],
+      "transformations": [
+        "Identify validation failure",
+        "Set appropriate error flag",
+        "Retrieve error message text",
+        "Highlight error field on screen",
+        "Display error message to user"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Data Integrity",
+      "description": "Card records must be locked during updates to prevent concurrent modifications",
+      "impact": "Ensures data consistency but may cause temporary unavailability during updates"
+    },
+    {
+      "type": "Data Format",
+      "description": "Account IDs must be exactly 11 digits and card numbers must be exactly 16 digits",
+      "impact": "Enforces standardized identification across the system"
+    },
+    {
+      "type": "Business Logic",
+      "description": "Cardholder names can only contain alphabetic characters and spaces",
+      "impact": "Limits name format but ensures data quality and consistency"
+    },
+    {
+      "type": "Business Logic",
+      "description": "Card status can only be active (Y) or inactive (N)",
+      "impact": "Simplifies status management with binary state"
+    },
+    {
+      "type": "Data Validation",
+      "description": "Expiration dates must have valid month (01-12) and year (1950-2099) values",
+      "impact": "Prevents invalid expiration dates from being stored"
+    },
+    {
+      "type": "User Interaction",
+      "description": "All changes must be explicitly confirmed by the user before being committed",
+      "impact": "Reduces accidental updates but requires additional user action"
+    },
+    {
+      "type": "Concurrency Control",
+      "description": "Updates are rejected if the record was modified by another user since retrieval",
+      "impact": "Prevents data loss but may require users to re-enter changes"
+    },
+    {
+      "type": "Data Transformation",
+      "description": "All cardholder names are converted to uppercase before storage",
+      "impact": "Ensures consistent name format in database"
+    },
+    {
+      "type": "Field Protection",
+      "description": "CVV code and expiration day are not editable by users",
+      "impact": "Protects sensitive and system-managed data from user modification"
+    },
+    {
+      "type": "Transaction Management",
+      "description": "Changes are committed only after successful update, with rollback on failure",
+      "impact": "Ensures atomicity of update operations"
+    }
+  ]
+}
