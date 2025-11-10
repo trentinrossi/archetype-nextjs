@@ -52,7 +52,7 @@ export default function CardDetailPage() {
    */
   const handleEdit = () => {
     if (card) {
-      router.push(`/cards/${card.cardNumber}/edit`);
+      router.push(`/credit-cards/${card.cardNumber}/edit`);
     }
   };
 
@@ -60,7 +60,7 @@ export default function CardDetailPage() {
    * Handle return to card list
    */
   const handleBack = () => {
-    router.push('/cards');
+    router.push('/credit-cards');
   };
 
   /**
@@ -75,7 +75,7 @@ export default function CardDetailPage() {
     
     try {
       await cardService.deleteCard(card.cardNumber);
-      router.push('/cards');
+      router.push('/credit-cards');
     } catch (err) {
       alert('Failed to delete card');
       console.error(err);

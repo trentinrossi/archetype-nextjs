@@ -53,7 +53,7 @@ export default function EditCardPage() {
       
       // Populate form fields
       setEmbossedName(data.embossedName);
-      setExpirationDate(data.expirationDate.split('T')[0]); // Format for date input
+      setExpirationDate(data.expirationDate ? data.expirationDate.split('T')[0] : ''); // Format for date input
       setActiveStatus(data.activeStatus);
     } catch (err) {
       setError('Failed to load card details');
@@ -151,7 +151,7 @@ export default function EditCardPage() {
       await cardService.updateCard(card.cardNumber, updateData);
       
       // Navigate back to detail view
-      router.push(`/cards/${card.cardNumber}`);
+      router.push(`/credit-cards/${card.cardNumber}`);
     } catch (err) {
       setError('Failed to update card');
       console.error('Failed to update card:', err);
@@ -165,9 +165,9 @@ export default function EditCardPage() {
    */
   const handleCancel = () => {
     if (card) {
-      router.push(`/cards/${card.cardNumber}`);
+      router.push(`/credit-cards/${card.cardNumber}`);
     } else {
-      router.push('/cards');
+      router.push('/credit-cards');
     }
   };
 
@@ -181,7 +181,7 @@ export default function EditCardPage() {
         <div className="bg-red-50 border border-red-300 text-red-800 px-4 py-3 rounded mb-4">
           {error}
         </div>
-        <Button onClick={() => router.push('/cards')} variant="secondary">
+        <Button onClick={() => router.push('/credit-cards')} variant="secondary">
           Back to Card List
         </Button>
       </div>

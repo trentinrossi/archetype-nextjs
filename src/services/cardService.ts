@@ -45,7 +45,7 @@ class CardService {
       queryParams.append('sort', criteria.sort);
     }
 
-    const url = `${API_BASE_URL}/cards?${queryParams.toString()}`;
+    const url = `${API_BASE_URL}/credit-cards?${queryParams.toString()}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: this.getAuthHeaders(),
@@ -64,7 +64,7 @@ class CardService {
    * @returns Card details
    */
   async getCardByNumber(cardNumber: string): Promise<Card> {
-    const response = await fetch(`${API_BASE_URL}/cards/${cardNumber}`, {
+    const response = await fetch(`${API_BASE_URL}/credit-cards/${cardNumber}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
@@ -82,7 +82,7 @@ class CardService {
    * @returns Array of cards
    */
   async getCardsByAccount(accountId: string): Promise<Card[]> {
-    const response = await fetch(`${API_BASE_URL}/cards/account/${accountId}`, {
+    const response = await fetch(`${API_BASE_URL}/credit-cards/account/${accountId}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
@@ -100,7 +100,7 @@ class CardService {
    * @returns Created card
    */
   async createCard(data: CardCreateRequest): Promise<Card> {
-    const response = await fetch(`${API_BASE_URL}/cards`, {
+    const response = await fetch(`${API_BASE_URL}/credit-cards`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
@@ -120,7 +120,7 @@ class CardService {
    * @returns Updated card
    */
   async updateCard(cardNumber: string, data: CardUpdateRequest): Promise<Card> {
-    const response = await fetch(`${API_BASE_URL}/cards/${cardNumber}`, {
+    const response = await fetch(`${API_BASE_URL}/credit-cards/${cardNumber}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
@@ -138,7 +138,7 @@ class CardService {
    * @param cardNumber - 16-digit card number
    */
   async deleteCard(cardNumber: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/cards/${cardNumber}`, {
+    const response = await fetch(`${API_BASE_URL}/credit-cards/${cardNumber}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
     });
