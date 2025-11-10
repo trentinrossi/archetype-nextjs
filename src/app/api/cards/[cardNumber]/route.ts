@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardAuthRequest, handleAuthApiResponse } from '@/lib/auth-middleware';
 
-// GET /api/cards/:cardNumber - Get card by card number
+// GET /api/credit-cards/:cardNumber - Get card by card number
 export async function GET(
   request: NextRequest,
   { params }: { params: { cardNumber: string } }
 ) {
   try {
     const response = await forwardAuthRequest(
-      `/cards/${params.cardNumber}`,
+      `/credit-cards/${params.cardNumber}`,
       'GET',
       request
     );
@@ -20,7 +20,7 @@ export async function GET(
   }
 }
 
-// PUT /api/cards/:cardNumber - Update card
+// PUT /api/credit-cards/:cardNumber - Update card
 export async function PUT(
   request: NextRequest,
   { params }: { params: { cardNumber: string } }
@@ -28,7 +28,7 @@ export async function PUT(
   try {
     const body = await request.json();
     const response = await forwardAuthRequest(
-      `/cards/${params.cardNumber}`,
+      `/credit-cards/${params.cardNumber}`,
       'PUT',
       request,
       body
@@ -41,14 +41,14 @@ export async function PUT(
   }
 }
 
-// DELETE /api/cards/:cardNumber - Delete card
+// DELETE /api/credit-cards/:cardNumber - Delete card
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { cardNumber: string } }
 ) {
   try {
     const response = await forwardAuthRequest(
-      `/cards/${params.cardNumber}`,
+      `/credit-cards/${params.cardNumber}`,
       'DELETE',
       request
     );

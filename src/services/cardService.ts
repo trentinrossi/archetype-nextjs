@@ -21,7 +21,7 @@ class CardService {
     if (filters.sort) params.append('sort', filters.sort);
 
     const queryString = params.toString();
-    const url = `${API_BASE_URL}/cards/list${queryString ? `?${queryString}` : ''}`;
+    const url = `${API_BASE_URL}/credit-cards/list${queryString ? `?${queryString}` : ''}`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -36,7 +36,7 @@ class CardService {
   }
 
   async getCardByNumber(cardNumber: string): Promise<Card> {
-    const response = await fetch(`${API_BASE_URL}/cards/${cardNumber}`, {
+    const response = await fetch(`${API_BASE_URL}/credit-cards/${cardNumber}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
@@ -49,7 +49,7 @@ class CardService {
   }
 
   async getCardsByAccount(accountId: string): Promise<Card[]> {
-    const response = await fetch(`${API_BASE_URL}/cards/account/${accountId}`, {
+    const response = await fetch(`${API_BASE_URL}/credit-cards/account/${accountId}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
@@ -62,7 +62,7 @@ class CardService {
   }
 
   async createCard(data: CreateCardRequest): Promise<Card> {
-    const response = await fetch(`${API_BASE_URL}/cards`, {
+    const response = await fetch(`${API_BASE_URL}/credit-cards`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
@@ -76,7 +76,7 @@ class CardService {
   }
 
   async updateCard(cardNumber: string, data: UpdateCardRequest): Promise<Card> {
-    const response = await fetch(`${API_BASE_URL}/cards/${cardNumber}`, {
+    const response = await fetch(`${API_BASE_URL}/credit-cards/${cardNumber}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
@@ -90,7 +90,7 @@ class CardService {
   }
 
   async deleteCard(cardNumber: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/cards/${cardNumber}`, {
+    const response = await fetch(`${API_BASE_URL}/credit-cards/${cardNumber}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
     });

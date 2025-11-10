@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardAuthRequest, handleAuthApiResponse } from '@/lib/auth-middleware';
 
-// GET /api/cards/list - Get paginated list of cards with filtering
+// GET /api/credit-cards/list - Get paginated list of cards with filtering
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     if (sort) queryString += `&sort=${sort}`;
 
     const response = await forwardAuthRequest(
-      `/cards/list?${queryString}`,
+      `/credit-cards/list?${queryString}`,
       'GET',
       request
     );
