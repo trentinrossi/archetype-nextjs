@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const response = await forwardAuthRequest(
-      `/api/v1/credit-cards/${params.cardNumber}`,
+      `/api/credit-cards/${params.cardNumber}`,
       'GET',
       request
     );
@@ -53,7 +53,7 @@ export async function PUT(
     }
     
     const response = await forwardAuthRequest(
-      `/api/v1/credit-cards/${params.cardNumber}`,
+      `/api/credit-cards/${params.cardNumber}`,
       'PUT',
       request,
       body
@@ -73,7 +73,7 @@ export async function DELETE(
 ) {
   try {
     const response = await forwardAuthRequest(
-      `/api/v1/credit-cards/${params.cardNumber}`,
+      `/api/credit-cards/${params.cardNumber}`,
       'DELETE',
       request
     );

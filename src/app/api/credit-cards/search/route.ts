@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    let queryString = `/api/v1/credit-cards/search?cardNumberPattern=${cardNumberPattern}&page=${page}&size=${size}`;
+    let queryString = `/api/credit-cards/search?cardNumberPattern=${cardNumberPattern}&page=${page}&size=${size}`;
     if (sort) {
       queryString += `&sort=${sort}`;
     }

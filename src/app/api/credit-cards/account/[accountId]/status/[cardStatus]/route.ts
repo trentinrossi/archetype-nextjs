@@ -28,7 +28,7 @@ export async function GET(
     const size = searchParams.get('size') || '20';
     const sort = searchParams.get('sort') || '';
     
-    let queryString = `/api/v1/credit-cards/account/${params.accountId}/status/${params.cardStatus}?page=${page}&size=${size}`;
+    let queryString = `/api/credit-cards/account/${params.accountId}/status/${params.cardStatus}?page=${page}&size=${size}`;
     if (sort) {
       queryString += `&sort=${sort}`;
     }

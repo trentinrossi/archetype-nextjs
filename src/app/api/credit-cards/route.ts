@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const size = searchParams.get('size') || '20';
     const sort = searchParams.get('sort') || '';
     
-    let queryString = `/api/v1/credit-cards?page=${page}&size=${size}`;
+    let queryString = `/api/credit-cards?page=${page}&size=${size}`;
     if (sort) {
       queryString += `&sort=${sort}`;
     }
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const response = await forwardAuthRequest('/api/v1/credit-cards', 'POST', request, body);
+    const response = await forwardAuthRequest('/api/credit-cards', 'POST', request, body);
     const result = await handleAuthApiResponse(response);
     return NextResponse.json(result.data, { status: result.status });
   } catch (error) {
