@@ -1,0 +1,1091 @@
+{
+  "application_metadata": {
+    "name": "COCRDLIC - Credit Card List Program",
+    "description": "A credit card management system component that provides functionality to list, filter, and navigate credit cards based on user permissions and search criteria. Supports pagination and allows users to view or update individual card details.",
+    "domain": "Credit Card Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "CreditCard",
+        "description": "Represents a credit card in the system with associated account and status information",
+        "attributes": [
+          {
+            "name": "card_number",
+            "type": "numeric",
+            "length": 16,
+            "required": true,
+            "description": "Unique 16-digit credit card number"
+          },
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Associated account identifier"
+          },
+          {
+            "name": "card_status",
+            "type": "alphanumeric",
+            "length": 1,
+            "required": true,
+            "description": "Current status of the credit card"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "belongs_to",
+            "cardinality": "many_to_one"
+          }
+        ]
+      },
+      {
+        "name": "Account",
+        "description": "Customer account that owns one or more credit cards",
+        "attributes": [
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Unique account identifier"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "CreditCard",
+            "relationship_type": "has_many",
+            "cardinality": "one_to_many"
+          }
+        ]
+      },
+      {
+        "name": "User",
+        "description": "System user with specific permissions and access rights",
+        "attributes": [
+          {
+            "name": "user_type",
+            "type": "alphanumeric",
+            "length": 10,
+            "required": true,
+            "description": "Type of user (admin or regular user)"
+          }
+        ],
+        "relationships": []
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "User Permission Based Card Listing",
+        "description": "The system lists credit cards based on user permissions. Admin users can view all cards when no context is passed. Non-admin users can only view cards associated with their specific account.",
+        "category": "Authorization",
+        "logic": "If user is admin and no filter context provided, display all cards. If user is not admin, restrict display to cards associated with user's account only.",
+        "conditions": [
+          "User type is admin",
+          "No account context passed",
+          "User type is regular user"
+        ],
+        "actions": [
+          "Display all credit cards for admin users without context",
+          "Display only account-specific cards for regular users"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Pagination Display Limit",
+        "description": "The system displays a maximum of 7 credit card records per page to maintain usability and screen readability.",
+        "category": "Display",
+        "logic": "Limit displayed records to 7 per page. Provide navigation controls for additional pages.",
+        "conditions": [
+          "More than 7 records exist matching criteria"
+        ],
+        "actions": [
+          "Display first 7 records",
+          "Enable next page navigation",
+          "Track current page position"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Filter Application",
+        "description": "Users can filter credit card listings by account ID and/or card number. Filters can be applied independently or in combination.",
+        "category": "Search",
+        "logic": "Apply account ID filter if provided and valid. Apply card number filter if provided and valid. If both filters provided, apply both. If no filters provided, display all accessible cards.",
+        "conditions": [
+          "Account ID filter is valid 11-digit number",
+          "Card number filter is valid 16-digit number",
+          "Both filters are valid",
+          "No filters provided"
+        ],
+        "actions": [
+          "Filter records by account ID",
+          "Filter records by card number",
+          "Apply combined filters",
+          "Display all accessible records"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Single Selection Enforcement",
+        "description": "Users can select only one credit card at a time for viewing or updating. Multiple selections are not permitted.",
+        "category": "User Interaction",
+        "logic": "Count number of selections made. If more than one selection detected, reject and display error message.",
+        "conditions": [
+          "User selects more than one card",
+          "User selects exactly one card"
+        ],
+        "actions": [
+          "Display error message for multiple selections",
+          "Highlight error rows",
+          "Process single selection for view or update"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Record Exclusion Based on Filters",
+        "description": "Records that do not match the specified filter criteria are excluded from the display.",
+        "category": "Search",
+        "logic": "For each record, check if account ID matches filter (if provided) and card number matches filter (if provided). Exclude record if either filter fails.",
+        "conditions": [
+          "Account ID filter is active and record account ID does not match",
+          "Card number filter is active and record card number does not match"
+        ],
+        "actions": [
+          "Exclude record from display",
+          "Continue to next record"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Page Navigation Control",
+        "description": "System controls page navigation based on current position and available records. Prevents navigation beyond first or last page.",
+        "category": "Navigation",
+        "logic": "Track current page number and record boundaries. Enable/disable navigation controls based on position. Display appropriate messages when at boundaries.",
+        "conditions": [
+          "User is on first page and attempts to go to previous page",
+          "User is on last page and attempts to go to next page",
+          "More pages exist after current page",
+          "Previous pages exist before current page"
+        ],
+        "actions": [
+          "Display 'NO PREVIOUS PAGES TO DISPLAY' message",
+          "Display 'NO MORE PAGES TO DISPLAY' message",
+          "Enable next page navigation",
+          "Enable previous page navigation"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "No Records Found Handling",
+        "description": "When no records match the search criteria, system displays appropriate message to user.",
+        "category": "User Feedback",
+        "logic": "After applying filters and reading records, if no records found, display 'NO RECORDS FOUND FOR THIS SEARCH CONDITION' message.",
+        "conditions": [
+          "Filter criteria applied",
+          "No records match criteria",
+          "First page with zero records"
+        ],
+        "actions": [
+          "Display no records found message",
+          "Clear screen data area"
+        ]
+      },
+      {
+        "id": "BR008",
+        "name": "Program State Initialization",
+        "description": "On first entry to program, initialize all working storage variables, set transaction context, and prepare for user interaction.",
+        "category": "Initialization",
+        "logic": "Check if program is being called for first time (EIBCALEN = 0). If yes, initialize all areas and set default values. If no, restore previous state from communication area.",
+        "conditions": [
+          "First program entry (EIBCALEN = 0)",
+          "Subsequent program entry (EIBCALEN > 0)",
+          "Coming from menu program",
+          "Returning from detail or update program"
+        ],
+        "actions": [
+          "Initialize work areas to default values",
+          "Set transaction ID to CCLI",
+          "Set program context flags",
+          "Restore previous state from commarea",
+          "Reset pagination to first page"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "account_id",
+        "rule": "Must be numeric and exactly 11 digits if supplied",
+        "error_message": "ACCOUNT FILTER,IF SUPPLIED MUST BE A 11 DIGIT NUMBER",
+        "severity": "error"
+      },
+      {
+        "field": "card_number",
+        "rule": "Must be numeric and exactly 16 digits if supplied",
+        "error_message": "CARD ID FILTER,IF SUPPLIED MUST BE A 16 DIGIT NUMBER",
+        "severity": "error"
+      },
+      {
+        "field": "selection_flags",
+        "rule": "Only one row can be selected at a time",
+        "error_message": "Only one selection allowed",
+        "severity": "error"
+      },
+      {
+        "field": "selection_code",
+        "rule": "Must be 'S' (Select for view), 'U' (Update), or blank",
+        "error_message": "Invalid action code",
+        "severity": "error"
+      },
+      {
+        "field": "account_id",
+        "rule": "Can be blank or zeros to indicate no filter",
+        "error_message": "",
+        "severity": "info"
+      },
+      {
+        "field": "card_number",
+        "rule": "Can be blank or zeros to indicate no filter",
+        "error_message": "",
+        "severity": "info"
+      }
+    ],
+    "calculations": [],
+    "workflows": [
+      {
+        "name": "Credit Card List Display Workflow",
+        "description": "Main workflow for displaying and navigating credit card listings",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize program and determine entry context",
+            "conditions": [
+              "First entry or subsequent interaction"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Receive and validate user inputs if returning from previous interaction",
+            "conditions": [
+              "EIBCALEN > 0",
+              "Coming from same program"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Validate account ID and card number filters",
+            "conditions": [
+              "Filters provided by user"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Determine action based on function key pressed",
+            "conditions": [
+              "PF3 pressed - Exit",
+              "PF7 pressed - Previous page",
+              "PF8 pressed - Next page",
+              "Enter pressed - Process selection"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Execute appropriate action",
+            "conditions": [
+              "Exit to menu",
+              "Read backwards for previous page",
+              "Read forward for next page",
+              "Transfer to detail view",
+              "Transfer to update program"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Format and send screen map with results",
+            "conditions": [
+              "Records found",
+              "No records found",
+              "Validation errors exist"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Return control and wait for next user action",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Card Selection for View Workflow",
+        "description": "Process flow when user selects a card for viewing details",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Validate that exactly one card is selected with 'S' code",
+            "conditions": [
+              "One row selected",
+              "Selection code is 'S'"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Retrieve selected card's account ID and card number",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Prepare communication area with card details",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Transfer control to card detail view program (COCRDSLC)",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Card Selection for Update Workflow",
+        "description": "Process flow when user selects a card for updating",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Validate that exactly one card is selected with 'U' code",
+            "conditions": [
+              "One row selected",
+              "Selection code is 'U'"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Retrieve selected card's account ID and card number",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Prepare communication area with card details",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Transfer control to card update program (COCRDUPC)",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Forward Pagination Workflow",
+        "description": "Process flow for navigating to next page of results",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Start browsing from last displayed card key",
+            "conditions": [
+              "Not on last page"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Read next records applying filters",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Collect up to 7 matching records",
+            "conditions": [
+              "Records match filter criteria"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Check if more records exist beyond current page",
+            "conditions": [],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Update page tracking information",
+            "conditions": [],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Display results on screen",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Backward Pagination Workflow",
+        "description": "Process flow for navigating to previous page of results",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Start browsing from first displayed card key",
+            "conditions": [
+              "Not on first page"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Read previous records applying filters",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Collect up to 7 matching records in reverse order",
+            "conditions": [
+              "Records match filter criteria"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Update page tracking information",
+            "conditions": [],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Display results on screen",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "CARDDAT File Access",
+        "type": "data_file",
+        "purpose": "Read credit card records for display and filtering",
+        "data_exchanged": [
+          "Card number",
+          "Account ID",
+          "Card status"
+        ],
+        "trigger_conditions": [
+          "User requests card listing",
+          "User navigates between pages",
+          "User applies filters"
+        ]
+      },
+      {
+        "name": "Card Detail View Program (COCRDSLC)",
+        "type": "program_transfer",
+        "purpose": "Display detailed information for selected credit card",
+        "data_exchanged": [
+          "Account ID",
+          "Card number",
+          "Transaction context",
+          "User information"
+        ],
+        "trigger_conditions": [
+          "User selects card with 'S' action code"
+        ]
+      },
+      {
+        "name": "Card Update Program (COCRDUPC)",
+        "type": "program_transfer",
+        "purpose": "Allow user to update credit card information",
+        "data_exchanged": [
+          "Account ID",
+          "Card number",
+          "Transaction context",
+          "User information"
+        ],
+        "trigger_conditions": [
+          "User selects card with 'U' action code"
+        ]
+      },
+      {
+        "name": "Menu Program (COMEN01C)",
+        "type": "program_transfer",
+        "purpose": "Return to main menu when user exits card listing",
+        "data_exchanged": [
+          "Transaction context",
+          "User information",
+          "Exit message flag"
+        ],
+        "trigger_conditions": [
+          "User presses PF3 to exit"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Admin User",
+        "Regular User"
+      ],
+      "permissions": [
+        {
+          "role": "Admin User",
+          "resource": "All Credit Cards",
+          "actions": [
+            "view",
+            "list",
+            "filter"
+          ]
+        },
+        {
+          "role": "Regular User",
+          "resource": "Account-Specific Credit Cards",
+          "actions": [
+            "view",
+            "list",
+            "filter"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be signed on to system",
+        "User type must be determined before card access",
+        "Admin users can view all cards without account context",
+        "Regular users restricted to their associated account cards"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "INVALID_ACCOUNT_FILTER",
+        "condition": "Account ID filter is not numeric or not 11 digits",
+        "business_impact": "User cannot filter by account ID, search results may be too broad",
+        "suggested_action": "Display error message, highlight account ID field, position cursor for correction"
+      },
+      {
+        "error_code": "INVALID_CARD_FILTER",
+        "condition": "Card number filter is not numeric or not 16 digits",
+        "business_impact": "User cannot filter by card number, search results may be too broad",
+        "suggested_action": "Display error message, highlight card number field, position cursor for correction"
+      },
+      {
+        "error_code": "MULTIPLE_SELECTIONS",
+        "condition": "User selects more than one card for action",
+        "business_impact": "System cannot process multiple selections simultaneously",
+        "suggested_action": "Display error message, highlight all selected rows, require user to select only one"
+      },
+      {
+        "error_code": "INVALID_ACTION_CODE",
+        "condition": "User enters action code other than 'S', 'U', or blank",
+        "business_impact": "System cannot determine intended action",
+        "suggested_action": "Display error message, highlight invalid selection field"
+      },
+      {
+        "error_code": "NO_RECORDS_FOUND",
+        "condition": "No credit cards match the specified filter criteria",
+        "business_impact": "User cannot view or work with cards, may indicate incorrect filter or no cards exist",
+        "suggested_action": "Display 'NO RECORDS FOUND FOR THIS SEARCH CONDITION' message, allow user to modify filters"
+      },
+      {
+        "error_code": "NO_MORE_PAGES",
+        "condition": "User attempts to navigate beyond last page",
+        "business_impact": "No additional records to display",
+        "suggested_action": "Display 'NO MORE PAGES TO DISPLAY' message, disable next page navigation"
+      },
+      {
+        "error_code": "NO_PREVIOUS_PAGES",
+        "condition": "User attempts to navigate before first page",
+        "business_impact": "No previous records to display",
+        "suggested_action": "Display 'NO PREVIOUS PAGES TO DISPLAY' message, disable previous page navigation"
+      },
+      {
+        "error_code": "FILE_READ_ERROR",
+        "condition": "Error occurs while reading card data file",
+        "business_impact": "Cannot retrieve card information, system functionality impaired",
+        "suggested_action": "Display error message with file operation details, log error for technical review"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "CCRDLIA",
+        "name": "Credit Card List Screen",
+        "purpose": "Display paginated list of credit cards with filtering and selection capabilities",
+        "screen_type": "list",
+        "navigation_from": [
+          "Main Menu (COMEN01C)",
+          "Card Detail View (COCRDSLC)",
+          "Card Update (COCRDUPC)"
+        ],
+        "navigation_to": [
+          "Card Detail View (COCRDSLC)",
+          "Card Update (COCRDUPC)",
+          "Main Menu (COMEN01C)"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "display",
+            "fields": [
+              {
+                "name": "screen_title",
+                "label": "Screen Title",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "Credit Card List",
+                "validation": "",
+                "help_text": "Displays the screen title"
+              },
+              {
+                "name": "transaction_name",
+                "label": "Transaction Name",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "CCLI",
+                "validation": "",
+                "help_text": "Transaction identifier"
+              },
+              {
+                "name": "program_name",
+                "label": "Program Name",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "COCRDLIC",
+                "validation": "",
+                "help_text": "Program identifier"
+              },
+              {
+                "name": "current_date",
+                "label": "Current Date",
+                "type": "date",
+                "input_output": "output",
+                "required": false,
+                "default_value": "System date",
+                "validation": "",
+                "help_text": "Current system date"
+              },
+              {
+                "name": "current_time",
+                "label": "Current Time",
+                "type": "time",
+                "input_output": "output",
+                "required": false,
+                "default_value": "System time",
+                "validation": "",
+                "help_text": "Current system time"
+              },
+              {
+                "name": "page_number",
+                "label": "Page Number",
+                "type": "numeric",
+                "input_output": "output",
+                "required": false,
+                "default_value": "1",
+                "validation": "",
+                "help_text": "Current page number in pagination"
+              }
+            ]
+          },
+          {
+            "name": "Search Criteria",
+            "type": "input",
+            "fields": [
+              {
+                "name": "account_id_filter",
+                "label": "Account ID",
+                "type": "numeric",
+                "input_output": "input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be 11 digits if supplied",
+                "help_text": "Filter cards by account ID (11 digits)"
+              },
+              {
+                "name": "card_number_filter",
+                "label": "Card Number",
+                "type": "numeric",
+                "input_output": "input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be 16 digits if supplied",
+                "help_text": "Filter cards by card number (16 digits)"
+              }
+            ]
+          },
+          {
+            "name": "Card List",
+            "type": "table",
+            "fields": [
+              {
+                "name": "selection_code",
+                "label": "Sel",
+                "type": "alphanumeric",
+                "input_output": "input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be 'S' (Select), 'U' (Update), or blank",
+                "help_text": "Enter S to view details or U to update"
+              },
+              {
+                "name": "account_number",
+                "label": "Account Number",
+                "type": "numeric",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Account number associated with card"
+              },
+              {
+                "name": "card_number",
+                "label": "Card Number",
+                "type": "numeric",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Credit card number"
+              },
+              {
+                "name": "card_status",
+                "label": "Status",
+                "type": "alphanumeric",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Current status of the card"
+              }
+            ]
+          },
+          {
+            "name": "Messages",
+            "type": "display",
+            "fields": [
+              {
+                "name": "error_message",
+                "label": "Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays error or informational messages"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Enter",
+            "trigger": "Enter key",
+            "description": "Process user selection for viewing or updating card details",
+            "backend_process": "Validate selection, transfer to detail view or update program",
+            "success_navigation": "Card Detail View or Card Update screen",
+            "error_handling": "Display validation errors on current screen"
+          },
+          {
+            "name": "Exit",
+            "trigger": "PF3",
+            "description": "Return to main menu",
+            "backend_process": "Prepare return context and transfer to menu program",
+            "success_navigation": "Main Menu",
+            "error_handling": "None"
+          },
+          {
+            "name": "Previous Page",
+            "trigger": "PF7",
+            "description": "Navigate to previous page of results",
+            "backend_process": "Read backwards through card file applying filters",
+            "success_navigation": "Same screen with previous page data",
+            "error_handling": "Display message if already on first page"
+          },
+          {
+            "name": "Next Page",
+            "trigger": "PF8",
+            "description": "Navigate to next page of results",
+            "backend_process": "Read forward through card file applying filters",
+            "success_navigation": "Same screen with next page data",
+            "error_handling": "Display message if no more pages exist"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "User has validation errors in filter fields",
+            "affected_fields": [
+              "account_id_filter",
+              "card_number_filter"
+            ],
+            "behavior": "Highlight field in red, position cursor to first error field"
+          },
+          {
+            "condition": "User selects more than one card",
+            "affected_fields": [
+              "selection_code"
+            ],
+            "behavior": "Highlight all selected rows in red, display error message"
+          },
+          {
+            "condition": "User enters invalid selection code",
+            "affected_fields": [
+              "selection_code"
+            ],
+            "behavior": "Highlight invalid selection field in red, display error message"
+          },
+          {
+            "condition": "No records found matching filter criteria",
+            "affected_fields": [
+              "Card List"
+            ],
+            "behavior": "Display empty list with 'NO RECORDS FOUND FOR THIS SEARCH CONDITION' message"
+          },
+          {
+            "condition": "Row has no data",
+            "affected_fields": [
+              "selection_code"
+            ],
+            "behavior": "Protect selection field to prevent input"
+          },
+          {
+            "condition": "User is on first page",
+            "affected_fields": [
+              "Previous Page action"
+            ],
+            "behavior": "Display message if PF7 pressed"
+          },
+          {
+            "condition": "User is on last page",
+            "affected_fields": [
+              "Next Page action"
+            ],
+            "behavior": "Display message if PF8 pressed"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "Main Menu",
+        "to_screen": "Credit Card List",
+        "trigger": "User selects card list option",
+        "conditions": [
+          "User is authenticated"
+        ]
+      },
+      {
+        "from_screen": "Credit Card List",
+        "to_screen": "Card Detail View",
+        "trigger": "User selects card with 'S' code and presses Enter",
+        "conditions": [
+          "Exactly one card selected",
+          "Selection code is 'S'"
+        ]
+      },
+      {
+        "from_screen": "Credit Card List",
+        "to_screen": "Card Update",
+        "trigger": "User selects card with 'U' code and presses Enter",
+        "conditions": [
+          "Exactly one card selected",
+          "Selection code is 'U'"
+        ]
+      },
+      {
+        "from_screen": "Credit Card List",
+        "to_screen": "Main Menu",
+        "trigger": "User presses PF3",
+        "conditions": []
+      },
+      {
+        "from_screen": "Card Detail View",
+        "to_screen": "Credit Card List",
+        "trigger": "User returns from detail view",
+        "conditions": []
+      },
+      {
+        "from_screen": "Card Update",
+        "to_screen": "Credit Card List",
+        "trigger": "User returns from update screen",
+        "conditions": []
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "ERR_ACCT_FILTER",
+        "type": "error",
+        "message": "ACCOUNT FILTER,IF SUPPLIED MUST BE A 11 DIGIT NUMBER",
+        "context": "Account ID filter validation failed"
+      },
+      {
+        "code": "ERR_CARD_FILTER",
+        "type": "error",
+        "message": "CARD ID FILTER,IF SUPPLIED MUST BE A 16 DIGIT NUMBER",
+        "context": "Card number filter validation failed"
+      },
+      {
+        "code": "ERR_MULTIPLE_SELECT",
+        "type": "error",
+        "message": "Only one selection allowed",
+        "context": "User selected more than one card"
+      },
+      {
+        "code": "ERR_INVALID_ACTION",
+        "type": "error",
+        "message": "Invalid action code",
+        "context": "User entered invalid selection code"
+      },
+      {
+        "code": "INFO_NO_RECORDS",
+        "type": "info",
+        "message": "NO RECORDS FOUND FOR THIS SEARCH CONDITION",
+        "context": "No cards match the filter criteria"
+      },
+      {
+        "code": "INFO_NO_MORE_PAGES",
+        "type": "info",
+        "message": "NO MORE PAGES TO DISPLAY",
+        "context": "User attempted to navigate beyond last page"
+      },
+      {
+        "code": "INFO_NO_PREV_PAGES",
+        "type": "info",
+        "message": "NO PREVIOUS PAGES TO DISPLAY",
+        "context": "User attempted to navigate before first page"
+      },
+      {
+        "code": "INFO_NO_MORE_RECORDS",
+        "type": "info",
+        "message": "NO MORE RECORDS TO SHOW",
+        "context": "Reached end of available records"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Card List Display Flow",
+      "description": "Flow of data from card file to screen display",
+      "source": "CARDDAT file",
+      "destination": "Credit Card List Screen",
+      "data_elements": [
+        "Card number",
+        "Account ID",
+        "Card status"
+      ],
+      "transformations": [
+        "Apply account ID filter if specified",
+        "Apply card number filter if specified",
+        "Limit to 7 records per page",
+        "Format for screen display"
+      ]
+    },
+    {
+      "name": "Filter Criteria Flow",
+      "description": "Flow of user-entered filter criteria to record selection logic",
+      "source": "Credit Card List Screen",
+      "destination": "Record filtering logic",
+      "data_elements": [
+        "Account ID filter",
+        "Card number filter"
+      ],
+      "transformations": [
+        "Validate numeric format",
+        "Validate length (11 digits for account, 16 for card)",
+        "Convert to comparison format"
+      ]
+    },
+    {
+      "name": "Selection to Detail View Flow",
+      "description": "Flow of selected card information to detail view program",
+      "source": "Credit Card List Screen",
+      "destination": "Card Detail View Program",
+      "data_elements": [
+        "Selected card number",
+        "Selected account ID",
+        "Transaction context",
+        "User information"
+      ],
+      "transformations": [
+        "Extract selected row data",
+        "Prepare communication area",
+        "Set program context flags"
+      ]
+    },
+    {
+      "name": "Selection to Update Flow",
+      "description": "Flow of selected card information to update program",
+      "source": "Credit Card List Screen",
+      "destination": "Card Update Program",
+      "data_elements": [
+        "Selected card number",
+        "Selected account ID",
+        "Transaction context",
+        "User information"
+      ],
+      "transformations": [
+        "Extract selected row data",
+        "Prepare communication area",
+        "Set program context flags"
+      ]
+    },
+    {
+      "name": "Pagination State Flow",
+      "description": "Flow of pagination state between program invocations",
+      "source": "Program communication area",
+      "destination": "Program working storage",
+      "data_elements": [
+        "Current page number",
+        "First card key on page",
+        "Last card key on page",
+        "Next page exists flag"
+      ],
+      "transformations": [
+        "Restore state from communication area",
+        "Update based on navigation action",
+        "Save state for next invocation"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Display Limit",
+      "description": "Maximum of 7 credit card records can be displayed per page",
+      "impact": "Users must navigate through multiple pages to view large result sets"
+    },
+    {
+      "type": "Single Selection",
+      "description": "Only one credit card can be selected at a time for viewing or updating",
+      "impact": "Batch operations on multiple cards are not supported from this screen"
+    },
+    {
+      "type": "User Permission",
+      "description": "Regular users can only view cards associated with their account, admin users can view all cards",
+      "impact": "Data visibility is restricted based on user role"
+    },
+    {
+      "type": "Filter Format",
+      "description": "Account ID must be exactly 11 digits and card number must be exactly 16 digits when used as filters",
+      "impact": "Partial or wildcard searches are not supported"
+    },
+    {
+      "type": "Sequential Navigation",
+      "description": "Users can only navigate forward or backward one page at a time",
+      "impact": "Direct page jumping is not available"
+    }
+  ]
+}
