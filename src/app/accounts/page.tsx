@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { accountService } from '@/services/accountService';
 import { Account } from '@/types/account';
-import { Table, Button, Select } from '@/components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button, Select } from '@/components/ui';
 
 export default function AccountsPage() {
   const router = useRouter();
@@ -17,11 +17,7 @@ export default function AccountsPage() {
   const [pageSize, setPageSize] = useState(20);
   const [filterType, setFilterType] = useState<'all' | 'active' | 'expired' | 'sequential'>('all');
 
-  useEffect(() => {
-    fetchAccounts();
-  }, [currentPage, pageSize, filterType]);
-
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -53,7 +49,11 @@ export default function AccountsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, pageSize, filterType]);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this account?')) return;
@@ -108,7 +108,7 @@ export default function AccountsPage() {
             label="Filter Accounts"
             value={filterType}
             onChange={(e) => {
-              setFilterType(e.target.value as any);
+              setFilterType(e.target.value as 'all' | 'active' | 'expired' | 'sequential');
               setCurrentPage(0);
             }}
             options={[
@@ -144,94 +144,114 @@ export default function AccountsPage() {
         {filterType === 'all' && ` (Page ${currentPage + 1} of ${totalPages})`}
       </div>
 
-      <Table
-        columns={[
-          { key: 'acctId', label: 'Account ID' },
-          {
-            key: 'activeStatusDisplayName',
-            label: 'Status',
-            render: (account: Account) => (
-              <span
-                className={`px-2 py-1 rounded text-xs font-semibold ${
-                  account.isActive
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                {account.activeStatusDisplayName}
-              </span>
-            ),
-          },
-          {
-            key: 'acctCurrBal',
-            label: 'Current Balance',
-            render: (account: Account) => formatCurrency(account.acctCurrBal),
-          },
-          {
-            key: 'acctCreditLimit',
-            label: 'Credit Limit',
-            render: (account: Account) => formatCurrency(account.acctCreditLimit),
-          },
-          {
-            key: 'availableCredit',
-            label: 'Available Credit',
-            render: (account: Account) => (
-              <span
-                className={
-                  account.availableCredit < 0 ? 'text-red-600 font-semibold' : ''
-                }
-              >
-                {formatCurrency(account.availableCredit)}
-              </span>
-            ),
-          },
-          {
-            key: 'acctOpenDate',
-            label: 'Open Date',
-            render: (account: Account) => formatDate(account.acctOpenDate),
-          },
-          {
-            key: 'isExpired',
-            label: 'Expired',
-            render: (account: Account) => (
-              <span
-                className={`px-2 py-1 rounded text-xs font-semibold ${
-                  account.isExpired
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-green-100 text-green-800'
-                }`}
-              >
-                {account.isExpired ? 'Yes' : 'No'}
-              </span>
-            ),
-          },
-        ]}
-        data={accounts}
-        onRowClick={(account) => router.push(`/accounts/${account.acctId}`)}
-        actions={(account) => (
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/accounts/${account.acctId}/edit`);
-              }}
-            >
-              Edit
-            </Button>
-            <Button
-              size="sm"
-              variant="danger"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(account.acctId);
-              }}
-            >
-              Delete
-            </Button>
-          </div>
-        )}
-      />
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Account ID</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Current Balance</TableHead>
+            <TableHead>Credit Limit</TableHead>
+            <TableHead>Available Credit</TableHead>
+            <TableHead>Open Date</TableHead>
+            <TableHead>Expired</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {accounts.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={8} className="text-center text-gray-500 py-8">
+                No accounts found
+              </TableCell>
+            </TableRow>
+          ) : (
+            accounts.map((account) => (
+              <TableRow key={account.acctId}>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/accounts/${account.acctId}`)}>
+                    {account.acctId}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/accounts/${account.acctId}`)}>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                        account.isActive
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {account.activeStatusDisplayName}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/accounts/${account.acctId}`)}>
+                    {formatCurrency(account.acctCurrBal)}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/accounts/${account.acctId}`)}>
+                    {formatCurrency(account.acctCreditLimit)}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/accounts/${account.acctId}`)}>
+                    <span
+                      className={
+                        account.availableCredit < 0 ? 'text-red-600 font-semibold' : ''
+                      }
+                    >
+                      {formatCurrency(account.availableCredit)}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/accounts/${account.acctId}`)}>
+                    {formatDate(account.acctOpenDate)}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/accounts/${account.acctId}`)}>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                        account.isExpired
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-green-100 text-green-800'
+                      }`}
+                    >
+                      {account.isExpired ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/accounts/${account.acctId}/edit`);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(account.acctId);
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
 
       {filterType === 'all' && totalPages > 1 && (
         <div className="mt-4 flex justify-between items-center">
