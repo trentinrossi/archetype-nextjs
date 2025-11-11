@@ -1,0 +1,934 @@
+{
+  "application_metadata": {
+    "name": "COCRDSLC - Credit Card Detail View",
+    "description": "Business logic layer for viewing credit card details. Handles credit card detail requests from users, validates input, retrieves card information from database, and displays results.",
+    "domain": "Credit Card Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "CreditCard",
+        "description": "Represents a credit card with associated account and card details",
+        "attributes": [
+          {
+            "name": "card_number",
+            "type": "numeric",
+            "length": 16,
+            "required": true,
+            "description": "16-digit card number, primary key for card data"
+          },
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "11-digit account number, alternate key for card access"
+          },
+          {
+            "name": "cvv_code",
+            "type": "numeric",
+            "length": 3,
+            "required": true,
+            "description": "Card verification value code"
+          },
+          {
+            "name": "embossed_name",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Name embossed on the card"
+          },
+          {
+            "name": "expiration_date",
+            "type": "date",
+            "length": 10,
+            "required": true,
+            "description": "Card expiration date with year, month, and day components"
+          },
+          {
+            "name": "card_status",
+            "type": "string",
+            "length": 1,
+            "required": true,
+            "description": "Current status of the card"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          }
+        ]
+      },
+      {
+        "name": "Account",
+        "description": "Customer account that can have multiple credit cards",
+        "attributes": [
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Unique 11-digit account identifier"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "CreditCard",
+            "relationship_type": "has_many",
+            "cardinality": "one-to-many"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Credit Card Detail Access Methods",
+        "description": "Users can view credit card details by providing either an account number, a card number, or both",
+        "category": "Access Control",
+        "logic": "Accept account number OR card number OR both as search criteria",
+        "conditions": [
+          "At least one search criterion must be provided",
+          "Account number must be 11 digits if provided",
+          "Card number must be 16 digits if provided"
+        ],
+        "actions": [
+          "Retrieve card details based on provided criteria",
+          "Display card information to user"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Context-Based Entry Validation",
+        "description": "Selection criteria are pre-validated when coming from credit card list screen",
+        "category": "Validation",
+        "logic": "If program is accessed from credit card list screen (COCRDLIC), skip input validation and use pre-validated criteria",
+        "conditions": [
+          "Source program is COCRDLIC (credit card list screen)"
+        ],
+        "actions": [
+          "Set INPUT-OK flag",
+          "Use CDEMO-ACCT-ID and CDEMO-CARD-NUM from commarea",
+          "Proceed directly to data retrieval"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Card Data Retrieval Strategy",
+        "description": "Card information is retrieved using card number as primary key or account number via alternate index",
+        "category": "Data Access",
+        "logic": "Primary access via card number (CARDDAT file), alternate access via account number (CARDAIX alternate index)",
+        "conditions": [
+          "Valid card number or account number provided"
+        ],
+        "actions": [
+          "Read from CARDDAT using card number as primary key",
+          "Or read from CARDAIX using account number as alternate key"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Navigation Control",
+        "description": "Program supports navigation back to main menu or calling program using PF3",
+        "category": "Navigation",
+        "logic": "PF3 key returns user to either main menu or the program that called this screen",
+        "conditions": [
+          "User presses PF3 key"
+        ],
+        "actions": [
+          "Determine return destination (menu or calling program)",
+          "Transfer control to determined program"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Screen Attribute Dynamic Adjustment",
+        "description": "Screen layout and field attributes are dynamically adjusted based on entry context",
+        "category": "User Interface",
+        "logic": "Field protection and display attributes change based on whether user came from list screen or direct access",
+        "conditions": [
+          "Coming from credit card list screen: protect account and card number fields",
+          "Direct access: allow input in account and card number fields"
+        ],
+        "actions": [
+          "Set field protection flags",
+          "Adjust color attributes for validation feedback",
+          "Position cursor appropriately"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Transaction Re-entry Handling",
+        "description": "Program maintains state across multiple interactions within same transaction",
+        "category": "State Management",
+        "logic": "Use commarea to preserve context and state when re-entering program",
+        "conditions": [
+          "EIBCALEN > 0 indicates re-entry with existing context"
+        ],
+        "actions": [
+          "Restore program state from commarea",
+          "Set re-entry flag",
+          "Process based on current state"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "account_id",
+        "rule": "Must be exactly 11 numeric digits",
+        "error_message": "Account number must be 11 digits",
+        "severity": "error"
+      },
+      {
+        "field": "card_number",
+        "rule": "Must be exactly 16 numeric digits",
+        "error_message": "Card number must be 16 digits",
+        "severity": "error"
+      },
+      {
+        "field": "account_id",
+        "rule": "Cannot be blank if card number is also blank",
+        "error_message": "At least one search criterion required",
+        "severity": "error"
+      },
+      {
+        "field": "card_number",
+        "rule": "Cannot be blank if account number is also blank",
+        "error_message": "At least one search criterion required",
+        "severity": "error"
+      },
+      {
+        "field": "account_id",
+        "rule": "Must be numeric only",
+        "error_message": "Account number must contain only numbers",
+        "severity": "error"
+      },
+      {
+        "field": "card_number",
+        "rule": "Must be numeric only",
+        "error_message": "Card number must contain only numbers",
+        "severity": "error"
+      },
+      {
+        "field": "account_card_combination",
+        "rule": "Combination must exist in database",
+        "error_message": "Account and card combination not found",
+        "severity": "error"
+      }
+    ],
+    "calculations": [],
+    "workflows": [
+      {
+        "name": "View Credit Card Details - First Time Entry",
+        "description": "Workflow for viewing credit card details when entering program for the first time",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize program and set up error handling",
+            "conditions": [
+              "Program start"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Check for incoming data (EIBCALEN)",
+            "conditions": [
+              "EIBCALEN = 0 indicates first time entry"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Initialize commarea and working storage",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Display initial screen with empty input fields",
+            "conditions": [],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Wait for user input",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "View Credit Card Details - From List Screen",
+        "description": "Workflow when accessing from credit card list screen with pre-validated criteria",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Receive pre-validated account and card number from calling program",
+            "conditions": [
+              "CDEMO-FROM-PROGRAM = COCRDLIC"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Set INPUT-OK flag",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Move account ID and card number to working fields",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Retrieve card data from database",
+            "conditions": [],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Display screen with card details and protected input fields",
+            "conditions": [
+              "Card data found"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "View Credit Card Details - User Input Processing",
+        "description": "Workflow for processing user-entered search criteria",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Receive user input from screen",
+            "conditions": [
+              "User pressed Enter key"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Validate account number format",
+            "conditions": [
+              "Account number provided"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Validate card number format",
+            "conditions": [
+              "Card number provided"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Check that at least one search criterion is provided",
+            "conditions": [],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "If validation errors, redisplay screen with error messages",
+            "conditions": [
+              "INPUT-ERROR flag set"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 6,
+            "action": "If validation successful, retrieve card data",
+            "conditions": [
+              "INPUT-OK flag set"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Display screen with retrieved card details",
+            "conditions": [
+              "Card data found"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Exit to Previous Screen",
+        "description": "Workflow for navigating back using PF3 key",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Detect PF3 key press",
+            "conditions": [
+              "CCARD-AID-PFK03"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Determine return destination",
+            "conditions": [
+              "Check if came from list screen or menu"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Transfer control to determined program",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "CARDDAT File Access",
+        "type": "Database",
+        "purpose": "Retrieve credit card information using card number as primary key",
+        "data_exchanged": [
+          "Card number",
+          "Account ID",
+          "CVV code",
+          "Embossed name",
+          "Expiration date",
+          "Card status"
+        ],
+        "trigger_conditions": [
+          "Valid card number provided",
+          "User requests card details"
+        ]
+      },
+      {
+        "name": "CARDAIX Alternate Index Access",
+        "type": "Database",
+        "purpose": "Retrieve credit card information using account number as alternate key",
+        "data_exchanged": [
+          "Account ID",
+          "Card details"
+        ],
+        "trigger_conditions": [
+          "Valid account number provided",
+          "Card number not provided or alternate access needed"
+        ]
+      },
+      {
+        "name": "Credit Card List Screen Integration",
+        "type": "Program-to-Program",
+        "purpose": "Receive pre-validated search criteria from list screen",
+        "data_exchanged": [
+          "Account ID",
+          "Card number",
+          "Program context"
+        ],
+        "trigger_conditions": [
+          "User selects card from list screen"
+        ]
+      },
+      {
+        "name": "Main Menu Integration",
+        "type": "Program-to-Program",
+        "purpose": "Navigation to and from main menu",
+        "data_exchanged": [
+          "Transaction context",
+          "User session data"
+        ],
+        "trigger_conditions": [
+          "User presses PF3 to return to menu",
+          "User selects card detail view from menu"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "CardDemo User"
+      ],
+      "permissions": [
+        {
+          "role": "CardDemo User",
+          "resource": "Credit Card Details",
+          "actions": [
+            "view"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be signed on to CardDemo application",
+        "Valid user data must be present in CSUSR01Y structure"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "NOTFND",
+        "condition": "Card number not found in CARDDAT file",
+        "business_impact": "User cannot view requested card details",
+        "suggested_action": "Display error message indicating card not found, allow user to re-enter search criteria"
+      },
+      {
+        "error_code": "NOTFND",
+        "condition": "Account number not found in CARDAIX alternate index",
+        "business_impact": "User cannot view cards for requested account",
+        "suggested_action": "Display error message indicating account not found in card cross-reference, allow user to re-enter search criteria"
+      },
+      {
+        "error_code": "VALIDATION_ERROR",
+        "condition": "Account number is not 11 digits or not numeric",
+        "business_impact": "Invalid search criteria prevents data retrieval",
+        "suggested_action": "Highlight account number field in red, display validation error message, position cursor on field"
+      },
+      {
+        "error_code": "VALIDATION_ERROR",
+        "condition": "Card number is not 16 digits or not numeric",
+        "business_impact": "Invalid search criteria prevents data retrieval",
+        "suggested_action": "Highlight card number field in red, display validation error message, position cursor on field"
+      },
+      {
+        "error_code": "NO_CRITERIA",
+        "condition": "Both account number and card number are blank",
+        "business_impact": "Cannot perform search without criteria",
+        "suggested_action": "Display message requesting at least one search criterion, highlight both fields"
+      },
+      {
+        "error_code": "FILE_ERROR",
+        "condition": "Unexpected response from file operation",
+        "business_impact": "System cannot retrieve card data",
+        "suggested_action": "Display detailed error message with operation name, file name, response code, and reason code"
+      },
+      {
+        "error_code": "ABEND_9999",
+        "condition": "Unexpected program abend",
+        "business_impact": "Program terminates abnormally",
+        "suggested_action": "Display abend message, identify culprit program, terminate with abend code 9999"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "CCRDSL",
+        "name": "Credit Card Detail View Screen",
+        "purpose": "Display detailed information for a specific credit card based on account number and/or card number",
+        "screen_type": "detail_view",
+        "navigation_from": [
+          "Main Menu",
+          "Credit Card List Screen (COCRDLIC)"
+        ],
+        "navigation_to": [
+          "Main Menu",
+          "Credit Card List Screen (COCRDLIC)"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "display",
+            "fields": [
+              {
+                "name": "screen_title",
+                "label": "Screen Title",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "Credit Card Detail View",
+                "validation": "",
+                "help_text": "Displays the screen title"
+              },
+              {
+                "name": "transaction_name",
+                "label": "Transaction Name",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "CCDL",
+                "validation": "",
+                "help_text": "Displays the transaction identifier"
+              },
+              {
+                "name": "program_name",
+                "label": "Program Name",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "COCRDSLC",
+                "validation": "",
+                "help_text": "Displays the program name"
+              },
+              {
+                "name": "current_date",
+                "label": "Date",
+                "type": "date",
+                "input_output": "output",
+                "required": false,
+                "default_value": "Current system date",
+                "validation": "",
+                "help_text": "Displays current date"
+              },
+              {
+                "name": "current_time",
+                "label": "Time",
+                "type": "time",
+                "input_output": "output",
+                "required": false,
+                "default_value": "Current system time",
+                "validation": "",
+                "help_text": "Displays current time"
+              }
+            ]
+          },
+          {
+            "name": "Search Criteria",
+            "type": "input",
+            "fields": [
+              {
+                "name": "account_number",
+                "label": "Account Number",
+                "type": "numeric",
+                "input_output": "input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be 11 digits if provided",
+                "help_text": "Enter 11-digit account number or leave blank if searching by card number only"
+              },
+              {
+                "name": "card_number",
+                "label": "Card Number",
+                "type": "numeric",
+                "input_output": "input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be 16 digits if provided",
+                "help_text": "Enter 16-digit card number or leave blank if searching by account number only"
+              }
+            ]
+          },
+          {
+            "name": "Card Details",
+            "type": "display",
+            "fields": [
+              {
+                "name": "embossed_name",
+                "label": "Name on Card",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays the name embossed on the card"
+              },
+              {
+                "name": "expiration_date",
+                "label": "Expiration Date",
+                "type": "date",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays the card expiration date"
+              },
+              {
+                "name": "card_status",
+                "label": "Card Status",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays the current status of the card"
+              }
+            ]
+          },
+          {
+            "name": "Messages",
+            "type": "display",
+            "fields": [
+              {
+                "name": "info_message",
+                "label": "Information Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays informational messages to guide user"
+              },
+              {
+                "name": "error_message",
+                "label": "Error Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays error messages for validation failures or system errors"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "View Card Details",
+            "trigger": "Enter key",
+            "description": "Validates input and retrieves card details based on provided search criteria",
+            "backend_process": "Process Inputs and Read Data workflows",
+            "success_navigation": "Refresh screen with card details displayed",
+            "error_handling": "Display validation errors or data not found messages"
+          },
+          {
+            "name": "Return to Previous Screen",
+            "trigger": "PF3 key",
+            "description": "Returns user to the calling program or main menu",
+            "backend_process": "Exit to Previous Screen workflow",
+            "success_navigation": "Transfer to main menu or credit card list screen",
+            "error_handling": "None - navigation always succeeds"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "Coming from credit card list screen",
+            "affected_fields": [
+              "account_number",
+              "card_number"
+            ],
+            "behavior": "Fields are protected (read-only) and pre-populated with values from list screen"
+          },
+          {
+            "condition": "Direct access from menu",
+            "affected_fields": [
+              "account_number",
+              "card_number"
+            ],
+            "behavior": "Fields are unprotected and allow user input"
+          },
+          {
+            "condition": "Account number validation fails",
+            "affected_fields": [
+              "account_number"
+            ],
+            "behavior": "Field highlighted in red, cursor positioned on field"
+          },
+          {
+            "condition": "Card number validation fails",
+            "affected_fields": [
+              "card_number"
+            ],
+            "behavior": "Field highlighted in red, cursor positioned on field"
+          },
+          {
+            "condition": "Both fields blank on re-entry",
+            "affected_fields": [
+              "account_number",
+              "card_number"
+            ],
+            "behavior": "Both fields highlighted in red with asterisk displayed"
+          },
+          {
+            "condition": "Card data found successfully",
+            "affected_fields": [
+              "embossed_name",
+              "expiration_date",
+              "card_status"
+            ],
+            "behavior": "Fields populated with retrieved card data"
+          },
+          {
+            "condition": "Card data not found",
+            "affected_fields": [
+              "embossed_name",
+              "expiration_date",
+              "card_status"
+            ],
+            "behavior": "Fields remain empty, error message displayed"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "Main Menu",
+        "to_screen": "Credit Card Detail View (CCRDSL)",
+        "trigger": "User selects credit card detail view option",
+        "conditions": [
+          "User authenticated"
+        ]
+      },
+      {
+        "from_screen": "Credit Card List Screen (COCRDLIC)",
+        "to_screen": "Credit Card Detail View (CCRDSL)",
+        "trigger": "User selects specific card from list",
+        "conditions": [
+          "Valid card selected from list"
+        ]
+      },
+      {
+        "from_screen": "Credit Card Detail View (CCRDSL)",
+        "to_screen": "Main Menu",
+        "trigger": "PF3 key pressed",
+        "conditions": [
+          "Entered from main menu"
+        ]
+      },
+      {
+        "from_screen": "Credit Card Detail View (CCRDSL)",
+        "to_screen": "Credit Card List Screen (COCRDLIC)",
+        "trigger": "PF3 key pressed",
+        "conditions": [
+          "Entered from credit card list screen"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "INFO_PROMPT",
+        "type": "information",
+        "message": "Enter search criteria to view card details",
+        "context": "Initial screen display"
+      },
+      {
+        "code": "ERROR_ACCT_INVALID",
+        "type": "error",
+        "message": "Account number must be 11 digits",
+        "context": "Account number validation failure"
+      },
+      {
+        "code": "ERROR_CARD_INVALID",
+        "type": "error",
+        "message": "Card number must be 16 digits",
+        "context": "Card number validation failure"
+      },
+      {
+        "code": "ERROR_NO_CRITERIA",
+        "type": "error",
+        "message": "At least one search criterion required",
+        "context": "Both account and card number are blank"
+      },
+      {
+        "code": "ERROR_NOT_FOUND",
+        "type": "error",
+        "message": "Account and card combination not found",
+        "context": "Card data not found in database"
+      },
+      {
+        "code": "ERROR_ACCT_NOT_FOUND",
+        "type": "error",
+        "message": "Account not found in card cross-reference",
+        "context": "Account number not found in alternate index"
+      },
+      {
+        "code": "ERROR_FILE_OPERATION",
+        "type": "error",
+        "message": "File operation error: [operation] [filename] [response] [reason]",
+        "context": "Unexpected file operation error"
+      },
+      {
+        "code": "ERROR_ABEND",
+        "type": "error",
+        "message": "Unexpected abend occurred",
+        "context": "Program abnormal termination"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Card Detail Request from List Screen",
+      "description": "Pre-validated card selection data flows from list screen to detail view",
+      "source": "Credit Card List Screen (COCRDLIC)",
+      "destination": "Credit Card Detail View (CCRDSL)",
+      "data_elements": [
+        "Account ID",
+        "Card Number",
+        "Program Context"
+      ],
+      "transformations": [
+        "Data passed via CARDDEMO-COMMAREA",
+        "Validation bypassed for pre-validated data"
+      ]
+    },
+    {
+      "name": "Card Detail Retrieval",
+      "description": "Card information retrieved from database and displayed to user",
+      "source": "CARDDAT File",
+      "destination": "Credit Card Detail View Screen",
+      "data_elements": [
+        "Card Number",
+        "Account ID",
+        "Embossed Name",
+        "Expiration Date",
+        "Card Status",
+        "CVV Code"
+      ],
+      "transformations": [
+        "Date formatting for display",
+        "Field mapping to screen layout"
+      ]
+    },
+    {
+      "name": "User Input Validation Flow",
+      "description": "User-entered search criteria validated and processed",
+      "source": "Credit Card Detail View Screen",
+      "destination": "Backend Validation Logic",
+      "data_elements": [
+        "Account Number Input",
+        "Card Number Input"
+      ],
+      "transformations": [
+        "Numeric validation",
+        "Length validation",
+        "Blank check",
+        "Conversion from display format to internal format"
+      ]
+    },
+    {
+      "name": "Return Navigation Data Flow",
+      "description": "Context information passed when returning to previous screen",
+      "source": "Credit Card Detail View (CCRDSL)",
+      "destination": "Main Menu or Credit Card List Screen",
+      "data_elements": [
+        "Transaction Context",
+        "User Session Data"
+      ],
+      "transformations": [
+        "Commarea preparation for target program"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Data Integrity",
+      "description": "Account number must be exactly 11 digits and card number must be exactly 16 digits",
+      "impact": "Ensures data consistency and prevents invalid searches"
+    },
+    {
+      "type": "Search Requirement",
+      "description": "At least one search criterion (account number or card number) must be provided",
+      "impact": "Prevents empty searches and ensures meaningful queries"
+    },
+    {
+      "type": "Access Method",
+      "description": "Card data accessed via primary key (card number) or alternate index (account number)",
+      "impact": "Defines data retrieval strategy and performance characteristics"
+    },
+    {
+      "type": "Context Preservation",
+      "description": "Program must maintain context when accessed from different entry points",
+      "impact": "Ensures proper navigation flow and user experience consistency"
+    },
+    {
+      "type": "Field Protection",
+      "description": "Input fields must be protected when coming from list screen to prevent modification of pre-validated data",
+      "impact": "Maintains data integrity and prevents user confusion"
+    },
+    {
+      "type": "Error Recovery",
+      "description": "All validation errors must allow user to correct input and retry",
+      "impact": "Ensures user-friendly error handling and prevents transaction abandonment"
+    }
+  ]
+}
