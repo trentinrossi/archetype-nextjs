@@ -1,0 +1,979 @@
+{
+  "application_metadata": {
+    "name": "CardDemo Bill Payment Processing",
+    "description": "CICS COBOL program that handles online bill payments by allowing customers to pay their account balance in full and recording transactions",
+    "domain": "Financial Services - Credit Card Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "Account",
+        "description": "Customer account information including balance and identification",
+        "attributes": [
+          {
+            "name": "ACCT-ID",
+            "type": "string",
+            "length": 11,
+            "required": true,
+            "description": "Unique account identifier"
+          },
+          {
+            "name": "ACCT-CURR-BAL",
+            "type": "decimal",
+            "length": 13,
+            "required": true,
+            "description": "Current account balance with 2 decimal places"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "CardCrossReference",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          },
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          }
+        ]
+      },
+      {
+        "name": "CardCrossReference",
+        "description": "Cross-reference between accounts and card numbers",
+        "attributes": [
+          {
+            "name": "XREF-ACCT-ID",
+            "type": "string",
+            "length": 11,
+            "required": true,
+            "description": "Account ID in cross-reference"
+          },
+          {
+            "name": "XREF-CARD-NUM",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Card number associated with account"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          }
+        ]
+      },
+      {
+        "name": "Transaction",
+        "description": "Bill payment transaction record",
+        "attributes": [
+          {
+            "name": "TRAN-ID",
+            "type": "numeric",
+            "length": 16,
+            "required": true,
+            "description": "Unique transaction identifier"
+          },
+          {
+            "name": "TRAN-TYPE-CD",
+            "type": "string",
+            "length": 2,
+            "required": true,
+            "description": "Transaction type code (02 for bill payment)"
+          },
+          {
+            "name": "TRAN-CAT-CD",
+            "type": "numeric",
+            "length": 1,
+            "required": true,
+            "description": "Transaction category code (2 for bill payment)"
+          },
+          {
+            "name": "TRAN-SOURCE",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "Source of transaction (POS TERM)"
+          },
+          {
+            "name": "TRAN-DESC",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Transaction description"
+          },
+          {
+            "name": "TRAN-AMT",
+            "type": "decimal",
+            "length": 11,
+            "required": true,
+            "description": "Transaction amount with 2 decimal places"
+          },
+          {
+            "name": "TRAN-CARD-NUM",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Card number used for transaction"
+          },
+          {
+            "name": "TRAN-MERCHANT-ID",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Merchant identifier"
+          },
+          {
+            "name": "TRAN-MERCHANT-NAME",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Merchant name"
+          },
+          {
+            "name": "TRAN-MERCHANT-CITY",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Merchant city"
+          },
+          {
+            "name": "TRAN-MERCHANT-ZIP",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "Merchant ZIP code"
+          },
+          {
+            "name": "TRAN-ORIG-TS",
+            "type": "timestamp",
+            "length": 26,
+            "required": true,
+            "description": "Transaction origination timestamp"
+          },
+          {
+            "name": "TRAN-PROC-TS",
+            "type": "timestamp",
+            "length": 26,
+            "required": true,
+            "description": "Transaction processing timestamp"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Account Validation",
+        "description": "Validates that the entered account ID exists in the system",
+        "category": "Validation",
+        "logic": "Check if account ID is provided and exists in account data file",
+        "conditions": [
+          "Account ID must not be empty",
+          "Account ID must exist in ACCTDAT file"
+        ],
+        "actions": [
+          "If empty, display error: 'Acct ID can NOT be empty...'",
+          "If not found, display error: 'Account ID NOT found...'"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Balance Check",
+        "description": "Verifies that the account has a positive balance to pay",
+        "category": "Business Logic",
+        "logic": "Check if current account balance is greater than zero",
+        "conditions": [
+          "Current balance must be greater than zero"
+        ],
+        "actions": [
+          "If balance <= 0, display message: 'You have nothing to pay...'"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Payment Confirmation",
+        "description": "Requires user confirmation before processing payment",
+        "category": "Business Logic",
+        "logic": "User must explicitly confirm payment with Y or y, or cancel with N or n",
+        "conditions": [
+          "Confirmation field accepts Y, y, N, n, or empty",
+          "Y or y confirms payment",
+          "N or n cancels payment",
+          "Empty displays account information without processing"
+        ],
+        "actions": [
+          "If Y/y: Process payment",
+          "If N/n: Clear screen and cancel",
+          "If empty: Display account information",
+          "If other value: Display error 'Invalid value. Valid values are (Y/N)...'"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Full Balance Payment",
+        "description": "Payment processes the full current account balance",
+        "category": "Business Logic",
+        "logic": "Transaction amount equals the current account balance",
+        "conditions": [
+          "Payment confirmed",
+          "Balance is positive"
+        ],
+        "actions": [
+          "Set transaction amount to current account balance",
+          "Subtract transaction amount from account balance",
+          "New balance becomes zero"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Transaction ID Generation",
+        "description": "Generates unique sequential transaction ID",
+        "category": "Business Logic",
+        "logic": "Read last transaction ID and increment by 1",
+        "conditions": [
+          "Payment is confirmed"
+        ],
+        "actions": [
+          "Read last transaction from TRANSACT file",
+          "Increment transaction ID by 1",
+          "Assign new ID to new transaction"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Bill Payment Transaction Recording",
+        "description": "Records bill payment with specific transaction attributes",
+        "category": "Business Logic",
+        "logic": "Create transaction record with predefined bill payment attributes",
+        "conditions": [
+          "Payment confirmed",
+          "Valid account and card information"
+        ],
+        "actions": [
+          "Set TRAN-TYPE-CD to '02'",
+          "Set TRAN-CAT-CD to 2",
+          "Set TRAN-SOURCE to 'POS TERM'",
+          "Set TRAN-DESC to 'BILL PAYMENT - ONLINE'",
+          "Set TRAN-MERCHANT-ID to 999999999",
+          "Set TRAN-MERCHANT-NAME to 'BILL PAYMENT'",
+          "Set TRAN-MERCHANT-CITY to 'N/A'",
+          "Set TRAN-MERCHANT-ZIP to 'N/A'",
+          "Set timestamps to current system time"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Account Balance Update",
+        "description": "Updates account balance after successful payment",
+        "category": "Business Logic",
+        "logic": "Subtract payment amount from current balance and update account record",
+        "conditions": [
+          "Transaction successfully recorded"
+        ],
+        "actions": [
+          "Subtract transaction amount from account current balance",
+          "Update account record in ACCTDAT file",
+          "Display success message with transaction ID"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "ACTIDINI",
+        "rule": "Required field - cannot be empty or contain low-values",
+        "error_message": "Acct ID can NOT be empty...",
+        "severity": "error"
+      },
+      {
+        "field": "ACTIDINI",
+        "rule": "Must exist in ACCTDAT file",
+        "error_message": "Account ID NOT found...",
+        "severity": "error"
+      },
+      {
+        "field": "CONFIRMI",
+        "rule": "Must be Y, y, N, n, or empty",
+        "error_message": "Invalid value. Valid values are (Y/N)...",
+        "severity": "error"
+      },
+      {
+        "field": "ACCT-CURR-BAL",
+        "rule": "Must be greater than zero to process payment",
+        "error_message": "You have nothing to pay...",
+        "severity": "error"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "New Account Balance",
+        "description": "Calculate new account balance after payment",
+        "formula": "ACCT-CURR-BAL = ACCT-CURR-BAL - TRAN-AMT",
+        "input_fields": [
+          "ACCT-CURR-BAL",
+          "TRAN-AMT"
+        ],
+        "output_field": "ACCT-CURR-BAL"
+      },
+      {
+        "name": "Transaction Amount",
+        "description": "Set transaction amount equal to current balance for full payment",
+        "formula": "TRAN-AMT = ACCT-CURR-BAL",
+        "input_fields": [
+          "ACCT-CURR-BAL"
+        ],
+        "output_field": "TRAN-AMT"
+      },
+      {
+        "name": "Next Transaction ID",
+        "description": "Generate next sequential transaction ID",
+        "formula": "WS-TRAN-ID-NUM = TRAN-ID + 1",
+        "input_fields": [
+          "TRAN-ID"
+        ],
+        "output_field": "WS-TRAN-ID-NUM"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Bill Payment Process",
+        "description": "Complete workflow for processing online bill payment",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Validate Account ID input",
+            "conditions": [
+              "Account ID is not empty",
+              "Account ID exists in system"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Retrieve account information",
+            "conditions": [
+              "Account ID is valid"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Check account balance",
+            "conditions": [
+              "Balance is greater than zero"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Display account balance and request confirmation",
+            "conditions": [
+              "Balance is positive"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Process confirmation input",
+            "conditions": [
+              "User enters Y/y to confirm",
+              "User enters N/n to cancel",
+              "User leaves empty to view only"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Retrieve card cross-reference information",
+            "conditions": [
+              "Payment confirmed"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Generate new transaction ID",
+            "conditions": [
+              "Payment confirmed"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Create transaction record with bill payment details",
+            "conditions": [
+              "Transaction ID generated",
+              "Card information retrieved"
+            ],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "Generate current timestamp",
+            "conditions": [
+              "Transaction record created"
+            ],
+            "next_step": "10"
+          },
+          {
+            "step_number": 10,
+            "action": "Write transaction to TRANSACT file",
+            "conditions": [
+              "Transaction record complete"
+            ],
+            "next_step": "11"
+          },
+          {
+            "step_number": 11,
+            "action": "Update account balance to zero",
+            "conditions": [
+              "Transaction successfully written"
+            ],
+            "next_step": "12"
+          },
+          {
+            "step_number": 12,
+            "action": "Display success message with transaction ID",
+            "conditions": [
+              "Account balance updated successfully"
+            ],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "Account Data Repository",
+        "type": "Data Store",
+        "purpose": "Store and retrieve customer account information and balances",
+        "data_exchanged": [
+          "Account ID",
+          "Current Balance"
+        ],
+        "trigger_conditions": [
+          "Account validation",
+          "Balance inquiry",
+          "Balance update after payment"
+        ]
+      },
+      {
+        "name": "Card Cross-Reference Repository",
+        "type": "Data Store",
+        "purpose": "Link accounts to card numbers for transaction processing",
+        "data_exchanged": [
+          "Account ID",
+          "Card Number"
+        ],
+        "trigger_conditions": [
+          "Payment confirmation to retrieve card number"
+        ]
+      },
+      {
+        "name": "Transaction Repository",
+        "type": "Data Store",
+        "purpose": "Store all transaction records and generate transaction IDs",
+        "data_exchanged": [
+          "Transaction ID",
+          "Transaction Type",
+          "Transaction Amount",
+          "Card Number",
+          "Merchant Information",
+          "Timestamps"
+        ],
+        "trigger_conditions": [
+          "Transaction ID generation",
+          "New transaction recording"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Customer",
+        "System"
+      ],
+      "permissions": [
+        {
+          "role": "Customer",
+          "resource": "Account Balance",
+          "actions": [
+            "view",
+            "pay"
+          ]
+        },
+        {
+          "role": "System",
+          "resource": "Transaction Records",
+          "actions": [
+            "create",
+            "read"
+          ]
+        },
+        {
+          "role": "System",
+          "resource": "Account Balance",
+          "actions": [
+            "update"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be authenticated to access bill payment function",
+        "Valid account ID required for all operations"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "ERR001",
+        "condition": "Account ID is empty or contains low-values",
+        "business_impact": "Cannot process payment without valid account identifier",
+        "suggested_action": "Display error message and prompt user to enter account ID"
+      },
+      {
+        "error_code": "ERR002",
+        "condition": "Account ID not found in system",
+        "business_impact": "Cannot process payment for non-existent account",
+        "suggested_action": "Display error message and allow user to re-enter account ID"
+      },
+      {
+        "error_code": "ERR003",
+        "condition": "Account balance is zero or negative",
+        "business_impact": "No payment needed when balance is not positive",
+        "suggested_action": "Inform user there is nothing to pay"
+      },
+      {
+        "error_code": "ERR004",
+        "condition": "Invalid confirmation value entered",
+        "business_impact": "Cannot determine user intent for payment",
+        "suggested_action": "Display error message explaining valid values (Y/N)"
+      },
+      {
+        "error_code": "ERR005",
+        "condition": "Unable to lookup account data",
+        "business_impact": "Cannot retrieve account information for payment processing",
+        "suggested_action": "Display technical error message and log response/reason codes"
+      },
+      {
+        "error_code": "ERR006",
+        "condition": "Unable to lookup card cross-reference",
+        "business_impact": "Cannot link card to account for transaction",
+        "suggested_action": "Display error message and prevent payment processing"
+      },
+      {
+        "error_code": "ERR007",
+        "condition": "Duplicate transaction ID",
+        "business_impact": "Transaction cannot be recorded with existing ID",
+        "suggested_action": "Display error message indicating transaction ID already exists"
+      },
+      {
+        "error_code": "ERR008",
+        "condition": "Unable to write transaction",
+        "business_impact": "Payment cannot be recorded in system",
+        "suggested_action": "Display error message and prevent balance update"
+      },
+      {
+        "error_code": "ERR009",
+        "condition": "Unable to update account balance",
+        "business_impact": "Account balance not updated after transaction",
+        "suggested_action": "Display error message indicating update failure"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "COBIL0A",
+        "name": "Bill Payment Screen",
+        "purpose": "Allow customers to view account balance and process full payment",
+        "screen_type": "Transaction Entry",
+        "navigation_from": [
+          "Main Menu",
+          "Account Management"
+        ],
+        "navigation_to": [
+          "Previous Screen (PF3)",
+          "Cleared Screen (PF4)"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "Current Date",
+                "label": "Date",
+                "type": "date",
+                "input_output": "output",
+                "required": false,
+                "default_value": "System date",
+                "validation": "None",
+                "help_text": "Current system date"
+              },
+              {
+                "name": "Current Time",
+                "label": "Time",
+                "type": "time",
+                "input_output": "output",
+                "required": false,
+                "default_value": "System time",
+                "validation": "None",
+                "help_text": "Current system time"
+              }
+            ]
+          },
+          {
+            "name": "Account Information",
+            "type": "Input/Display",
+            "fields": [
+              {
+                "name": "ACTIDINI",
+                "label": "Account ID",
+                "type": "text",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must not be empty and must exist in system",
+                "help_text": "Enter your account ID"
+              },
+              {
+                "name": "CURBALI",
+                "label": "Current Balance",
+                "type": "currency",
+                "input_output": "output",
+                "required": false,
+                "default_value": "0.00",
+                "validation": "Display only",
+                "help_text": "Your current account balance"
+              }
+            ]
+          },
+          {
+            "name": "Payment Confirmation",
+            "type": "Input",
+            "fields": [
+              {
+                "name": "CONFIRMI",
+                "label": "Confirm Payment",
+                "type": "text",
+                "input_output": "input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be Y, y, N, n, or empty",
+                "help_text": "Enter Y to confirm payment, N to cancel"
+              }
+            ]
+          },
+          {
+            "name": "Messages",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "ERRMSGO",
+                "label": "Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "None",
+                "help_text": "System messages and errors"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Process Payment",
+            "trigger": "ENTER key",
+            "description": "Validates input and processes bill payment if confirmed",
+            "backend_process": "Process-Enter-Key",
+            "success_navigation": "Display success message on same screen",
+            "error_handling": "Display error message and remain on screen"
+          },
+          {
+            "name": "Return to Previous Screen",
+            "trigger": "PF3 key",
+            "description": "Returns user to previous screen without processing",
+            "backend_process": "Return-to-Prev-Screen",
+            "success_navigation": "Previous screen",
+            "error_handling": "None"
+          },
+          {
+            "name": "Clear Screen",
+            "trigger": "PF4 key",
+            "description": "Clears all input fields and resets screen",
+            "backend_process": "Clear-Current-Screen",
+            "success_navigation": "Same screen with cleared fields",
+            "error_handling": "None"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "Account ID entered and ENTER pressed without confirmation",
+            "affected_fields": [
+              "CURBALI"
+            ],
+            "behavior": "Display current balance and prompt for confirmation"
+          },
+          {
+            "condition": "Payment confirmed (Y/y entered)",
+            "affected_fields": [
+              "ERRMSGO"
+            ],
+            "behavior": "Process payment and display success message with transaction ID"
+          },
+          {
+            "condition": "Payment cancelled (N/n entered)",
+            "affected_fields": [
+              "All input fields"
+            ],
+            "behavior": "Clear all fields and reset screen"
+          },
+          {
+            "condition": "Error occurs",
+            "affected_fields": [
+              "ERRMSGO"
+            ],
+            "behavior": "Display error message in red, position cursor at error field"
+          },
+          {
+            "condition": "Success",
+            "affected_fields": [
+              "ERRMSGO"
+            ],
+            "behavior": "Display success message in green"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "Main Menu",
+        "to_screen": "COBIL0A",
+        "trigger": "Bill Payment option selected",
+        "conditions": [
+          "User authenticated"
+        ]
+      },
+      {
+        "from_screen": "COBIL0A",
+        "to_screen": "Previous Screen",
+        "trigger": "PF3 key pressed",
+        "conditions": []
+      },
+      {
+        "from_screen": "COBIL0A",
+        "to_screen": "COBIL0A",
+        "trigger": "PF4 key pressed",
+        "conditions": [
+          "Screen cleared"
+        ]
+      },
+      {
+        "from_screen": "COBIL0A",
+        "to_screen": "COBIL0A",
+        "trigger": "ENTER key pressed",
+        "conditions": [
+          "Processing complete or error occurred"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "error",
+        "message": "Acct ID can NOT be empty...",
+        "context": "Account ID field is empty when ENTER is pressed"
+      },
+      {
+        "code": "MSG002",
+        "type": "error",
+        "message": "Account ID NOT found...",
+        "context": "Entered account ID does not exist in system"
+      },
+      {
+        "code": "MSG003",
+        "type": "info",
+        "message": "You have nothing to pay...",
+        "context": "Account balance is zero or negative"
+      },
+      {
+        "code": "MSG004",
+        "type": "error",
+        "message": "Invalid value. Valid values are (Y/N)...",
+        "context": "Confirmation field contains invalid value"
+      },
+      {
+        "code": "MSG005",
+        "type": "error",
+        "message": "Unable to lookup Account...",
+        "context": "System error retrieving account information"
+      },
+      {
+        "code": "MSG006",
+        "type": "error",
+        "message": "Unable to lookup XREF AIX file...",
+        "context": "System error retrieving card cross-reference"
+      },
+      {
+        "code": "MSG007",
+        "type": "error",
+        "message": "Tran ID already exist...",
+        "context": "Duplicate transaction ID encountered"
+      },
+      {
+        "code": "MSG008",
+        "type": "error",
+        "message": "Unable to Add Bill pay Transaction...",
+        "context": "System error writing transaction record"
+      },
+      {
+        "code": "MSG009",
+        "type": "error",
+        "message": "Unable to Update Account...",
+        "context": "System error updating account balance"
+      },
+      {
+        "code": "MSG010",
+        "type": "success",
+        "message": "Payment successful. Your Transaction ID is [TRAN-ID].",
+        "context": "Payment processed successfully"
+      },
+      {
+        "code": "MSG011",
+        "type": "info",
+        "message": "Confirm to make a bill payment...",
+        "context": "Prompting user to confirm payment"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Account Balance Inquiry",
+      "description": "Retrieve current account balance for display",
+      "source": "Account Data Repository",
+      "destination": "Bill Payment Screen",
+      "data_elements": [
+        "Account ID",
+        "Current Balance"
+      ],
+      "transformations": [
+        "Format balance for display with currency symbol and decimal places"
+      ]
+    },
+    {
+      "name": "Card Number Retrieval",
+      "description": "Get card number associated with account for transaction",
+      "source": "Card Cross-Reference Repository",
+      "destination": "Transaction Record",
+      "data_elements": [
+        "Account ID",
+        "Card Number"
+      ],
+      "transformations": [
+        "None"
+      ]
+    },
+    {
+      "name": "Transaction Recording",
+      "description": "Create and store new bill payment transaction",
+      "source": "Bill Payment Process",
+      "destination": "Transaction Repository",
+      "data_elements": [
+        "Transaction ID",
+        "Transaction Type",
+        "Category Code",
+        "Source",
+        "Description",
+        "Amount",
+        "Card Number",
+        "Merchant Information",
+        "Timestamps"
+      ],
+      "transformations": [
+        "Generate new transaction ID",
+        "Set transaction type to 02",
+        "Set category code to 2",
+        "Set source to POS TERM",
+        "Set description to BILL PAYMENT - ONLINE",
+        "Set merchant ID to 999999999",
+        "Set merchant name to BILL PAYMENT",
+        "Set merchant city and ZIP to N/A",
+        "Generate current timestamp"
+      ]
+    },
+    {
+      "name": "Balance Update",
+      "description": "Update account balance after payment",
+      "source": "Bill Payment Process",
+      "destination": "Account Data Repository",
+      "data_elements": [
+        "Account ID",
+        "New Balance"
+      ],
+      "transformations": [
+        "Subtract payment amount from current balance",
+        "Result is zero for full payment"
+      ]
+    },
+    {
+      "name": "Success Confirmation",
+      "description": "Display payment confirmation to user",
+      "source": "Bill Payment Process",
+      "destination": "Bill Payment Screen",
+      "data_elements": [
+        "Transaction ID",
+        "Success Message"
+      ],
+      "transformations": [
+        "Format success message with transaction ID"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Payment Type",
+      "description": "System only supports full balance payment, not partial payments",
+      "impact": "Users must pay entire balance or nothing"
+    },
+    {
+      "type": "Transaction Type",
+      "description": "All bill payments are recorded with transaction type 02 and category 2",
+      "impact": "Standardized transaction classification for reporting"
+    },
+    {
+      "type": "Merchant Information",
+      "description": "Bill payments use fixed merchant information (ID: 999999999, Name: BILL PAYMENT)",
+      "impact": "All bill payments appear from same merchant in transaction history"
+    },
+    {
+      "type": "Balance Requirement",
+      "description": "Payment can only be processed if balance is positive",
+      "impact": "Accounts with zero or negative balance cannot make payments"
+    },
+    {
+      "type": "Confirmation Requirement",
+      "description": "User must explicitly confirm payment before processing",
+      "impact": "Prevents accidental payments"
+    },
+    {
+      "type": "Transaction ID Uniqueness",
+      "description": "Each transaction must have unique sequential ID",
+      "impact": "System must maintain transaction ID sequence integrity"
+    },
+    {
+      "type": "Timestamp Recording",
+      "description": "Both origination and processing timestamps are set to same current time",
+      "impact": "No distinction between when payment was initiated vs processed"
+    }
+  ]
+}
