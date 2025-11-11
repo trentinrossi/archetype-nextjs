@@ -1,0 +1,885 @@
+{
+  "application_metadata": {
+    "name": "COUSR02C - User Update Program",
+    "description": "CICS transaction program for updating user information in the CardDemo application. Allows authorized users to modify existing user records including first name, last name, password, and user type.",
+    "domain": "User Security Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "User",
+        "description": "Represents a user in the security system with authentication and profile information",
+        "attributes": [
+          {
+            "name": "user_id",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "Unique identifier for the user"
+          },
+          {
+            "name": "first_name",
+            "type": "string",
+            "length": 20,
+            "required": true,
+            "description": "User's first name"
+          },
+          {
+            "name": "last_name",
+            "type": "string",
+            "length": 20,
+            "required": true,
+            "description": "User's last name"
+          },
+          {
+            "name": "password",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "User's password for authentication"
+          },
+          {
+            "name": "user_type",
+            "type": "string",
+            "length": 1,
+            "required": true,
+            "description": "Type of user that controls permissions"
+          }
+        ],
+        "relationships": []
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "User Authentication Prerequisite",
+        "description": "User authentication must be performed before accessing the user update functionality",
+        "category": "Security",
+        "logic": "The program assumes authentication has already been performed by the calling program or CICS environment",
+        "conditions": [
+          "Program is called with valid commarea",
+          "User session is authenticated"
+        ],
+        "actions": [
+          "Allow access to user update functionality"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "User ID Required for Retrieval",
+        "description": "A valid User ID must be provided to retrieve user information",
+        "category": "Validation",
+        "logic": "User ID cannot be empty or contain only spaces when attempting to retrieve user data",
+        "conditions": [
+          "User ID field is not empty",
+          "User ID field does not contain only spaces"
+        ],
+        "actions": [
+          "Retrieve user record from USRSEC file",
+          "Display user information on screen"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "All Fields Required for Update",
+        "description": "All user fields must contain valid data before an update can be performed",
+        "category": "Validation",
+        "logic": "Validates that User ID, First Name, Last Name, Password, and User Type are all populated",
+        "conditions": [
+          "User ID is not empty",
+          "First Name is not empty",
+          "Last Name is not empty",
+          "Password is not empty",
+          "User Type is not empty"
+        ],
+        "actions": [
+          "Proceed with update validation",
+          "Compare with existing data"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Update Only on Modification",
+        "description": "User record is only updated if at least one field has been modified",
+        "category": "Data Integrity",
+        "logic": "Compares entered data with existing data and sets modification flag if any field differs",
+        "conditions": [
+          "At least one field value differs from existing record"
+        ],
+        "actions": [
+          "Set user modified flag",
+          "Update user record in USRSEC file",
+          "Display success message"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "User Must Exist for Update",
+        "description": "User record must exist in the system before it can be updated",
+        "category": "Data Integrity",
+        "logic": "Validates that the user ID exists in the USRSEC file before allowing updates",
+        "conditions": [
+          "User ID exists in USRSEC file"
+        ],
+        "actions": [
+          "Retrieve existing user data",
+          "Allow modification of user fields"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "No Audit Trail Implementation",
+        "description": "The program does not implement logging or audit trail for user updates",
+        "category": "Compliance",
+        "logic": "User updates are not logged for audit purposes",
+        "conditions": [],
+        "actions": [
+          "Note: Consideration should be given to adding audit trail for security and compliance"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "user_id",
+        "rule": "not_empty",
+        "error_message": "User ID can NOT be empty...",
+        "severity": "error"
+      },
+      {
+        "field": "user_id",
+        "rule": "exists_in_database",
+        "error_message": "User ID NOT found...",
+        "severity": "error"
+      },
+      {
+        "field": "first_name",
+        "rule": "not_empty",
+        "error_message": "First Name can NOT be empty...",
+        "severity": "error"
+      },
+      {
+        "field": "last_name",
+        "rule": "not_empty",
+        "error_message": "Last Name can NOT be empty...",
+        "severity": "error"
+      },
+      {
+        "field": "password",
+        "rule": "not_empty",
+        "error_message": "Password can NOT be empty...",
+        "severity": "error"
+      },
+      {
+        "field": "user_type",
+        "rule": "not_empty",
+        "error_message": "User Type can NOT be empty...",
+        "severity": "error"
+      },
+      {
+        "field": "all_fields",
+        "rule": "at_least_one_modified",
+        "error_message": "Please modify to update ...",
+        "severity": "warning"
+      }
+    ],
+    "calculations": [],
+    "workflows": [
+      {
+        "name": "User Update Workflow",
+        "description": "Complete workflow for updating user information",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Receive user ID from previous screen or user input",
+            "conditions": [
+              "Program called with valid commarea or user enters ID"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Validate user ID is not empty",
+            "conditions": [
+              "User ID contains valid data"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Retrieve user record from USRSEC file",
+            "conditions": [
+              "User ID exists in database"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Display user information on screen",
+            "conditions": [
+              "User record successfully retrieved"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "User modifies one or more fields",
+            "conditions": [
+              "User changes first name, last name, password, or user type"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Validate all required fields are populated",
+            "conditions": [
+              "All fields contain valid data"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Compare modified data with existing data",
+            "conditions": [
+              "At least one field has been modified"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Update user record in USRSEC file",
+            "conditions": [
+              "Modifications detected"
+            ],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "Display success message to user",
+            "conditions": [
+              "Update completed successfully"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "User Retrieval on Enter Key",
+        "description": "Process when ENTER key is pressed to retrieve user information",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Validate User ID is not empty",
+            "conditions": [
+              "User ID field contains data"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Clear all user data fields",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Read user record from USRSEC file",
+            "conditions": [
+              "User ID exists in database"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Populate screen fields with user data",
+            "conditions": [
+              "User record found"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Display message to press PF5 to save updates",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "USRSEC File Integration",
+        "type": "Data Store",
+        "purpose": "Store and retrieve user security information",
+        "data_exchanged": [
+          "User ID",
+          "First Name",
+          "Last Name",
+          "Password",
+          "User Type"
+        ],
+        "trigger_conditions": [
+          "User retrieval request",
+          "User update request"
+        ]
+      },
+      {
+        "name": "Previous Screen Integration",
+        "type": "Program Communication",
+        "purpose": "Receive selected user ID from calling program",
+        "data_exchanged": [
+          "Selected User ID",
+          "Program reentry flag",
+          "Calling program name"
+        ],
+        "trigger_conditions": [
+          "Program called with commarea",
+          "User selected from previous screen"
+        ]
+      },
+      {
+        "name": "Admin Menu Integration",
+        "type": "Navigation",
+        "purpose": "Return to admin menu after update or cancellation",
+        "data_exchanged": [
+          "Transaction completion status"
+        ],
+        "trigger_conditions": [
+          "PF3 key pressed after update",
+          "PF12 key pressed for cancellation"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Administrator",
+        "Authorized User"
+      ],
+      "permissions": [
+        {
+          "role": "Administrator",
+          "resource": "User Records",
+          "actions": [
+            "view",
+            "update"
+          ]
+        },
+        {
+          "role": "Authorized User",
+          "resource": "User Records",
+          "actions": [
+            "view",
+            "update"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be authenticated before accessing the program",
+        "Authentication is handled by calling program or CICS environment",
+        "No explicit permission checks are performed within this program"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "ERR001",
+        "condition": "User ID is empty or contains only spaces",
+        "business_impact": "Cannot retrieve or update user information",
+        "suggested_action": "Display error message and prompt user to enter valid User ID"
+      },
+      {
+        "error_code": "ERR002",
+        "condition": "User ID not found in USRSEC file",
+        "business_impact": "Cannot display or update non-existent user",
+        "suggested_action": "Display error message indicating user not found"
+      },
+      {
+        "error_code": "ERR003",
+        "condition": "First Name is empty",
+        "business_impact": "Cannot update user with incomplete information",
+        "suggested_action": "Display error message and set cursor to First Name field"
+      },
+      {
+        "error_code": "ERR004",
+        "condition": "Last Name is empty",
+        "business_impact": "Cannot update user with incomplete information",
+        "suggested_action": "Display error message and set cursor to Last Name field"
+      },
+      {
+        "error_code": "ERR005",
+        "condition": "Password is empty",
+        "business_impact": "Cannot update user without password",
+        "suggested_action": "Display error message and set cursor to Password field"
+      },
+      {
+        "error_code": "ERR006",
+        "condition": "User Type is empty",
+        "business_impact": "Cannot update user without type designation",
+        "suggested_action": "Display error message and set cursor to User Type field"
+      },
+      {
+        "error_code": "ERR007",
+        "condition": "No modifications made to user data",
+        "business_impact": "Unnecessary database operation attempted",
+        "suggested_action": "Display warning message prompting user to make changes"
+      },
+      {
+        "error_code": "ERR008",
+        "condition": "Unable to read user record from database",
+        "business_impact": "Cannot retrieve user information for update",
+        "suggested_action": "Display error message and log response codes"
+      },
+      {
+        "error_code": "ERR009",
+        "condition": "Unable to update user record in database",
+        "business_impact": "User changes are not persisted",
+        "suggested_action": "Display error message and log response codes"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "COUSR2A",
+        "name": "User Update Screen",
+        "purpose": "Display and modify user information for existing users",
+        "screen_type": "data_entry",
+        "navigation_from": [
+          "Admin Menu (COADM01C)",
+          "Previous screen with user selection"
+        ],
+        "navigation_to": [
+          "Admin Menu (COADM01C)",
+          "Previous calling screen"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "display",
+            "fields": [
+              {
+                "name": "title01",
+                "label": "Title Line 1",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "From CCDA-TITLE01",
+                "validation": "",
+                "help_text": "Application title"
+              },
+              {
+                "name": "title02",
+                "label": "Title Line 2",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "From CCDA-TITLE02",
+                "validation": "",
+                "help_text": "Screen title"
+              },
+              {
+                "name": "current_date",
+                "label": "Current Date",
+                "type": "date",
+                "input_output": "output",
+                "required": false,
+                "default_value": "System date in MM/DD/YY format",
+                "validation": "",
+                "help_text": "Current system date"
+              },
+              {
+                "name": "current_time",
+                "label": "Current Time",
+                "type": "time",
+                "input_output": "output",
+                "required": false,
+                "default_value": "System time in HH:MM:SS format",
+                "validation": "",
+                "help_text": "Current system time"
+              },
+              {
+                "name": "transaction_name",
+                "label": "Transaction",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "CU02",
+                "validation": "",
+                "help_text": "Transaction ID"
+              },
+              {
+                "name": "program_name",
+                "label": "Program",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "COUSR02C",
+                "validation": "",
+                "help_text": "Program name"
+              }
+            ]
+          },
+          {
+            "name": "User Information",
+            "type": "data_entry",
+            "fields": [
+              {
+                "name": "user_id",
+                "label": "User ID",
+                "type": "text",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "not_empty, max_length_8",
+                "help_text": "Enter User ID to retrieve and update"
+              },
+              {
+                "name": "first_name",
+                "label": "First Name",
+                "type": "text",
+                "input_output": "both",
+                "required": true,
+                "default_value": "",
+                "validation": "not_empty, max_length_20",
+                "help_text": "User's first name"
+              },
+              {
+                "name": "last_name",
+                "label": "Last Name",
+                "type": "text",
+                "input_output": "both",
+                "required": true,
+                "default_value": "",
+                "validation": "not_empty, max_length_20",
+                "help_text": "User's last name"
+              },
+              {
+                "name": "password",
+                "label": "Password",
+                "type": "password",
+                "input_output": "both",
+                "required": true,
+                "default_value": "",
+                "validation": "not_empty, max_length_8",
+                "help_text": "User's password"
+              },
+              {
+                "name": "user_type",
+                "label": "User Type",
+                "type": "text",
+                "input_output": "both",
+                "required": true,
+                "default_value": "",
+                "validation": "not_empty, max_length_1",
+                "help_text": "Type of user (controls permissions)"
+              }
+            ]
+          },
+          {
+            "name": "Messages",
+            "type": "display",
+            "fields": [
+              {
+                "name": "error_message",
+                "label": "Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays error, warning, or informational messages"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Retrieve User",
+            "trigger": "ENTER",
+            "description": "Retrieve user information for the entered User ID",
+            "backend_process": "PROCESS-ENTER-KEY",
+            "success_navigation": "Stay on current screen with populated data",
+            "error_handling": "Display error message if User ID is empty or not found"
+          },
+          {
+            "name": "Update User",
+            "trigger": "PF5",
+            "description": "Save modifications to user information",
+            "backend_process": "UPDATE-USER-INFO",
+            "success_navigation": "Stay on current screen with success message",
+            "error_handling": "Display error message if validation fails or update unsuccessful"
+          },
+          {
+            "name": "Update and Return",
+            "trigger": "PF3",
+            "description": "Save modifications and return to previous screen",
+            "backend_process": "UPDATE-USER-INFO",
+            "success_navigation": "Return to Admin Menu or calling program",
+            "error_handling": "Display error message if validation fails or update unsuccessful"
+          },
+          {
+            "name": "Clear Screen",
+            "trigger": "PF4",
+            "description": "Clear all input fields on the screen",
+            "backend_process": "CLEAR-CURRENT-SCREEN",
+            "success_navigation": "Stay on current screen with cleared fields",
+            "error_handling": "None"
+          },
+          {
+            "name": "Cancel",
+            "trigger": "PF12",
+            "description": "Return to Admin Menu without saving changes",
+            "backend_process": "None",
+            "success_navigation": "Return to Admin Menu (COADM01C)",
+            "error_handling": "None"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "User ID is entered and ENTER is pressed",
+            "affected_fields": [
+              "first_name",
+              "last_name",
+              "password",
+              "user_type"
+            ],
+            "behavior": "Populate fields with data from USRSEC file"
+          },
+          {
+            "condition": "Error occurs during validation or processing",
+            "affected_fields": [
+              "error_message"
+            ],
+            "behavior": "Display error message in red color"
+          },
+          {
+            "condition": "Update is successful",
+            "affected_fields": [
+              "error_message"
+            ],
+            "behavior": "Display success message in green color"
+          },
+          {
+            "condition": "User data is retrieved successfully",
+            "affected_fields": [
+              "error_message"
+            ],
+            "behavior": "Display instruction message in neutral color"
+          },
+          {
+            "condition": "No modifications made when attempting update",
+            "affected_fields": [
+              "error_message"
+            ],
+            "behavior": "Display warning message in red color"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "Admin Menu (COADM01C)",
+        "to_screen": "User Update Screen (COUSR2A)",
+        "trigger": "User selection for update",
+        "conditions": [
+          "User ID is selected from admin menu"
+        ]
+      },
+      {
+        "from_screen": "User Update Screen (COUSR2A)",
+        "to_screen": "Admin Menu (COADM01C)",
+        "trigger": "PF3 or PF12",
+        "conditions": [
+          "PF3 pressed after update",
+          "PF12 pressed to cancel"
+        ]
+      },
+      {
+        "from_screen": "User Update Screen (COUSR2A)",
+        "to_screen": "Previous Calling Screen",
+        "trigger": "PF3",
+        "conditions": [
+          "Called from screen other than Admin Menu",
+          "Update completed successfully"
+        ]
+      },
+      {
+        "from_screen": "User Update Screen (COUSR2A)",
+        "to_screen": "User Update Screen (COUSR2A)",
+        "trigger": "ENTER, PF4, PF5",
+        "conditions": [
+          "User remains on screen for further actions"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "error",
+        "message": "User ID can NOT be empty...",
+        "context": "User ID field validation"
+      },
+      {
+        "code": "MSG002",
+        "type": "error",
+        "message": "User ID NOT found...",
+        "context": "User retrieval or update"
+      },
+      {
+        "code": "MSG003",
+        "type": "error",
+        "message": "First Name can NOT be empty...",
+        "context": "First Name field validation"
+      },
+      {
+        "code": "MSG004",
+        "type": "error",
+        "message": "Last Name can NOT be empty...",
+        "context": "Last Name field validation"
+      },
+      {
+        "code": "MSG005",
+        "type": "error",
+        "message": "Password can NOT be empty...",
+        "context": "Password field validation"
+      },
+      {
+        "code": "MSG006",
+        "type": "error",
+        "message": "User Type can NOT be empty...",
+        "context": "User Type field validation"
+      },
+      {
+        "code": "MSG007",
+        "type": "error",
+        "message": "Unable to lookup User...",
+        "context": "Database read error"
+      },
+      {
+        "code": "MSG008",
+        "type": "error",
+        "message": "Unable to Update User...",
+        "context": "Database update error"
+      },
+      {
+        "code": "MSG009",
+        "type": "warning",
+        "message": "Please modify to update ...",
+        "context": "No modifications detected"
+      },
+      {
+        "code": "MSG010",
+        "type": "info",
+        "message": "Press PF5 key to save your updates ...",
+        "context": "User data retrieved successfully"
+      },
+      {
+        "code": "MSG011",
+        "type": "success",
+        "message": "User [user_id] has been updated ...",
+        "context": "Successful user update"
+      },
+      {
+        "code": "MSG012",
+        "type": "error",
+        "message": "Invalid key pressed...",
+        "context": "Unsupported function key pressed"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "User Selection from Admin Menu",
+      "description": "User ID is passed from admin menu to user update screen",
+      "source": "Admin Menu (COADM01C)",
+      "destination": "User Update Screen (COUSR2A)",
+      "data_elements": [
+        "Selected User ID",
+        "Program reentry flag",
+        "Calling program name"
+      ],
+      "transformations": [
+        "User ID is moved to screen input field",
+        "Automatic retrieval is triggered"
+      ]
+    },
+    {
+      "name": "User Data Retrieval",
+      "description": "User information is retrieved from USRSEC file and displayed on screen",
+      "source": "USRSEC File",
+      "destination": "User Update Screen (COUSR2A)",
+      "data_elements": [
+        "User ID",
+        "First Name",
+        "Last Name",
+        "Password",
+        "User Type"
+      ],
+      "transformations": [
+        "Data is moved from file record to screen fields"
+      ]
+    },
+    {
+      "name": "User Data Update",
+      "description": "Modified user information is written back to USRSEC file",
+      "source": "User Update Screen (COUSR2A)",
+      "destination": "USRSEC File",
+      "data_elements": [
+        "User ID",
+        "First Name",
+        "Last Name",
+        "Password",
+        "User Type"
+      ],
+      "transformations": [
+        "Screen input is validated",
+        "Changes are compared with existing data",
+        "Modified fields are updated in file record"
+      ]
+    },
+    {
+      "name": "Return to Calling Program",
+      "description": "Control is returned to calling program after update or cancellation",
+      "source": "User Update Screen (COUSR2A)",
+      "destination": "Admin Menu or Calling Program",
+      "data_elements": [
+        "Update completion status"
+      ],
+      "transformations": [
+        "Transaction is completed",
+        "Control is transferred to target program"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Data Integrity",
+      "description": "All user fields must be populated before an update can be performed",
+      "impact": "Ensures complete user records are maintained in the system"
+    },
+    {
+      "type": "Data Integrity",
+      "description": "Updates are only performed when at least one field has been modified",
+      "impact": "Prevents unnecessary database operations and maintains data consistency"
+    },
+    {
+      "type": "Security",
+      "description": "User authentication is assumed to be handled externally",
+      "impact": "Program relies on calling program or CICS environment for access control"
+    },
+    {
+      "type": "Compliance",
+      "description": "No audit trail is implemented for user updates",
+      "impact": "Changes to user records are not logged, which may be a compliance concern"
+    },
+    {
+      "type": "Operational",
+      "description": "User records must exist before they can be updated",
+      "impact": "This is an update-only function; user creation is handled elsewhere"
+    },
+    {
+      "type": "Technical",
+      "description": "Record locking is used during update operations",
+      "impact": "Prevents concurrent updates to the same user record"
+    }
+  ]
+}

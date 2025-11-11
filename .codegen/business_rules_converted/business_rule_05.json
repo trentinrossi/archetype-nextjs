@@ -1,0 +1,776 @@
+{
+  "application_metadata": {
+    "name": "CardDemo User Management System",
+    "description": "User management component of the CardDemo application that handles the creation and administration of user accounts with appropriate access levels",
+    "domain": "User Security and Access Control"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "User",
+        "description": "Represents a system user with authentication credentials and access permissions",
+        "attributes": [
+          {
+            "name": "user_id",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "Unique identifier for the user account"
+          },
+          {
+            "name": "first_name",
+            "type": "string",
+            "length": 20,
+            "required": true,
+            "description": "User's first name"
+          },
+          {
+            "name": "last_name",
+            "type": "string",
+            "length": 20,
+            "required": true,
+            "description": "User's last name"
+          },
+          {
+            "name": "password",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "User's authentication password"
+          },
+          {
+            "name": "user_type",
+            "type": "string",
+            "length": 1,
+            "required": true,
+            "description": "Type of user account (Regular or Admin) that determines access permissions"
+          }
+        ],
+        "relationships": []
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "User ID Uniqueness",
+        "description": "Each user must have a unique User ID in the system",
+        "category": "Data Integrity",
+        "logic": "Before creating a new user, the system checks if the User ID already exists in the USRSEC file. If a duplicate is found, the operation is rejected.",
+        "conditions": [
+          "User ID is provided",
+          "User ID does not already exist in USRSEC file"
+        ],
+        "actions": [
+          "Check USRSEC file for existing User ID",
+          "If duplicate found, display error message 'User ID already exist...'",
+          "If unique, proceed with user creation"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Required Field Validation",
+        "description": "All user fields must be populated before a user account can be created",
+        "category": "Data Validation",
+        "logic": "The system validates that First Name, Last Name, User ID, Password, and User Type are all provided and not empty before allowing user creation.",
+        "conditions": [
+          "First Name is not empty",
+          "Last Name is not empty",
+          "User ID is not empty",
+          "Password is not empty",
+          "User Type is not empty"
+        ],
+        "actions": [
+          "Validate each required field sequentially",
+          "Display specific error message for first empty field encountered",
+          "Position cursor at the empty field",
+          "Prevent user creation until all fields are filled"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "User Type Classification",
+        "description": "Users are classified into different types that determine their access levels",
+        "category": "Access Control",
+        "logic": "The system supports different user types (Regular and Admin) to distinguish access permissions and capabilities within the application.",
+        "conditions": [
+          "User Type must be specified during user creation"
+        ],
+        "actions": [
+          "Store user type with user record",
+          "Use user type to determine access permissions"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Successful User Creation Confirmation",
+        "description": "Upon successful user creation, the system provides confirmation and clears the input form",
+        "category": "User Feedback",
+        "logic": "After successfully adding a user to the system, display a success message with the User ID and reset all input fields for the next entry.",
+        "conditions": [
+          "All validations passed",
+          "User record successfully written to USRSEC file"
+        ],
+        "actions": [
+          "Display success message: 'User [User ID] has been added ...'",
+          "Clear all input fields",
+          "Position cursor at first input field",
+          "Set message color to green"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "first_name",
+        "rule": "NOT_EMPTY",
+        "error_message": "First Name can NOT be empty...",
+        "severity": "error"
+      },
+      {
+        "field": "last_name",
+        "rule": "NOT_EMPTY",
+        "error_message": "Last Name can NOT be empty...",
+        "severity": "error"
+      },
+      {
+        "field": "user_id",
+        "rule": "NOT_EMPTY",
+        "error_message": "User ID can NOT be empty...",
+        "severity": "error"
+      },
+      {
+        "field": "user_id",
+        "rule": "UNIQUE",
+        "error_message": "User ID already exist...",
+        "severity": "error"
+      },
+      {
+        "field": "password",
+        "rule": "NOT_EMPTY",
+        "error_message": "Password can NOT be empty...",
+        "severity": "error"
+      },
+      {
+        "field": "user_type",
+        "rule": "NOT_EMPTY",
+        "error_message": "User Type can NOT be empty...",
+        "severity": "error"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Format Current Date",
+        "description": "Formats the current system date for display in MM-DD-YY format",
+        "formula": "Extract month, day, and last 2 digits of year from current date and format as MM-DD-YY",
+        "input_fields": [
+          "current_date"
+        ],
+        "output_field": "formatted_date"
+      },
+      {
+        "name": "Format Current Time",
+        "description": "Formats the current system time for display in HH-MM-SS format",
+        "formula": "Extract hours, minutes, and seconds from current time and format as HH-MM-SS",
+        "input_fields": [
+          "current_time"
+        ],
+        "output_field": "formatted_time"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Add New User",
+        "description": "Complete workflow for adding a new user to the system",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Display user addition screen with empty input fields",
+            "conditions": [
+              "User has administrative privileges"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "User enters First Name, Last Name, User ID, Password, and User Type",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "User submits form by pressing Enter key",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Validate First Name is not empty",
+            "conditions": [
+              "First Name is provided"
+            ],
+            "next_step": "5_or_error"
+          },
+          {
+            "step_number": 5,
+            "action": "Validate Last Name is not empty",
+            "conditions": [
+              "Last Name is provided"
+            ],
+            "next_step": "6_or_error"
+          },
+          {
+            "step_number": 6,
+            "action": "Validate User ID is not empty",
+            "conditions": [
+              "User ID is provided"
+            ],
+            "next_step": "7_or_error"
+          },
+          {
+            "step_number": 7,
+            "action": "Validate Password is not empty",
+            "conditions": [
+              "Password is provided"
+            ],
+            "next_step": "8_or_error"
+          },
+          {
+            "step_number": 8,
+            "action": "Validate User Type is not empty",
+            "conditions": [
+              "User Type is provided"
+            ],
+            "next_step": "9_or_error"
+          },
+          {
+            "step_number": 9,
+            "action": "Prepare user data for storage",
+            "conditions": [
+              "All validations passed"
+            ],
+            "next_step": "10"
+          },
+          {
+            "step_number": 10,
+            "action": "Attempt to write user record to USRSEC file",
+            "conditions": [],
+            "next_step": "11_or_error"
+          },
+          {
+            "step_number": 11,
+            "action": "Display success message and clear form",
+            "conditions": [
+              "User record successfully written",
+              "No duplicate User ID found"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Clear Input Screen",
+        "description": "Workflow for clearing all input fields and resetting the screen",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "User presses clear screen key (PF4)",
+            "conditions": [],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Clear all input fields (First Name, Last Name, User ID, Password, User Type)",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Clear any displayed messages",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Position cursor at first input field (First Name)",
+            "conditions": [],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Redisplay screen with cleared fields",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Return to Admin Menu",
+        "description": "Workflow for navigating back to the previous administrative screen",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "User presses return key (PF3)",
+            "conditions": [],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Navigate to previous screen (admin menu)",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "USRSEC File",
+        "type": "Data Store",
+        "purpose": "Persistent storage of user security information and credentials",
+        "data_exchanged": [
+          "User ID",
+          "First Name",
+          "Last Name",
+          "Password",
+          "User Type"
+        ],
+        "trigger_conditions": [
+          "New user creation request",
+          "User ID uniqueness check"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Administrator",
+        "Regular User"
+      ],
+      "permissions": [
+        {
+          "role": "Administrator",
+          "resource": "User Management",
+          "actions": [
+            "create_user",
+            "view_user_addition_screen"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User ID must be unique",
+        "Password is required for all users",
+        "User Type determines access level"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "ERR_EMPTY_FIRSTNAME",
+        "condition": "First Name field is empty or contains only spaces",
+        "business_impact": "User creation cannot proceed without a first name",
+        "suggested_action": "Display error message 'First Name can NOT be empty...' and position cursor at First Name field"
+      },
+      {
+        "error_code": "ERR_EMPTY_LASTNAME",
+        "condition": "Last Name field is empty or contains only spaces",
+        "business_impact": "User creation cannot proceed without a last name",
+        "suggested_action": "Display error message 'Last Name can NOT be empty...' and position cursor at Last Name field"
+      },
+      {
+        "error_code": "ERR_EMPTY_USERID",
+        "condition": "User ID field is empty or contains only spaces",
+        "business_impact": "User creation cannot proceed without a unique identifier",
+        "suggested_action": "Display error message 'User ID can NOT be empty...' and position cursor at User ID field"
+      },
+      {
+        "error_code": "ERR_EMPTY_PASSWORD",
+        "condition": "Password field is empty or contains only spaces",
+        "business_impact": "User creation cannot proceed without authentication credentials",
+        "suggested_action": "Display error message 'Password can NOT be empty...' and position cursor at Password field"
+      },
+      {
+        "error_code": "ERR_EMPTY_USERTYPE",
+        "condition": "User Type field is empty or contains only spaces",
+        "business_impact": "User creation cannot proceed without specifying access level",
+        "suggested_action": "Display error message 'User Type can NOT be empty...' and position cursor at User Type field"
+      },
+      {
+        "error_code": "ERR_DUPLICATE_USERID",
+        "condition": "User ID already exists in USRSEC file",
+        "business_impact": "Cannot create user with duplicate User ID, violates uniqueness constraint",
+        "suggested_action": "Display error message 'User ID already exist...' and position cursor at User ID field for correction"
+      },
+      {
+        "error_code": "ERR_WRITE_FAILURE",
+        "condition": "System error occurred while writing user record to USRSEC file",
+        "business_impact": "User creation failed due to system error",
+        "suggested_action": "Display error message 'Unable to Add User...' and position cursor at First Name field"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "COUSR01",
+        "name": "Add New User Screen",
+        "purpose": "Allows administrators to create new user accounts by entering user details and credentials",
+        "screen_type": "data_entry",
+        "navigation_from": [
+          "Admin Menu"
+        ],
+        "navigation_to": [
+          "Admin Menu"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "display",
+            "fields": [
+              {
+                "name": "title01",
+                "label": "Application Title Line 1",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "First line of application title"
+              },
+              {
+                "name": "title02",
+                "label": "Application Title Line 2",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Second line of application title"
+              },
+              {
+                "name": "current_date",
+                "label": "Current Date",
+                "type": "date",
+                "input_output": "output",
+                "required": false,
+                "default_value": "system_date",
+                "validation": "",
+                "help_text": "Current system date in MM-DD-YY format"
+              },
+              {
+                "name": "current_time",
+                "label": "Current Time",
+                "type": "time",
+                "input_output": "output",
+                "required": false,
+                "default_value": "system_time",
+                "validation": "",
+                "help_text": "Current system time in HH-MM-SS format"
+              },
+              {
+                "name": "transaction_id",
+                "label": "Transaction ID",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "CU01",
+                "validation": "",
+                "help_text": "Transaction identifier"
+              },
+              {
+                "name": "program_name",
+                "label": "Program Name",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "COUSR01C",
+                "validation": "",
+                "help_text": "Program identifier"
+              }
+            ]
+          },
+          {
+            "name": "User Input Form",
+            "type": "input",
+            "fields": [
+              {
+                "name": "first_name",
+                "label": "First Name",
+                "type": "text",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "NOT_EMPTY",
+                "help_text": "Enter the user's first name"
+              },
+              {
+                "name": "last_name",
+                "label": "Last Name",
+                "type": "text",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "NOT_EMPTY",
+                "help_text": "Enter the user's last name"
+              },
+              {
+                "name": "user_id",
+                "label": "User ID",
+                "type": "text",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "NOT_EMPTY, UNIQUE",
+                "help_text": "Enter a unique user identifier (maximum 8 characters)"
+              },
+              {
+                "name": "password",
+                "label": "Password",
+                "type": "password",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "NOT_EMPTY",
+                "help_text": "Enter the user's password (maximum 8 characters)"
+              },
+              {
+                "name": "user_type",
+                "label": "User Type",
+                "type": "text",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "NOT_EMPTY",
+                "help_text": "Enter user type (Regular or Admin)"
+              }
+            ]
+          },
+          {
+            "name": "Message Area",
+            "type": "display",
+            "fields": [
+              {
+                "name": "error_message",
+                "label": "Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays error or success messages to the user"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Submit User",
+            "trigger": "Enter Key",
+            "description": "Validates input and creates new user account",
+            "backend_process": "Process-Enter-Key",
+            "success_navigation": "Same screen with success message and cleared fields",
+            "error_handling": "Display appropriate error message and position cursor at problematic field"
+          },
+          {
+            "name": "Return to Menu",
+            "trigger": "PF3 Key",
+            "description": "Returns to the previous administrative menu screen",
+            "backend_process": "Navigation",
+            "success_navigation": "Admin Menu",
+            "error_handling": "None"
+          },
+          {
+            "name": "Clear Screen",
+            "trigger": "PF4 Key",
+            "description": "Clears all input fields and messages",
+            "backend_process": "Clear-Current-Screen",
+            "success_navigation": "Same screen with cleared fields",
+            "error_handling": "None"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "Validation error occurs",
+            "affected_fields": [
+              "error_message"
+            ],
+            "behavior": "Display error message and position cursor at first invalid field"
+          },
+          {
+            "condition": "User successfully created",
+            "affected_fields": [
+              "error_message",
+              "all_input_fields"
+            ],
+            "behavior": "Display success message in green, clear all input fields, position cursor at first field"
+          },
+          {
+            "condition": "Duplicate User ID detected",
+            "affected_fields": [
+              "error_message",
+              "user_id"
+            ],
+            "behavior": "Display duplicate error message and position cursor at User ID field"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "Admin Menu",
+        "to_screen": "Add New User Screen",
+        "trigger": "User selection",
+        "conditions": [
+          "User has administrative privileges"
+        ]
+      },
+      {
+        "from_screen": "Add New User Screen",
+        "to_screen": "Admin Menu",
+        "trigger": "PF3 Key",
+        "conditions": []
+      },
+      {
+        "from_screen": "Add New User Screen",
+        "to_screen": "Add New User Screen",
+        "trigger": "Enter Key or PF4 Key",
+        "conditions": [
+          "User creation or screen clear action"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "MSG_EMPTY_FIRSTNAME",
+        "type": "error",
+        "message": "First Name can NOT be empty...",
+        "context": "Displayed when user attempts to submit form without entering a first name"
+      },
+      {
+        "code": "MSG_EMPTY_LASTNAME",
+        "type": "error",
+        "message": "Last Name can NOT be empty...",
+        "context": "Displayed when user attempts to submit form without entering a last name"
+      },
+      {
+        "code": "MSG_EMPTY_USERID",
+        "type": "error",
+        "message": "User ID can NOT be empty...",
+        "context": "Displayed when user attempts to submit form without entering a user ID"
+      },
+      {
+        "code": "MSG_EMPTY_PASSWORD",
+        "type": "error",
+        "message": "Password can NOT be empty...",
+        "context": "Displayed when user attempts to submit form without entering a password"
+      },
+      {
+        "code": "MSG_EMPTY_USERTYPE",
+        "type": "error",
+        "message": "User Type can NOT be empty...",
+        "context": "Displayed when user attempts to submit form without entering a user type"
+      },
+      {
+        "code": "MSG_DUPLICATE_USERID",
+        "type": "error",
+        "message": "User ID already exist...",
+        "context": "Displayed when user attempts to create an account with a User ID that already exists in the system"
+      },
+      {
+        "code": "MSG_WRITE_FAILURE",
+        "type": "error",
+        "message": "Unable to Add User...",
+        "context": "Displayed when a system error prevents the user record from being saved"
+      },
+      {
+        "code": "MSG_USER_ADDED",
+        "type": "success",
+        "message": "User [User ID] has been added ...",
+        "context": "Displayed when a new user account is successfully created, with the User ID included in the message"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "User Creation Data Flow",
+      "description": "Flow of user data from screen input to persistent storage",
+      "source": "Add New User Screen",
+      "destination": "USRSEC File",
+      "data_elements": [
+        "First Name",
+        "Last Name",
+        "User ID",
+        "Password",
+        "User Type"
+      ],
+      "transformations": [
+        "Validate all fields are not empty",
+        "Check User ID uniqueness",
+        "Map screen fields to user record structure"
+      ]
+    },
+    {
+      "name": "Header Information Data Flow",
+      "description": "Flow of system information to screen header",
+      "source": "System",
+      "destination": "Add New User Screen Header",
+      "data_elements": [
+        "Current Date",
+        "Current Time",
+        "Transaction ID",
+        "Program Name",
+        "Application Titles"
+      ],
+      "transformations": [
+        "Format date as MM-DD-YY",
+        "Format time as HH-MM-SS",
+        "Retrieve application titles from configuration"
+      ]
+    },
+    {
+      "name": "Error Message Data Flow",
+      "description": "Flow of validation and error messages to user interface",
+      "source": "Validation Logic",
+      "destination": "Add New User Screen Message Area",
+      "data_elements": [
+        "Error Message Text",
+        "Message Color",
+        "Cursor Position"
+      ],
+      "transformations": [
+        "Determine appropriate error message based on validation failure",
+        "Set message color (red for errors, green for success)",
+        "Calculate cursor position for problematic field"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Data Integrity",
+      "description": "User IDs must be unique across the entire system to ensure proper identification and authentication",
+      "impact": "Prevents duplicate user accounts and maintains data integrity in the user security file"
+    },
+    {
+      "type": "Data Completeness",
+      "description": "All user fields (First Name, Last Name, User ID, Password, User Type) are mandatory for user creation",
+      "impact": "Ensures complete user records are maintained for proper system operation and user management"
+    },
+    {
+      "type": "Access Control",
+      "description": "User Type field determines the level of access and permissions granted to users",
+      "impact": "Maintains security boundaries between regular users and administrators"
+    },
+    {
+      "type": "Field Length Limitations",
+      "description": "User ID is limited to 8 characters, Password to 8 characters, First Name and Last Name to 20 characters each, and User Type to 1 character",
+      "impact": "Constrains the format and length of user data that can be stored in the system"
+    },
+    {
+      "type": "Security",
+      "description": "Passwords are stored without visible encryption or hashing in the current implementation",
+      "impact": "Potential security vulnerability that should be addressed in modernization efforts"
+    },
+    {
+      "type": "Audit Trail",
+      "description": "No explicit audit trail is implemented for user creation actions",
+      "impact": "Limited ability to track who created user accounts and when, which may be required for compliance"
+    }
+  ]
+}

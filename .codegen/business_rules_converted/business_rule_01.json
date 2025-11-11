@@ -1,0 +1,1069 @@
+{
+  "application_metadata": {
+    "name": "CardDemo Admin Menu",
+    "description": "Administrative menu system for the CardDemo application that provides centralized access to various administrative functions for authenticated admin users",
+    "domain": "Financial Services - Credit Card Administration"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "AdminUser",
+        "description": "Administrative user with access to admin functions",
+        "attributes": [
+          {
+            "name": "user_id",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "Unique identifier for the admin user"
+          },
+          {
+            "name": "authentication_status",
+            "type": "boolean",
+            "length": 1,
+            "required": true,
+            "description": "Indicates if user has been authenticated as admin"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "AdminMenuOption",
+            "relationship_type": "has_access_to",
+            "cardinality": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "AdminMenuOption",
+        "description": "Individual administrative function available in the menu",
+        "attributes": [
+          {
+            "name": "option_number",
+            "type": "numeric",
+            "length": 2,
+            "required": true,
+            "description": "Sequential number identifying the menu option"
+          },
+          {
+            "name": "option_name",
+            "type": "string",
+            "length": 35,
+            "required": true,
+            "description": "Descriptive name of the administrative function"
+          },
+          {
+            "name": "program_name",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "Name of the program to execute for this option"
+          },
+          {
+            "name": "is_active",
+            "type": "boolean",
+            "length": 1,
+            "required": true,
+            "description": "Indicates if option is active or coming soon (dummy)"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "AdminProgram",
+            "relationship_type": "executes",
+            "cardinality": "one-to-one"
+          }
+        ]
+      },
+      {
+        "name": "UserSession",
+        "description": "Current user session information",
+        "attributes": [
+          {
+            "name": "transaction_id",
+            "type": "string",
+            "length": 4,
+            "required": true,
+            "description": "Current transaction identifier (CA00)"
+          },
+          {
+            "name": "program_name",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "Current program name (COADM01C)"
+          },
+          {
+            "name": "from_program",
+            "type": "string",
+            "length": 8,
+            "required": false,
+            "description": "Name of the program that transferred control"
+          },
+          {
+            "name": "from_transaction",
+            "type": "string",
+            "length": 4,
+            "required": false,
+            "description": "Transaction ID of the calling program"
+          },
+          {
+            "name": "program_context",
+            "type": "numeric",
+            "length": 9,
+            "required": false,
+            "description": "Context information for program state"
+          },
+          {
+            "name": "reenter_flag",
+            "type": "boolean",
+            "length": 1,
+            "required": true,
+            "description": "Indicates if program is being reentered after user input"
+          }
+        ],
+        "relationships": []
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Admin Authentication Requirement",
+        "description": "User must be authenticated as admin before accessing the admin menu",
+        "category": "Security",
+        "logic": "Program assumes user has been authenticated as admin user before reaching this menu. If no communication area is passed, user is returned to sign-on screen.",
+        "conditions": [
+          "Communication area length (EIBCALEN) equals 0"
+        ],
+        "actions": [
+          "Set from program to COSGN00C",
+          "Return to sign-on screen"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Menu Option Count Limit",
+        "description": "System can display up to 10 administrative menu options",
+        "category": "Display",
+        "logic": "Menu is limited to displaying a maximum of 10 options (OPTN001O to OPTN010O)",
+        "conditions": [
+          "Admin option count is defined in system configuration"
+        ],
+        "actions": [
+          "Display options 1 through 10 only",
+          "Ignore any options beyond position 10"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Valid Option Selection",
+        "description": "User must select a valid numeric option within the available range",
+        "category": "Validation",
+        "logic": "Option must be numeric, greater than zero, and not exceed the total count of available options",
+        "conditions": [
+          "Option is numeric",
+          "Option is greater than zero",
+          "Option is less than or equal to admin option count"
+        ],
+        "actions": [
+          "If valid: navigate to selected program",
+          "If invalid: display error message 'Please enter a valid option number...'"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Dummy Option Handling",
+        "description": "Options marked as dummy display coming soon message instead of executing",
+        "category": "Navigation",
+        "logic": "If selected option's program name starts with 'DUMMY', display coming soon message instead of transferring control",
+        "conditions": [
+          "Program name for selected option starts with 'DUMMY'"
+        ],
+        "actions": [
+          "Display message 'This option is coming soon ...'",
+          "Set message color to green",
+          "Remain on admin menu screen"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "PF3 Exit to Sign-on",
+        "description": "Pressing PF3 returns user to sign-on screen",
+        "category": "Navigation",
+        "logic": "When PF3 key is pressed, control is transferred back to the sign-on program",
+        "conditions": [
+          "User presses PF3 key"
+        ],
+        "actions": [
+          "Set destination program to COSGN00C",
+          "Transfer control to sign-on screen"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Invalid Key Handling",
+        "description": "Invalid function keys display error message",
+        "category": "Error Handling",
+        "logic": "Any key other than Enter or PF3 is considered invalid and triggers error message",
+        "conditions": [
+          "Key pressed is not Enter",
+          "Key pressed is not PF3"
+        ],
+        "actions": [
+          "Set error flag to 'Y'",
+          "Display invalid key error message",
+          "Redisplay menu screen"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Initial Screen Display",
+        "description": "On first entry, program displays menu screen without processing input",
+        "category": "Display",
+        "logic": "When program is entered for the first time (reenter flag is false), initialize screen and display menu",
+        "conditions": [
+          "Program reenter flag is false"
+        ],
+        "actions": [
+          "Set reenter flag to true",
+          "Clear screen output area",
+          "Display menu screen",
+          "Wait for user input"
+        ]
+      },
+      {
+        "id": "BR008",
+        "name": "Program Context Initialization",
+        "description": "When navigating to admin function, program context is reset",
+        "category": "Navigation",
+        "logic": "Before transferring to selected admin program, context is set to zeros and calling program information is stored",
+        "conditions": [
+          "Valid option selected",
+          "Option is not dummy"
+        ],
+        "actions": [
+          "Set from transaction ID to current transaction",
+          "Set from program to current program name",
+          "Set program context to zeros",
+          "Transfer control to selected program"
+        ]
+      },
+      {
+        "id": "BR009",
+        "name": "Dynamic Menu Building",
+        "description": "Menu options are dynamically constructed from configuration data",
+        "category": "Display",
+        "logic": "Menu options are built at runtime from admin options data structure, combining option number and name",
+        "conditions": [
+          "Admin options data is available",
+          "Option count is defined"
+        ],
+        "actions": [
+          "Loop through available options",
+          "Format each option as '[number]. [name]'",
+          "Display in corresponding screen position"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "option_selection",
+        "rule": "Must be numeric",
+        "error_message": "Please enter a valid option number...",
+        "severity": "error"
+      },
+      {
+        "field": "option_selection",
+        "rule": "Must be greater than zero",
+        "error_message": "Please enter a valid option number...",
+        "severity": "error"
+      },
+      {
+        "field": "option_selection",
+        "rule": "Must not exceed admin option count",
+        "error_message": "Please enter a valid option number...",
+        "severity": "error"
+      },
+      {
+        "field": "communication_area",
+        "rule": "Must be present for authenticated access",
+        "error_message": "Return to sign-on required",
+        "severity": "error"
+      },
+      {
+        "field": "function_key",
+        "rule": "Must be Enter or PF3",
+        "error_message": "Invalid key pressed",
+        "severity": "error"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Option Input Normalization",
+        "description": "Converts user input string to numeric option value",
+        "formula": "Remove trailing spaces, replace remaining spaces with '0', convert to numeric",
+        "input_fields": [
+          "option_input_string"
+        ],
+        "output_field": "option_numeric"
+      },
+      {
+        "name": "Current Date Formatting",
+        "description": "Formats system date for display",
+        "formula": "Extract month, day, year (2 digits) and format as MM/DD/YY",
+        "input_fields": [
+          "system_current_date"
+        ],
+        "output_field": "display_date"
+      },
+      {
+        "name": "Current Time Formatting",
+        "description": "Formats system time for display",
+        "formula": "Extract hours, minutes, seconds and format as HH:MM:SS",
+        "input_fields": [
+          "system_current_time"
+        ],
+        "output_field": "display_time"
+      },
+      {
+        "name": "Menu Option Text Construction",
+        "description": "Builds display text for each menu option",
+        "formula": "Concatenate option number + '. ' + option name",
+        "input_fields": [
+          "option_number",
+          "option_name"
+        ],
+        "output_field": "option_display_text"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Admin Menu Main Flow",
+        "description": "Primary workflow for admin menu interaction",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize program variables and clear error flags",
+            "conditions": [
+              "Program entry"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Check for communication area presence",
+            "conditions": [
+              "Communication area length equals 0"
+            ],
+            "next_step": "3_return_to_signon"
+          },
+          {
+            "step_number": 3,
+            "action": "Load communication area data",
+            "conditions": [
+              "Communication area present"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Check if first entry or reentry",
+            "conditions": [
+              "Reenter flag is false"
+            ],
+            "next_step": "5_initial_display"
+          },
+          {
+            "step_number": 5,
+            "action": "Process user input from screen",
+            "conditions": [
+              "Reenter flag is true"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Evaluate function key pressed",
+            "conditions": [
+              "Enter key pressed",
+              "PF3 pressed",
+              "Other key pressed"
+            ],
+            "next_step": "7_process_enter or 8_exit or 9_error"
+          },
+          {
+            "step_number": 7,
+            "action": "Process Enter key - validate and navigate",
+            "conditions": [
+              "Enter key pressed"
+            ],
+            "next_step": "10_validate_option"
+          },
+          {
+            "step_number": 8,
+            "action": "Exit to sign-on screen",
+            "conditions": [
+              "PF3 pressed"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 9,
+            "action": "Display invalid key error",
+            "conditions": [
+              "Invalid key pressed"
+            ],
+            "next_step": "5_initial_display"
+          },
+          {
+            "step_number": 10,
+            "action": "Validate option selection",
+            "conditions": [
+              "Option is valid",
+              "Option is invalid"
+            ],
+            "next_step": "11_navigate or 12_error"
+          },
+          {
+            "step_number": 11,
+            "action": "Navigate to selected admin function",
+            "conditions": [
+              "Option is not dummy"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 12,
+            "action": "Display coming soon message",
+            "conditions": [
+              "Option is dummy"
+            ],
+            "next_step": "5_initial_display"
+          }
+        ]
+      },
+      {
+        "name": "Menu Screen Display",
+        "description": "Workflow for preparing and displaying the admin menu screen",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Populate header information with current date and time",
+            "conditions": [],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Build menu options from configuration",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Set error or informational message if present",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Display screen to user",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Option Selection Processing",
+        "description": "Workflow for processing user's menu option selection",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Extract and normalize option input",
+            "conditions": [],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Convert to numeric value",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Validate option is numeric, non-zero, and within range",
+            "conditions": [
+              "Validation passes",
+              "Validation fails"
+            ],
+            "next_step": "4_check_dummy or 5_error"
+          },
+          {
+            "step_number": 4,
+            "action": "Check if option is dummy or active",
+            "conditions": [
+              "Program name starts with DUMMY",
+              "Program is active"
+            ],
+            "next_step": "6_coming_soon or 7_transfer"
+          },
+          {
+            "step_number": 5,
+            "action": "Display validation error message",
+            "conditions": [],
+            "next_step": "end"
+          },
+          {
+            "step_number": 6,
+            "action": "Display coming soon message",
+            "conditions": [],
+            "next_step": "end"
+          },
+          {
+            "step_number": 7,
+            "action": "Set context and transfer to selected program",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "Sign-on Screen Integration",
+        "type": "Program Transfer",
+        "purpose": "Return to authentication screen when session is invalid or user exits",
+        "data_exchanged": [
+          "from_program_name",
+          "to_program_name"
+        ],
+        "trigger_conditions": [
+          "No communication area present",
+          "PF3 key pressed",
+          "User requests exit"
+        ]
+      },
+      {
+        "name": "Admin Function Programs",
+        "type": "Program Transfer",
+        "purpose": "Navigate to specific administrative functions based on user selection",
+        "data_exchanged": [
+          "from_transaction_id",
+          "from_program_name",
+          "program_context",
+          "communication_area"
+        ],
+        "trigger_conditions": [
+          "Valid option selected",
+          "Option is not dummy",
+          "Enter key pressed"
+        ]
+      },
+      {
+        "name": "User Security File",
+        "type": "Data Access",
+        "purpose": "Validate user authentication and authorization",
+        "data_exchanged": [
+          "user_credentials",
+          "admin_status"
+        ],
+        "trigger_conditions": [
+          "User authentication required"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Admin User",
+        "System Administrator"
+      ],
+      "permissions": [
+        {
+          "role": "Admin User",
+          "resource": "Admin Menu",
+          "actions": [
+            "view_menu",
+            "select_options",
+            "navigate_to_admin_functions"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be authenticated before accessing admin menu",
+        "Valid communication area must be passed to program",
+        "User must have admin privileges",
+        "Session must be active and valid"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "INVALID_KEY",
+        "condition": "User presses function key other than Enter or PF3",
+        "business_impact": "User cannot proceed with invalid action",
+        "suggested_action": "Display error message and redisplay menu"
+      },
+      {
+        "error_code": "INVALID_OPTION",
+        "condition": "User enters non-numeric, zero, or out-of-range option",
+        "business_impact": "User cannot navigate to desired function",
+        "suggested_action": "Display validation error message and allow re-entry"
+      },
+      {
+        "error_code": "NO_COMMAREA",
+        "condition": "Communication area length is zero",
+        "business_impact": "User session is invalid or not authenticated",
+        "suggested_action": "Return user to sign-on screen"
+      },
+      {
+        "error_code": "DUMMY_OPTION",
+        "condition": "Selected option program name starts with DUMMY",
+        "business_impact": "Requested function is not yet available",
+        "suggested_action": "Display coming soon message in green"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "COADM1A",
+        "name": "Admin Menu Screen",
+        "purpose": "Display administrative menu options and allow user to select desired function",
+        "screen_type": "Menu",
+        "navigation_from": [
+          "COSGN00C (Sign-on Screen)",
+          "Various Admin Programs (return)"
+        ],
+        "navigation_to": [
+          "COSGN00C (Sign-on Screen)",
+          "Admin Function Programs (based on selection)"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "TITLE01O",
+                "label": "Title Line 1",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "CardDemo title from configuration",
+                "validation": "",
+                "help_text": "Application title first line"
+              },
+              {
+                "name": "TITLE02O",
+                "label": "Title Line 2",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "CardDemo title from configuration",
+                "validation": "",
+                "help_text": "Application title second line"
+              },
+              {
+                "name": "TRNNAMEO",
+                "label": "Transaction Name",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "CA00",
+                "validation": "",
+                "help_text": "Current transaction identifier"
+              },
+              {
+                "name": "PGMNAMEO",
+                "label": "Program Name",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "COADM01C",
+                "validation": "",
+                "help_text": "Current program name"
+              },
+              {
+                "name": "CURDATEO",
+                "label": "Current Date",
+                "type": "date",
+                "input_output": "output",
+                "required": true,
+                "default_value": "System date",
+                "validation": "Format: MM/DD/YY",
+                "help_text": "Current system date"
+              },
+              {
+                "name": "CURTIMEO",
+                "label": "Current Time",
+                "type": "time",
+                "input_output": "output",
+                "required": true,
+                "default_value": "System time",
+                "validation": "Format: HH:MM:SS",
+                "help_text": "Current system time"
+              }
+            ]
+          },
+          {
+            "name": "Menu Options",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "OPTN001O",
+                "label": "Option 1",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "First menu option"
+              },
+              {
+                "name": "OPTN002O",
+                "label": "Option 2",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Second menu option"
+              },
+              {
+                "name": "OPTN003O",
+                "label": "Option 3",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Third menu option"
+              },
+              {
+                "name": "OPTN004O",
+                "label": "Option 4",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Fourth menu option"
+              },
+              {
+                "name": "OPTN005O",
+                "label": "Option 5",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Fifth menu option"
+              },
+              {
+                "name": "OPTN006O",
+                "label": "Option 6",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Sixth menu option"
+              },
+              {
+                "name": "OPTN007O",
+                "label": "Option 7",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Seventh menu option"
+              },
+              {
+                "name": "OPTN008O",
+                "label": "Option 8",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Eighth menu option"
+              },
+              {
+                "name": "OPTN009O",
+                "label": "Option 9",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Ninth menu option"
+              },
+              {
+                "name": "OPTN010O",
+                "label": "Option 10",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Tenth menu option"
+              }
+            ]
+          },
+          {
+            "name": "User Input",
+            "type": "Input",
+            "fields": [
+              {
+                "name": "OPTIONI",
+                "label": "Option Selection",
+                "type": "numeric",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be numeric, greater than 0, and within available option count",
+                "help_text": "Enter the number of your desired option"
+              },
+              {
+                "name": "OPTIONO",
+                "label": "Option Display",
+                "type": "numeric",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays the selected option number"
+              }
+            ]
+          },
+          {
+            "name": "Messages",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "ERRMSGO",
+                "label": "Error/Information Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays error or informational messages to user"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Select Option",
+            "trigger": "Enter Key",
+            "description": "User selects a menu option by entering its number and pressing Enter",
+            "backend_process": "PROCESS-ENTER-KEY",
+            "success_navigation": "Selected admin function program",
+            "error_handling": "Display validation error and remain on menu"
+          },
+          {
+            "name": "Exit to Sign-on",
+            "trigger": "PF3 Key",
+            "description": "User exits admin menu and returns to sign-on screen",
+            "backend_process": "RETURN-TO-SIGNON-SCREEN",
+            "success_navigation": "COSGN00C (Sign-on Screen)",
+            "error_handling": "None"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "Error flag is set to 'Y'",
+            "affected_fields": [
+              "ERRMSGO"
+            ],
+            "behavior": "Display error message in default color"
+          },
+          {
+            "condition": "Dummy option selected",
+            "affected_fields": [
+              "ERRMSGO"
+            ],
+            "behavior": "Display coming soon message in green color"
+          },
+          {
+            "condition": "Initial screen display",
+            "affected_fields": [
+              "All output fields"
+            ],
+            "behavior": "Clear all fields and populate with current data"
+          },
+          {
+            "condition": "Menu options count less than 10",
+            "affected_fields": [
+              "OPTN001O through OPTN010O"
+            ],
+            "behavior": "Display only available options, leave remaining fields empty"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "COSGN00C",
+        "to_screen": "COADM1A",
+        "trigger": "Successful admin authentication",
+        "conditions": [
+          "User has admin privileges",
+          "Valid communication area passed"
+        ]
+      },
+      {
+        "from_screen": "COADM1A",
+        "to_screen": "COSGN00C",
+        "trigger": "PF3 key pressed or no communication area",
+        "conditions": [
+          "User requests exit",
+          "Session is invalid"
+        ]
+      },
+      {
+        "from_screen": "COADM1A",
+        "to_screen": "Admin Function Program",
+        "trigger": "Valid option selected and Enter pressed",
+        "conditions": [
+          "Option is numeric",
+          "Option is within valid range",
+          "Option is not dummy",
+          "Enter key pressed"
+        ]
+      },
+      {
+        "from_screen": "Admin Function Program",
+        "to_screen": "COADM1A",
+        "trigger": "Return from admin function",
+        "conditions": [
+          "Admin function completed",
+          "User navigates back"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "INVALID_KEY",
+        "type": "error",
+        "message": "Invalid key pressed",
+        "context": "User pressed function key other than Enter or PF3"
+      },
+      {
+        "code": "INVALID_OPTION",
+        "type": "error",
+        "message": "Please enter a valid option number...",
+        "context": "User entered invalid, non-numeric, or out-of-range option"
+      },
+      {
+        "code": "COMING_SOON",
+        "type": "info",
+        "message": "This option is coming soon ...",
+        "context": "User selected option that is not yet implemented (dummy)"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Initial Menu Display",
+      "description": "Flow of data when admin menu is first displayed",
+      "source": "System Configuration",
+      "destination": "Admin Menu Screen",
+      "data_elements": [
+        "admin_option_count",
+        "admin_option_numbers",
+        "admin_option_names",
+        "admin_option_program_names",
+        "current_date",
+        "current_time",
+        "transaction_id",
+        "program_name",
+        "title_information"
+      ],
+      "transformations": [
+        "Format date as MM/DD/YY",
+        "Format time as HH:MM:SS",
+        "Construct option text as '[number]. [name]'",
+        "Map options to screen positions 1-10"
+      ]
+    },
+    {
+      "name": "Option Selection Processing",
+      "description": "Flow of data when user selects a menu option",
+      "source": "Admin Menu Screen",
+      "destination": "Selected Admin Program",
+      "data_elements": [
+        "selected_option_number",
+        "from_transaction_id",
+        "from_program_name",
+        "program_context",
+        "communication_area"
+      ],
+      "transformations": [
+        "Remove trailing spaces from input",
+        "Replace spaces with zeros",
+        "Convert string to numeric",
+        "Validate numeric range",
+        "Lookup program name from option number",
+        "Set context information"
+      ]
+    },
+    {
+      "name": "Return to Sign-on",
+      "description": "Flow of data when returning to sign-on screen",
+      "source": "Admin Menu",
+      "destination": "Sign-on Screen",
+      "data_elements": [
+        "from_program_name",
+        "to_program_name"
+      ],
+      "transformations": [
+        "Set destination program to COSGN00C",
+        "Clear communication area if needed"
+      ]
+    },
+    {
+      "name": "Error Message Display",
+      "description": "Flow of error information to user",
+      "source": "Validation Logic",
+      "destination": "Admin Menu Screen",
+      "data_elements": [
+        "error_flag",
+        "error_message",
+        "message_color"
+      ],
+      "transformations": [
+        "Set error flag to 'Y'",
+        "Select appropriate error message",
+        "Set message color (default or green for info)"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Display Limit",
+      "description": "Maximum of 10 menu options can be displayed on screen",
+      "impact": "Additional admin functions beyond 10 cannot be shown on single menu"
+    },
+    {
+      "type": "Authentication",
+      "description": "User must be pre-authenticated as admin before accessing menu",
+      "impact": "Menu assumes authentication has occurred; no validation performed within menu"
+    },
+    {
+      "type": "Session Management",
+      "description": "Valid communication area must be passed for continued access",
+      "impact": "Loss of communication area results in return to sign-on screen"
+    },
+    {
+      "type": "Option Availability",
+      "description": "Some options may be marked as dummy (coming soon)",
+      "impact": "Users cannot access functions that are not yet implemented"
+    },
+    {
+      "type": "Navigation",
+      "description": "Only Enter and PF3 keys are valid for menu interaction",
+      "impact": "Other function keys result in error message"
+    }
+  ]
+}

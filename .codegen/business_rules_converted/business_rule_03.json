@@ -1,0 +1,867 @@
+{
+  "application_metadata": {
+    "name": "CardDemo Signon Application",
+    "description": "User authentication and signon screen for the CardDemo application that validates user credentials and routes users to appropriate screens based on their user type",
+    "domain": "Financial Services - Credit Card Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "User",
+        "description": "Represents a user of the CardDemo application with authentication credentials and type classification",
+        "attributes": [
+          {
+            "name": "user_id",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "Unique identifier for the user"
+          },
+          {
+            "name": "password",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "User authentication password"
+          },
+          {
+            "name": "user_type",
+            "type": "string",
+            "length": 1,
+            "required": true,
+            "description": "Classification of user (Admin or Regular)"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "UserSession",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          }
+        ]
+      },
+      {
+        "name": "UserSession",
+        "description": "Represents an active user session with context information",
+        "attributes": [
+          {
+            "name": "user_id",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "User identifier for the session"
+          },
+          {
+            "name": "user_type",
+            "type": "string",
+            "length": 1,
+            "required": true,
+            "description": "Type of user in the session"
+          },
+          {
+            "name": "from_transaction_id",
+            "type": "string",
+            "length": 4,
+            "required": true,
+            "description": "Transaction ID from which the session originated"
+          },
+          {
+            "name": "from_program",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "Program name from which the session originated"
+          },
+          {
+            "name": "program_context",
+            "type": "numeric",
+            "length": 4,
+            "required": true,
+            "description": "Context information for program state"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "User",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "User Authentication Required",
+        "description": "Both User ID and Password must be provided for authentication",
+        "category": "Authentication",
+        "logic": "User must enter both User ID and Password fields before authentication can proceed",
+        "conditions": [
+          "User ID field is not empty",
+          "Password field is not empty"
+        ],
+        "actions": [
+          "If User ID is empty, display error message and position cursor at User ID field",
+          "If Password is empty, display error message and position cursor at Password field"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Credential Validation",
+        "description": "User credentials must match records in the user security file",
+        "category": "Authentication",
+        "logic": "User ID must exist in security file and password must match the stored password",
+        "conditions": [
+          "User ID exists in user security file",
+          "Entered password matches stored password"
+        ],
+        "actions": [
+          "If User ID not found, display 'User not found' error and position cursor at User ID field",
+          "If password does not match, display 'Wrong Password' error and position cursor at Password field",
+          "If credentials valid, proceed to user routing"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "User Type Based Routing",
+        "description": "Users are routed to different screens based on their user type after successful authentication",
+        "category": "Authorization",
+        "logic": "Admin users are directed to admin menu, regular users are directed to main menu",
+        "conditions": [
+          "User authentication is successful",
+          "User type is determined from security file"
+        ],
+        "actions": [
+          "If user type is Admin, transfer to Admin Menu (COADM01C)",
+          "If user type is not Admin, transfer to Main Menu (COMEN01C)"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Input Case Normalization",
+        "description": "User ID and Password are converted to uppercase for processing",
+        "category": "Data Processing",
+        "logic": "All user input for credentials is normalized to uppercase before validation",
+        "conditions": [
+          "User has entered User ID",
+          "User has entered Password"
+        ],
+        "actions": [
+          "Convert User ID to uppercase",
+          "Convert Password to uppercase",
+          "Use uppercase values for authentication"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Session Context Initialization",
+        "description": "Upon successful authentication, session context is established with user and origin information",
+        "category": "Session Management",
+        "logic": "Session context includes user ID, user type, originating transaction, and program information",
+        "conditions": [
+          "User authentication is successful"
+        ],
+        "actions": [
+          "Set session user ID to authenticated user ID",
+          "Set session user type from security file",
+          "Set originating transaction ID to CC00",
+          "Set originating program to COSGN00C",
+          "Initialize program context to zeros"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Initial Screen Display",
+        "description": "When program is first invoked, display empty signon screen with cursor positioned at User ID field",
+        "category": "User Interface",
+        "logic": "First time entry displays clean signon screen ready for user input",
+        "conditions": [
+          "Program is invoked for the first time (no communication area)"
+        ],
+        "actions": [
+          "Initialize screen fields to empty values",
+          "Position cursor at User ID field",
+          "Display signon screen"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Exit Application",
+        "description": "User can exit the application using PF3 key",
+        "category": "Navigation",
+        "logic": "PF3 key displays thank you message and exits application",
+        "conditions": [
+          "User presses PF3 key"
+        ],
+        "actions": [
+          "Display thank you message",
+          "End transaction"
+        ]
+      },
+      {
+        "id": "BR008",
+        "name": "Invalid Key Handling",
+        "description": "Invalid function keys result in error message",
+        "category": "Error Handling",
+        "logic": "Any key other than Enter or PF3 displays invalid key message",
+        "conditions": [
+          "User presses a key other than Enter or PF3"
+        ],
+        "actions": [
+          "Display invalid key error message",
+          "Redisplay signon screen"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "user_id",
+        "rule": "Required field - cannot be empty or spaces",
+        "error_message": "Please enter User ID ...",
+        "severity": "error"
+      },
+      {
+        "field": "password",
+        "rule": "Required field - cannot be empty or spaces",
+        "error_message": "Please enter Password ...",
+        "severity": "error"
+      },
+      {
+        "field": "user_id",
+        "rule": "Must exist in user security file",
+        "error_message": "User not found. Try again ...",
+        "severity": "error"
+      },
+      {
+        "field": "password",
+        "rule": "Must match password stored in user security file for the given user ID",
+        "error_message": "Wrong Password. Try again ...",
+        "severity": "error"
+      }
+    ],
+    "calculations": [],
+    "workflows": [
+      {
+        "name": "User Authentication Workflow",
+        "description": "Complete workflow for user authentication from initial screen display to successful login",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Display initial signon screen",
+            "conditions": [
+              "Program first invocation"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "User enters credentials",
+            "conditions": [
+              "User enters User ID and Password"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Validate input fields are not empty",
+            "conditions": [
+              "User presses Enter key"
+            ],
+            "next_step": "4 if valid, 2 if invalid"
+          },
+          {
+            "step_number": 4,
+            "action": "Convert credentials to uppercase",
+            "conditions": [
+              "Both fields contain data"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Retrieve user record from security file",
+            "conditions": [
+              "User ID is provided"
+            ],
+            "next_step": "6 if found, 2 if not found"
+          },
+          {
+            "step_number": 6,
+            "action": "Compare entered password with stored password",
+            "conditions": [
+              "User record exists"
+            ],
+            "next_step": "7 if match, 2 if no match"
+          },
+          {
+            "step_number": 7,
+            "action": "Initialize session context",
+            "conditions": [
+              "Password matches"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Route user based on user type",
+            "conditions": [
+              "Session context established"
+            ],
+            "next_step": "Admin Menu if admin, Main Menu if regular user"
+          }
+        ]
+      },
+      {
+        "name": "Exit Application Workflow",
+        "description": "Workflow for user exiting the application",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "User presses PF3 key",
+            "conditions": [
+              "User is on signon screen"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Display thank you message",
+            "conditions": [
+              "PF3 key pressed"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "End transaction",
+            "conditions": [
+              "Message displayed"
+            ],
+            "next_step": "End"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "User Security File Integration",
+        "type": "Data Store",
+        "purpose": "Validate user credentials and retrieve user type information",
+        "data_exchanged": [
+          "User ID (key)",
+          "User Password",
+          "User Type"
+        ],
+        "trigger_conditions": [
+          "User submits credentials for authentication"
+        ]
+      },
+      {
+        "name": "Admin Menu Integration",
+        "type": "Program Transfer",
+        "purpose": "Transfer control to admin menu for authenticated admin users",
+        "data_exchanged": [
+          "User ID",
+          "User Type",
+          "Session Context",
+          "Origin Transaction ID",
+          "Origin Program Name"
+        ],
+        "trigger_conditions": [
+          "User authentication successful",
+          "User type is Admin"
+        ]
+      },
+      {
+        "name": "Main Menu Integration",
+        "type": "Program Transfer",
+        "purpose": "Transfer control to main menu for authenticated regular users",
+        "data_exchanged": [
+          "User ID",
+          "User Type",
+          "Session Context",
+          "Origin Transaction ID",
+          "Origin Program Name"
+        ],
+        "trigger_conditions": [
+          "User authentication successful",
+          "User type is not Admin"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Admin",
+        "Regular User"
+      ],
+      "permissions": [
+        {
+          "role": "Admin",
+          "resource": "Admin Menu",
+          "actions": [
+            "access"
+          ]
+        },
+        {
+          "role": "Regular User",
+          "resource": "Main Menu",
+          "actions": [
+            "access"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "Valid User ID must be provided",
+        "Valid Password must be provided",
+        "User ID must exist in user security file",
+        "Password must match stored password for the user",
+        "Credentials are case-insensitive (converted to uppercase)"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "ERR001",
+        "condition": "User ID field is empty",
+        "business_impact": "User cannot proceed with authentication",
+        "suggested_action": "Display error message 'Please enter User ID ...' and position cursor at User ID field"
+      },
+      {
+        "error_code": "ERR002",
+        "condition": "Password field is empty",
+        "business_impact": "User cannot proceed with authentication",
+        "suggested_action": "Display error message 'Please enter Password ...' and position cursor at Password field"
+      },
+      {
+        "error_code": "ERR003",
+        "condition": "User ID not found in security file",
+        "business_impact": "Authentication fails, user cannot access system",
+        "suggested_action": "Display error message 'User not found. Try again ...' and position cursor at User ID field"
+      },
+      {
+        "error_code": "ERR004",
+        "condition": "Password does not match stored password",
+        "business_impact": "Authentication fails, user cannot access system",
+        "suggested_action": "Display error message 'Wrong Password. Try again ...' and position cursor at Password field"
+      },
+      {
+        "error_code": "ERR005",
+        "condition": "Unable to access user security file",
+        "business_impact": "Authentication cannot be completed, system access blocked",
+        "suggested_action": "Display error message 'Unable to verify the User ...' and position cursor at User ID field"
+      },
+      {
+        "error_code": "ERR006",
+        "condition": "Invalid function key pressed",
+        "business_impact": "User action not recognized",
+        "suggested_action": "Display error message 'Invalid key pressed' and redisplay signon screen"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "COSGN0A",
+        "name": "Signon Screen",
+        "purpose": "User authentication entry point for the CardDemo application",
+        "screen_type": "Input Form",
+        "navigation_from": [
+          "Application Entry Point"
+        ],
+        "navigation_to": [
+          "Admin Menu (COADM01C) for admin users",
+          "Main Menu (COMEN01C) for regular users",
+          "Application Exit"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "title_line_1",
+                "label": "Title Line 1",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "CardDemo Application Title",
+                "validation": "",
+                "help_text": "First line of application title"
+              },
+              {
+                "name": "title_line_2",
+                "label": "Title Line 2",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "CardDemo Application Subtitle",
+                "validation": "",
+                "help_text": "Second line of application title"
+              },
+              {
+                "name": "transaction_name",
+                "label": "Transaction",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "CC00",
+                "validation": "",
+                "help_text": "Current transaction identifier"
+              },
+              {
+                "name": "program_name",
+                "label": "Program",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "COSGN00C",
+                "validation": "",
+                "help_text": "Current program name"
+              },
+              {
+                "name": "current_date",
+                "label": "Date",
+                "type": "date",
+                "input_output": "output",
+                "required": true,
+                "default_value": "Current system date",
+                "validation": "Format: MM/DD/YY",
+                "help_text": "Current date in MM/DD/YY format"
+              },
+              {
+                "name": "current_time",
+                "label": "Time",
+                "type": "time",
+                "input_output": "output",
+                "required": true,
+                "default_value": "Current system time",
+                "validation": "Format: HH:MM:SS",
+                "help_text": "Current time in HH:MM:SS format"
+              },
+              {
+                "name": "application_id",
+                "label": "Application ID",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "System application ID",
+                "validation": "",
+                "help_text": "CICS application identifier"
+              },
+              {
+                "name": "system_id",
+                "label": "System ID",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "System ID",
+                "validation": "",
+                "help_text": "CICS system identifier"
+              }
+            ]
+          },
+          {
+            "name": "Credentials",
+            "type": "Input",
+            "fields": [
+              {
+                "name": "user_id",
+                "label": "User ID",
+                "type": "text",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Cannot be empty or spaces, maximum 8 characters",
+                "help_text": "Enter your user identification"
+              },
+              {
+                "name": "password",
+                "label": "Password",
+                "type": "password",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Cannot be empty or spaces, maximum 8 characters",
+                "help_text": "Enter your password"
+              }
+            ]
+          },
+          {
+            "name": "Messages",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "error_message",
+                "label": "Error Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "Maximum 78 characters",
+                "help_text": "Displays error or informational messages to the user"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Submit Credentials",
+            "trigger": "Enter Key",
+            "description": "Validates and authenticates user credentials",
+            "backend_process": "User Authentication Workflow",
+            "success_navigation": "Admin Menu for admin users, Main Menu for regular users",
+            "error_handling": "Display appropriate error message and reposition cursor"
+          },
+          {
+            "name": "Exit Application",
+            "trigger": "PF3 Key",
+            "description": "Exits the application with thank you message",
+            "backend_process": "Exit Application Workflow",
+            "success_navigation": "Application termination",
+            "error_handling": "None"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "First time screen display",
+            "affected_fields": [
+              "user_id",
+              "password",
+              "error_message"
+            ],
+            "behavior": "All fields are empty, cursor positioned at User ID field"
+          },
+          {
+            "condition": "User ID validation fails",
+            "affected_fields": [
+              "error_message",
+              "user_id"
+            ],
+            "behavior": "Display error message, cursor positioned at User ID field"
+          },
+          {
+            "condition": "Password validation fails",
+            "affected_fields": [
+              "error_message",
+              "password"
+            ],
+            "behavior": "Display error message, cursor positioned at Password field"
+          },
+          {
+            "condition": "Invalid key pressed",
+            "affected_fields": [
+              "error_message"
+            ],
+            "behavior": "Display invalid key message, redisplay screen"
+          },
+          {
+            "condition": "Screen refresh",
+            "affected_fields": [
+              "current_date",
+              "current_time"
+            ],
+            "behavior": "Update with current system date and time"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "Application Entry",
+        "to_screen": "Signon Screen (COSGN0A)",
+        "trigger": "Application start",
+        "conditions": [
+          "First invocation of program"
+        ]
+      },
+      {
+        "from_screen": "Signon Screen (COSGN0A)",
+        "to_screen": "Admin Menu (COADM01C)",
+        "trigger": "Successful authentication",
+        "conditions": [
+          "Valid credentials provided",
+          "User type is Admin"
+        ]
+      },
+      {
+        "from_screen": "Signon Screen (COSGN0A)",
+        "to_screen": "Main Menu (COMEN01C)",
+        "trigger": "Successful authentication",
+        "conditions": [
+          "Valid credentials provided",
+          "User type is not Admin"
+        ]
+      },
+      {
+        "from_screen": "Signon Screen (COSGN0A)",
+        "to_screen": "Application Exit",
+        "trigger": "PF3 key press",
+        "conditions": [
+          "User chooses to exit"
+        ]
+      },
+      {
+        "from_screen": "Signon Screen (COSGN0A)",
+        "to_screen": "Signon Screen (COSGN0A)",
+        "trigger": "Validation error or invalid key",
+        "conditions": [
+          "Input validation fails or invalid function key pressed"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "error",
+        "message": "Please enter User ID ...",
+        "context": "User ID field is empty when Enter is pressed"
+      },
+      {
+        "code": "MSG002",
+        "type": "error",
+        "message": "Please enter Password ...",
+        "context": "Password field is empty when Enter is pressed"
+      },
+      {
+        "code": "MSG003",
+        "type": "error",
+        "message": "User not found. Try again ...",
+        "context": "User ID does not exist in user security file"
+      },
+      {
+        "code": "MSG004",
+        "type": "error",
+        "message": "Wrong Password. Try again ...",
+        "context": "Password does not match stored password for user"
+      },
+      {
+        "code": "MSG005",
+        "type": "error",
+        "message": "Unable to verify the User ...",
+        "context": "System error occurred while accessing user security file"
+      },
+      {
+        "code": "MSG006",
+        "type": "error",
+        "message": "Invalid key pressed",
+        "context": "User pressed a function key other than Enter or PF3"
+      },
+      {
+        "code": "MSG007",
+        "type": "information",
+        "message": "Thank you for using CardDemo application",
+        "context": "User exits application using PF3 key"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "User Credential Input Flow",
+      "description": "Flow of user credentials from screen input to authentication processing",
+      "source": "Signon Screen user input fields",
+      "destination": "User Authentication Workflow",
+      "data_elements": [
+        "User ID",
+        "Password"
+      ],
+      "transformations": [
+        "Convert User ID to uppercase",
+        "Convert Password to uppercase"
+      ]
+    },
+    {
+      "name": "User Security Data Retrieval Flow",
+      "description": "Flow of user security data from security file to authentication process",
+      "source": "User Security File (USRSEC)",
+      "destination": "User Authentication Workflow",
+      "data_elements": [
+        "User ID",
+        "Stored Password",
+        "User Type"
+      ],
+      "transformations": [
+        "None"
+      ]
+    },
+    {
+      "name": "Session Context Flow",
+      "description": "Flow of session context data to target menu programs",
+      "source": "User Authentication Workflow",
+      "destination": "Admin Menu or Main Menu",
+      "data_elements": [
+        "User ID",
+        "User Type",
+        "Origin Transaction ID",
+        "Origin Program Name",
+        "Program Context"
+      ],
+      "transformations": [
+        "Initialize program context to zeros",
+        "Set origin transaction to CC00",
+        "Set origin program to COSGN00C"
+      ]
+    },
+    {
+      "name": "Error Message Display Flow",
+      "description": "Flow of error messages from validation logic to screen display",
+      "source": "Validation and Error Handling Logic",
+      "destination": "Signon Screen error message field",
+      "data_elements": [
+        "Error message text"
+      ],
+      "transformations": [
+        "None"
+      ]
+    },
+    {
+      "name": "Screen Header Information Flow",
+      "description": "Flow of system information to screen header fields",
+      "source": "System environment",
+      "destination": "Signon Screen header section",
+      "data_elements": [
+        "Current Date",
+        "Current Time",
+        "Application ID",
+        "System ID",
+        "Transaction ID",
+        "Program Name"
+      ],
+      "transformations": [
+        "Format date as MM/DD/YY",
+        "Format time as HH:MM:SS"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Security",
+      "description": "All users must authenticate with valid credentials before accessing the application",
+      "impact": "Prevents unauthorized access to the CardDemo application"
+    },
+    {
+      "type": "Data Integrity",
+      "description": "User credentials are validated against a centralized user security file",
+      "impact": "Ensures consistent authentication across the application"
+    },
+    {
+      "type": "Authorization",
+      "description": "User access to different parts of the application is controlled by user type",
+      "impact": "Admin users have access to administrative functions, regular users have standard access"
+    },
+    {
+      "type": "Session Management",
+      "description": "Session context must be established and passed to subsequent programs",
+      "impact": "Maintains user identity and context throughout the application session"
+    },
+    {
+      "type": "User Experience",
+      "description": "Clear error messages must be displayed for all validation failures with cursor positioned at the relevant field",
+      "impact": "Improves usability and helps users correct input errors efficiently"
+    },
+    {
+      "type": "Data Format",
+      "description": "User credentials are case-insensitive (converted to uppercase)",
+      "impact": "Simplifies user input and reduces authentication errors due to case sensitivity"
+    }
+  ]
+}

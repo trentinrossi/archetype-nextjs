@@ -1,0 +1,1141 @@
+{
+  "application_metadata": {
+    "name": "CardDemo User List Management",
+    "description": "CICS transaction program for managing and displaying user accounts with pagination, search, and administrative functions for user updates and deletions",
+    "domain": "User Administration and Security Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "User",
+        "description": "Represents a user account in the system with security and profile information",
+        "attributes": [
+          {
+            "name": "user_id",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "Unique identifier for the user"
+          },
+          {
+            "name": "first_name",
+            "type": "string",
+            "length": 25,
+            "required": true,
+            "description": "User's first name"
+          },
+          {
+            "name": "last_name",
+            "type": "string",
+            "length": 25,
+            "required": true,
+            "description": "User's last name"
+          },
+          {
+            "name": "user_type",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "Type or role classification of the user"
+          }
+        ],
+        "relationships": []
+      },
+      {
+        "name": "UserListPage",
+        "description": "Represents a paginated view of user records",
+        "attributes": [
+          {
+            "name": "page_number",
+            "type": "numeric",
+            "length": 8,
+            "required": true,
+            "description": "Current page number in the user list"
+          },
+          {
+            "name": "first_user_id",
+            "type": "string",
+            "length": 8,
+            "required": false,
+            "description": "User ID of the first record on the current page"
+          },
+          {
+            "name": "last_user_id",
+            "type": "string",
+            "length": 8,
+            "required": false,
+            "description": "User ID of the last record on the current page"
+          },
+          {
+            "name": "has_next_page",
+            "type": "boolean",
+            "length": 1,
+            "required": true,
+            "description": "Indicates if there are more records available"
+          },
+          {
+            "name": "records_per_page",
+            "type": "numeric",
+            "length": 2,
+            "required": true,
+            "description": "Number of user records displayed per page (fixed at 10)"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "User",
+            "relationship_type": "contains",
+            "cardinality": "1-to-many"
+          }
+        ]
+      },
+      {
+        "name": "UserSelection",
+        "description": "Represents a user selection action for update or delete operations",
+        "attributes": [
+          {
+            "name": "selection_flag",
+            "type": "string",
+            "length": 1,
+            "required": false,
+            "description": "Selection indicator: U for update, D for delete"
+          },
+          {
+            "name": "selected_user_id",
+            "type": "string",
+            "length": 8,
+            "required": false,
+            "description": "User ID of the selected user"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "User",
+            "relationship_type": "references",
+            "cardinality": "many-to-one"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "User List Pagination",
+        "description": "Display user records in pages of 10 records each with navigation capabilities",
+        "category": "Display Management",
+        "logic": "The system displays up to 10 user records per page. Users can navigate forward (PF8) or backward (PF7) through pages. The system tracks the current page number and the first and last user IDs on each page to enable proper pagination.",
+        "conditions": [
+          "Maximum 10 records displayed per page",
+          "Page number starts at 0 and increments with each forward navigation",
+          "First and last user IDs are tracked for each page"
+        ],
+        "actions": [
+          "Display up to 10 user records with ID, first name, last name, and user type",
+          "Update page number when navigating",
+          "Set next page flag based on availability of more records",
+          "Display appropriate messages when at top or bottom of list"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "User Selection for Update",
+        "description": "Allow administrators to select a user for updating by entering 'U' next to the user ID",
+        "category": "User Management",
+        "logic": "When an administrator enters 'U' (case-insensitive) in the selection field next to a user ID, the system transfers control to the user update program (COUSR02C) with the selected user's information.",
+        "conditions": [
+          "Selection value must be 'U' or 'u'",
+          "Selected user ID must not be empty or low-values",
+          "User must exist in the system"
+        ],
+        "actions": [
+          "Store selected user ID in communication area",
+          "Set target program to COUSR02C",
+          "Set program context to 0",
+          "Transfer control to update program with user information"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "User Selection for Delete",
+        "description": "Allow administrators to select a user for deletion by entering 'D' next to the user ID",
+        "category": "User Management",
+        "logic": "When an administrator enters 'D' (case-insensitive) in the selection field next to a user ID, the system transfers control to the user delete program (COUSR03C) with the selected user's information.",
+        "conditions": [
+          "Selection value must be 'D' or 'd'",
+          "Selected user ID must not be empty or low-values",
+          "User must exist in the system"
+        ],
+        "actions": [
+          "Store selected user ID in communication area",
+          "Set target program to COUSR03C",
+          "Set program context to 0",
+          "Transfer control to delete program with user information"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "User Search by ID",
+        "description": "Enable searching for users by entering a partial or full user ID",
+        "category": "Search",
+        "logic": "Users can enter a partial or full user ID in the search field. The system performs a case-sensitive search starting from the entered user ID and displays matching results from that point forward.",
+        "conditions": [
+          "Search is case-sensitive",
+          "Search starts from the entered user ID using greater-than-or-equal-to logic",
+          "Empty search field defaults to showing all users from the beginning"
+        ],
+        "actions": [
+          "Set search key to entered user ID or low-values if empty",
+          "Reset page number to 0",
+          "Retrieve and display users starting from the search key",
+          "Clear search field after processing"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Forward Page Navigation",
+        "description": "Navigate to the next page of user records when PF8 is pressed",
+        "category": "Navigation",
+        "logic": "When PF8 is pressed and more records are available, the system displays the next page of up to 10 user records. If already at the bottom, an appropriate message is displayed.",
+        "conditions": [
+          "Next page flag must be set to YES",
+          "More records must be available beyond the current page",
+          "Last user ID from current page is used as starting point"
+        ],
+        "actions": [
+          "Start browsing from last user ID of current page",
+          "Read next 10 user records",
+          "Increment page number if records are found",
+          "Update first and last user IDs for new page",
+          "Set next page flag based on availability of more records",
+          "Display message if at bottom of list"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Backward Page Navigation",
+        "description": "Navigate to the previous page of user records when PF7 is pressed",
+        "category": "Navigation",
+        "logic": "When PF7 is pressed and the current page is greater than 1, the system displays the previous page of up to 10 user records. If already at the top, an appropriate message is displayed.",
+        "conditions": [
+          "Current page number must be greater than 1",
+          "First user ID from current page is used as starting point",
+          "System must not be at start of file"
+        ],
+        "actions": [
+          "Start browsing from first user ID of current page",
+          "Read previous 10 user records in reverse order",
+          "Decrement page number if page number is greater than 1",
+          "Update first and last user IDs for new page",
+          "Display message if at top of list"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Invalid Selection Validation",
+        "description": "Validate user selection input and display error for invalid values",
+        "category": "Validation",
+        "logic": "When a selection value is entered that is not 'U', 'u', 'D', or 'd', the system displays an error message indicating valid values and positions the cursor at the user ID input field.",
+        "conditions": [
+          "Selection field is not empty",
+          "Selection value is not 'U', 'u', 'D', or 'd'"
+        ],
+        "actions": [
+          "Display error message: 'Invalid selection. Valid values are U and D'",
+          "Position cursor at user ID input field",
+          "Retain current page display"
+        ]
+      },
+      {
+        "id": "BR008",
+        "name": "User Data Population",
+        "description": "Populate screen fields with user data based on record position",
+        "category": "Display Management",
+        "logic": "For each user record retrieved, populate the corresponding row on the screen (1-10) with user ID, first name, last name, and user type. Track the first and last user IDs for pagination purposes.",
+        "conditions": [
+          "Record index must be between 1 and 10",
+          "User record must be successfully retrieved",
+          "No end-of-file condition"
+        ],
+        "actions": [
+          "Map user ID to corresponding screen field (USRID01I-USRID10I)",
+          "Map first name to corresponding screen field (FNAME01I-FNAME10I)",
+          "Map last name to corresponding screen field (LNAME01I-LNAME10I)",
+          "Map user type to corresponding screen field (UTYPE01I-UTYPE10I)",
+          "Store first user ID when index is 1",
+          "Store last user ID when index is 10"
+        ]
+      },
+      {
+        "id": "BR009",
+        "name": "User Data Initialization",
+        "description": "Clear screen fields before populating with new user data",
+        "category": "Display Management",
+        "logic": "Before displaying a new page of user records, initialize all 10 rows of user data fields to spaces to ensure clean display of data.",
+        "conditions": [
+          "New page is being loaded",
+          "Navigation action has been triggered"
+        ],
+        "actions": [
+          "Set all user ID fields (USRID01I-USRID10I) to spaces",
+          "Set all first name fields (FNAME01I-FNAME10I) to spaces",
+          "Set all last name fields (LNAME01I-LNAME10I) to spaces",
+          "Set all user type fields (UTYPE01I-UTYPE10I) to spaces"
+        ]
+      },
+      {
+        "id": "BR010",
+        "name": "Screen Header Population",
+        "description": "Populate screen header with current date, time, transaction ID, and program name",
+        "category": "Display Management",
+        "logic": "Every time the screen is displayed, populate the header with current system date (MM/DD/YY format), current time (HH:MM:SS format), transaction ID (CU00), and program name (COUSR00C).",
+        "conditions": [
+          "Screen is being sent to terminal"
+        ],
+        "actions": [
+          "Get current system date and time",
+          "Format date as MM/DD/YY",
+          "Format time as HH:MM:SS",
+          "Display transaction ID as CU00",
+          "Display program name as COUSR00C",
+          "Display screen titles from common area"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "user_selection",
+        "rule": "Must be 'U', 'u', 'D', 'd', or empty",
+        "error_message": "Invalid selection. Valid values are U and D",
+        "severity": "error"
+      },
+      {
+        "field": "user_id",
+        "rule": "Must not be empty when selection is made",
+        "error_message": "User ID is required for selection",
+        "severity": "error"
+      },
+      {
+        "field": "search_user_id",
+        "rule": "Case-sensitive search key",
+        "error_message": "Search is case-sensitive",
+        "severity": "info"
+      }
+    ],
+    "calculations": [],
+    "workflows": [
+      {
+        "name": "User List Display Workflow",
+        "description": "Main workflow for displaying and navigating the user list",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize screen and retrieve user input",
+            "conditions": [
+              "Transaction is initiated"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Determine user action based on key pressed",
+            "conditions": [
+              "ENTER key: Process user selection or search",
+              "PF3 key: Return to admin menu",
+              "PF7 key: Navigate to previous page",
+              "PF8 key: Navigate to next page"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Process the determined action",
+            "conditions": [
+              "Action is valid"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Retrieve and display user records",
+            "conditions": [
+              "No errors occurred"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Send updated screen to terminal",
+            "conditions": [
+              "Data is ready for display"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "User Selection Workflow",
+        "description": "Workflow for selecting a user for update or delete",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Check all 10 selection fields for input",
+            "conditions": [
+              "ENTER key was pressed"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Validate selection value",
+            "conditions": [
+              "Selection field is not empty"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Store selected user ID and selection flag",
+            "conditions": [
+              "Selection is valid (U, u, D, or d)"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Transfer to appropriate program",
+            "conditions": [
+              "If U or u: Transfer to COUSR02C",
+              "If D or d: Transfer to COUSR03C"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "User Search Workflow",
+        "description": "Workflow for searching users by ID",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Retrieve search user ID from input field",
+            "conditions": [
+              "ENTER key was pressed",
+              "No user selection was made"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Set search key",
+            "conditions": [
+              "If search field is empty: Set to low-values",
+              "Otherwise: Set to entered user ID"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Reset page number to 0",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Retrieve users starting from search key",
+            "conditions": [],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Display search results",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Forward Pagination Workflow",
+        "description": "Workflow for navigating to the next page",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Check if next page is available",
+            "conditions": [
+              "PF8 key was pressed"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Set starting position to last user ID of current page",
+            "conditions": [
+              "Next page flag is YES"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Initialize user data fields",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Read next 10 user records",
+            "conditions": [],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Populate screen with user data",
+            "conditions": [
+              "Records were retrieved"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Increment page number and update pagination flags",
+            "conditions": [],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Display updated screen",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Backward Pagination Workflow",
+        "description": "Workflow for navigating to the previous page",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Check if previous page is available",
+            "conditions": [
+              "PF7 key was pressed",
+              "Page number is greater than 1"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Set starting position to first user ID of current page",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Initialize user data fields",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Read previous 10 user records in reverse order",
+            "conditions": [],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Populate screen with user data",
+            "conditions": [
+              "Records were retrieved"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Decrement page number if greater than 1",
+            "conditions": [],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Display updated screen",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "USRSEC File Integration",
+        "type": "Data Store",
+        "purpose": "Store and retrieve user security and profile information",
+        "data_exchanged": [
+          "User ID",
+          "First Name",
+          "Last Name",
+          "User Type"
+        ],
+        "trigger_conditions": [
+          "User list display request",
+          "Page navigation",
+          "User search"
+        ]
+      },
+      {
+        "name": "COUSR02C Program Integration",
+        "type": "Program Transfer",
+        "purpose": "Transfer control to user update program when user selects update action",
+        "data_exchanged": [
+          "Selected user ID",
+          "Transaction ID",
+          "Program context",
+          "Communication area"
+        ],
+        "trigger_conditions": [
+          "User enters 'U' or 'u' in selection field",
+          "ENTER key is pressed"
+        ]
+      },
+      {
+        "name": "COUSR03C Program Integration",
+        "type": "Program Transfer",
+        "purpose": "Transfer control to user delete program when user selects delete action",
+        "data_exchanged": [
+          "Selected user ID",
+          "Transaction ID",
+          "Program context",
+          "Communication area"
+        ],
+        "trigger_conditions": [
+          "User enters 'D' or 'd' in selection field",
+          "ENTER key is pressed"
+        ]
+      },
+      {
+        "name": "COADM01C Program Integration",
+        "type": "Program Transfer",
+        "purpose": "Return to admin menu when user exits user list",
+        "data_exchanged": [
+          "Communication area"
+        ],
+        "trigger_conditions": [
+          "PF3 key is pressed"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Administrator"
+      ],
+      "permissions": [
+        {
+          "role": "Administrator",
+          "resource": "User List",
+          "actions": [
+            "View user list",
+            "Search users",
+            "Navigate pages",
+            "Select user for update",
+            "Select user for delete"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be authenticated to access transaction",
+        "User must have administrator privileges"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "INVALID_SELECTION",
+        "condition": "Selection value is not U, u, D, or d",
+        "business_impact": "User cannot proceed with update or delete action",
+        "suggested_action": "Display error message and position cursor at user ID field"
+      },
+      {
+        "error_code": "FILE_ACCESS_ERROR",
+        "condition": "Unable to access USRSEC file",
+        "business_impact": "User list cannot be displayed",
+        "suggested_action": "Display error message 'Unable to lookup User...' and position cursor at user ID field"
+      },
+      {
+        "error_code": "AT_TOP_OF_LIST",
+        "condition": "User attempts to navigate backward when at page 1",
+        "business_impact": "No action taken, informational only",
+        "suggested_action": "Display message 'You are already at the top of the page...'"
+      },
+      {
+        "error_code": "AT_BOTTOM_OF_LIST",
+        "condition": "User attempts to navigate forward when no more records available",
+        "business_impact": "No action taken, informational only",
+        "suggested_action": "Display message 'You are already at the bottom of the page...'"
+      },
+      {
+        "error_code": "END_OF_FILE",
+        "condition": "Reached end of USRSEC file during browsing",
+        "business_impact": "No more records to display",
+        "suggested_action": "Set end-of-file flag and display appropriate message"
+      },
+      {
+        "error_code": "RECORD_NOT_FOUND",
+        "condition": "Search user ID not found in USRSEC file",
+        "business_impact": "No matching users to display",
+        "suggested_action": "Display empty list or appropriate message"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "COUSR0A",
+        "name": "User List Screen",
+        "purpose": "Display paginated list of users with options to search, navigate, update, and delete",
+        "screen_type": "List/Grid",
+        "navigation_from": [
+          "COADM01C (Admin Menu)"
+        ],
+        "navigation_to": [
+          "COUSR02C (User Update)",
+          "COUSR03C (User Delete)",
+          "COADM01C (Admin Menu)"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "title01",
+                "label": "Title Line 1",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "First line of screen title"
+              },
+              {
+                "name": "title02",
+                "label": "Title Line 2",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Second line of screen title"
+              },
+              {
+                "name": "current_date",
+                "label": "Current Date",
+                "type": "date",
+                "input_output": "output",
+                "required": true,
+                "default_value": "CURRENT_DATE",
+                "validation": "MM/DD/YY format",
+                "help_text": "Current system date"
+              },
+              {
+                "name": "current_time",
+                "label": "Current Time",
+                "type": "time",
+                "input_output": "output",
+                "required": true,
+                "default_value": "CURRENT_TIME",
+                "validation": "HH:MM:SS format",
+                "help_text": "Current system time"
+              },
+              {
+                "name": "transaction_id",
+                "label": "Transaction ID",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "CU00",
+                "validation": "",
+                "help_text": "Transaction identifier"
+              },
+              {
+                "name": "program_name",
+                "label": "Program Name",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "COUSR00C",
+                "validation": "",
+                "help_text": "Program identifier"
+              }
+            ]
+          },
+          {
+            "name": "Error Message Area",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "error_message",
+                "label": "Error Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays error or informational messages"
+              }
+            ]
+          },
+          {
+            "name": "Search Criteria",
+            "type": "Input",
+            "fields": [
+              {
+                "name": "search_user_id",
+                "label": "User ID",
+                "type": "text",
+                "input_output": "input",
+                "required": false,
+                "default_value": "",
+                "validation": "8 characters maximum, case-sensitive",
+                "help_text": "Enter partial or full user ID to search"
+              }
+            ]
+          },
+          {
+            "name": "User List Grid",
+            "type": "Grid",
+            "fields": [
+              {
+                "name": "selection",
+                "label": "Sel",
+                "type": "text",
+                "input_output": "input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be U, u, D, d, or empty",
+                "help_text": "Enter U to update or D to delete"
+              },
+              {
+                "name": "user_id",
+                "label": "User ID",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "8 characters",
+                "help_text": "Unique user identifier"
+              },
+              {
+                "name": "first_name",
+                "label": "First Name",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "25 characters",
+                "help_text": "User's first name"
+              },
+              {
+                "name": "last_name",
+                "label": "Last Name",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "25 characters",
+                "help_text": "User's last name"
+              },
+              {
+                "name": "user_type",
+                "label": "User Type",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "8 characters",
+                "help_text": "Type or role of user"
+              }
+            ]
+          },
+          {
+            "name": "Pagination Info",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "page_number",
+                "label": "Page",
+                "type": "numeric",
+                "input_output": "output",
+                "required": true,
+                "default_value": "0",
+                "validation": "Positive integer",
+                "help_text": "Current page number"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Search Users",
+            "trigger": "ENTER",
+            "description": "Search for users by ID and display results",
+            "backend_process": "Process-Enter-Key",
+            "success_navigation": "Stay on current screen with search results",
+            "error_handling": "Display error message and position cursor at user ID field"
+          },
+          {
+            "name": "Select User for Update",
+            "trigger": "ENTER with U selection",
+            "description": "Transfer to user update program with selected user",
+            "backend_process": "Process-Enter-Key",
+            "success_navigation": "COUSR02C",
+            "error_handling": "Display error message if selection is invalid"
+          },
+          {
+            "name": "Select User for Delete",
+            "trigger": "ENTER with D selection",
+            "description": "Transfer to user delete program with selected user",
+            "backend_process": "Process-Enter-Key",
+            "success_navigation": "COUSR03C",
+            "error_handling": "Display error message if selection is invalid"
+          },
+          {
+            "name": "Previous Page",
+            "trigger": "PF7",
+            "description": "Navigate to previous page of user records",
+            "backend_process": "Process-PF7-Key",
+            "success_navigation": "Stay on current screen with previous page data",
+            "error_handling": "Display message if already at top of list"
+          },
+          {
+            "name": "Next Page",
+            "trigger": "PF8",
+            "description": "Navigate to next page of user records",
+            "backend_process": "Process-PF8-Key",
+            "success_navigation": "Stay on current screen with next page data",
+            "error_handling": "Display message if already at bottom of list"
+          },
+          {
+            "name": "Return to Admin Menu",
+            "trigger": "PF3",
+            "description": "Exit user list and return to admin menu",
+            "backend_process": "Return-to-Prev-Screen",
+            "success_navigation": "COADM01C",
+            "error_handling": "None"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "Page number is 1",
+            "affected_fields": [
+              "page_number"
+            ],
+            "behavior": "Display page number as 1"
+          },
+          {
+            "condition": "No more records available",
+            "affected_fields": [
+              "next_page_flag"
+            ],
+            "behavior": "Set next page flag to NO"
+          },
+          {
+            "condition": "More records available",
+            "affected_fields": [
+              "next_page_flag"
+            ],
+            "behavior": "Set next page flag to YES"
+          },
+          {
+            "condition": "Error occurs",
+            "affected_fields": [
+              "error_message"
+            ],
+            "behavior": "Display error message in error message area"
+          },
+          {
+            "condition": "No users found",
+            "affected_fields": [
+              "user_list_grid"
+            ],
+            "behavior": "Display empty grid with spaces"
+          },
+          {
+            "condition": "Less than 10 users on page",
+            "affected_fields": [
+              "user_list_grid"
+            ],
+            "behavior": "Display available users and clear remaining rows"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "COADM01C",
+        "to_screen": "COUSR0A",
+        "trigger": "User selects user list option",
+        "conditions": [
+          "User has administrator privileges"
+        ]
+      },
+      {
+        "from_screen": "COUSR0A",
+        "to_screen": "COUSR02C",
+        "trigger": "ENTER with U selection",
+        "conditions": [
+          "Valid user ID is selected",
+          "Selection is U or u"
+        ]
+      },
+      {
+        "from_screen": "COUSR0A",
+        "to_screen": "COUSR03C",
+        "trigger": "ENTER with D selection",
+        "conditions": [
+          "Valid user ID is selected",
+          "Selection is D or d"
+        ]
+      },
+      {
+        "from_screen": "COUSR0A",
+        "to_screen": "COADM01C",
+        "trigger": "PF3",
+        "conditions": []
+      },
+      {
+        "from_screen": "COUSR02C",
+        "to_screen": "COUSR0A",
+        "trigger": "Update complete or cancel",
+        "conditions": []
+      },
+      {
+        "from_screen": "COUSR03C",
+        "to_screen": "COUSR0A",
+        "trigger": "Delete complete or cancel",
+        "conditions": []
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "error",
+        "message": "Invalid selection. Valid values are U and D",
+        "context": "User enters invalid selection value"
+      },
+      {
+        "code": "MSG002",
+        "type": "error",
+        "message": "Unable to lookup User...",
+        "context": "File access error occurs"
+      },
+      {
+        "code": "MSG003",
+        "type": "info",
+        "message": "You are already at the top of the page...",
+        "context": "User attempts to navigate backward from page 1"
+      },
+      {
+        "code": "MSG004",
+        "type": "info",
+        "message": "You are already at the bottom of the page...",
+        "context": "User attempts to navigate forward when no more records available"
+      },
+      {
+        "code": "MSG005",
+        "type": "info",
+        "message": "You have reached the top of the page...",
+        "context": "End of file reached during backward navigation"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "User List Retrieval",
+      "description": "Retrieve user records from USRSEC file and display on screen",
+      "source": "USRSEC File",
+      "destination": "User List Screen",
+      "data_elements": [
+        "User ID",
+        "First Name",
+        "Last Name",
+        "User Type"
+      ],
+      "transformations": [
+        "Read up to 10 records per page",
+        "Format data for screen display",
+        "Track first and last user IDs for pagination"
+      ]
+    },
+    {
+      "name": "User Selection Transfer",
+      "description": "Transfer selected user information to update or delete program",
+      "source": "User List Screen",
+      "destination": "COUSR02C or COUSR03C",
+      "data_elements": [
+        "Selected User ID",
+        "Selection Flag",
+        "Transaction ID",
+        "Program Context"
+      ],
+      "transformations": [
+        "Validate selection input",
+        "Store selected user ID in communication area",
+        "Set target program based on selection type"
+      ]
+    },
+    {
+      "name": "Search Criteria Processing",
+      "description": "Process user search input and retrieve matching records",
+      "source": "User List Screen",
+      "destination": "USRSEC File",
+      "data_elements": [
+        "Search User ID"
+      ],
+      "transformations": [
+        "Convert empty input to low-values",
+        "Use as starting key for file browse",
+        "Reset page number to 0"
+      ]
+    },
+    {
+      "name": "Pagination State Management",
+      "description": "Maintain pagination state across screen interactions",
+      "source": "Communication Area",
+      "destination": "User List Screen",
+      "data_elements": [
+        "Page Number",
+        "First User ID",
+        "Last User ID",
+        "Next Page Flag"
+      ],
+      "transformations": [
+        "Update page number on navigation",
+        "Track boundary user IDs",
+        "Set next page availability flag"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Display Limit",
+      "description": "Maximum of 10 user records can be displayed per page",
+      "impact": "Users must navigate through pages to view all users"
+    },
+    {
+      "type": "Search Sensitivity",
+      "description": "User ID search is case-sensitive",
+      "impact": "Users must enter exact case for user IDs when searching"
+    },
+    {
+      "type": "Sequential Navigation",
+      "description": "Users can only navigate forward or backward one page at a time",
+      "impact": "Cannot jump to arbitrary page numbers"
+    },
+    {
+      "type": "Single Selection",
+      "description": "Only one user can be selected at a time for update or delete",
+      "impact": "Bulk operations are not supported"
+    },
+    {
+      "type": "Administrator Access",
+      "description": "Only administrators can access user list and management functions",
+      "impact": "Regular users cannot view or manage user accounts"
+    }
+  ]
+}
