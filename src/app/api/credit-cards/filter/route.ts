@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     const response = await forwardAuthRequest(
-      `/api/v1/credit-cards/filter?userId=${userId}&page=${page}&size=${size}`,
+      `/api/credit-cards/filter?userId=${userId}&page=${page}&size=${size}`,
       'POST',
       request,
       body

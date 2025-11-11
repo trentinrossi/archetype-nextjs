@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const size = searchParams.get('size') || '20';
     const sort = searchParams.get('sort') || '';
     
-    let url = `/api/v1/users?page=${page}&size=${size}`;
+    let url = `/api/users?page=${page}&size=${size}`;
     if (sort) {
       url += `&sort=${sort}`;
     }
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const response = await forwardAuthRequest(
-      '/api/v1/users',
+      '/api/users',
       'POST',
       request,
       body

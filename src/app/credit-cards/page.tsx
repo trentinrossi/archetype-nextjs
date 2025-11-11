@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { creditCardService } from '@/services/creditCardService';
 import {
@@ -9,7 +9,7 @@ import {
   ERROR_MESSAGES,
   CARD_STATUS_OPTIONS,
 } from '@/types/credit-card';
-import { Table, Button, Input, Select } from '@/components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button, Input, Select } from '@/components/ui';
 
 export default function CreditCardsPage() {
   const router = useRouter();
@@ -35,18 +35,7 @@ export default function CreditCardsPage() {
   const [userId] = useState('USER001'); // Default user for demo
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
-  useEffect(() => {
-    fetchCreditCards();
-    
-    // Update time every second
-    const timer = setInterval(() => {
-      setCurrentDateTime(new Date());
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, []);
-
-  const fetchCreditCards = async (
+  const fetchCreditCards = useCallback(async (
     page: number = 0,
     filters?: CreditCardFilterRequest
   ) => {
@@ -82,7 +71,18 @@ export default function CreditCardsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, accountIdFilter, cardNumberFilter, cardStatusFilter, pageSize]);
+
+  useEffect(() => {
+    fetchCreditCards();
+    
+    // Update time every second
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [fetchCreditCards]);
 
   const handleApplyFilters = () => {
     // Clear previous errors
@@ -134,7 +134,7 @@ export default function CreditCardsPage() {
     try {
       await creditCardService.validateBackwardNavigation(currentPage);
       fetchCreditCards(currentPage - 1);
-    } catch (err) {
+    } catch {
       setError(ERROR_MESSAGES.NO_PREVIOUS_PAGES);
     }
   };
@@ -148,7 +148,7 @@ export default function CreditCardsPage() {
     try {
       await creditCardService.validateForwardNavigation({ last: isLastPage });
       fetchCreditCards(currentPage + 1);
-    } catch (err) {
+    } catch {
       setError(ERROR_MESSAGES.NO_MORE_PAGES);
     }
   };
@@ -287,64 +287,76 @@ export default function CreditCardsPage() {
             {error || 'No credit cards found'}
           </div>
         ) : (
-          <Table
-            columns={[
-              {
-                key: 'accountId',
-                label: 'Account Number',
-              },
-              {
-                key: 'formattedCardNumber',
-                label: 'Card Number',
-              },
-              {
-                key: 'cardStatusDisplayName',
-                label: 'Status',
-              },
-              {
-                key: 'isActive',
-                label: 'Active',
-                render: (value) => (
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-semibold ${
-                      value
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {value ? 'Yes' : 'No'}
-                  </span>
-                ),
-              },
-            ]}
-            data={creditCards}
-            onRowClick={(card) => handleViewDetails(card)}
-            actions={(card) => (
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleViewDetails(card);
-                  }}
-                  title="View card details"
-                >
-                  View
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleUpdateCard(card);
-                  }}
-                  title="Update card information"
-                >
-                  Update
-                </Button>
-              </div>
-            )}
-          />
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Account Number</TableHead>
+                <TableHead>Card Number</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Active</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {creditCards.map((card) => (
+                <TableRow key={card.cardNumber}>
+                  <TableCell>
+                    <div className="cursor-pointer" onClick={() => handleViewDetails(card)}>
+                      {card.accountId}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="cursor-pointer" onClick={() => handleViewDetails(card)}>
+                      {card.formattedCardNumber}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="cursor-pointer" onClick={() => handleViewDetails(card)}>
+                      {card.cardStatusDisplayName}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="cursor-pointer" onClick={() => handleViewDetails(card)}>
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-semibold ${
+                          card.isActive
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {card.isActive ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewDetails(card);
+                        }}
+                        title="View card details"
+                      >
+                        View
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUpdateCard(card);
+                        }}
+                        title="Update card information"
+                      >
+                        Update
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </div>
 

@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const response = await forwardAuthRequest(
-      `/api/v1/users/${params.userId}`,
+      `/api/users/${params.userId}`,
       'GET',
       request
     );
@@ -31,7 +31,7 @@ export async function PUT(
   try {
     const body = await request.json();
     const response = await forwardAuthRequest(
-      `/api/v1/users/${params.userId}`,
+      `/api/users/${params.userId}`,
       'PUT',
       request,
       body
@@ -54,7 +54,7 @@ export async function DELETE(
 ) {
   try {
     const response = await forwardAuthRequest(
-      `/api/v1/users/${params.userId}`,
+      `/api/users/${params.userId}`,
       'DELETE',
       request
     );

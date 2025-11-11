@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     const response = await forwardAuthRequest(
-      '/api/v1/credit-cards/validate-forward-navigation',
+      '/api/credit-cards/validate-forward-navigation',
       'POST',
       request,
       body

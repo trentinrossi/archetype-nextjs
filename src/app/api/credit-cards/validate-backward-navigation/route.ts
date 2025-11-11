@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
     
     const response = await forwardAuthRequest(
-      `/api/v1/credit-cards/validate-backward-navigation?page=${page}`,
+      `/api/credit-cards/validate-backward-navigation?page=${page}`,
       'POST',
       request
     );

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
     
     const response = await forwardAuthRequest(
-      `/api/v1/credit-cards/validate-selection?selectionCount=${selectionCount}`,
+      `/api/credit-cards/validate-selection?selectionCount=${selectionCount}`,
       'POST',
       request
     );

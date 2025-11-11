@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const response = await forwardAuthRequest(
-      `/api/v1/users/${params.userId}/accessible-accounts`,
+      `/api/users/${params.userId}/accessible-accounts`,
       'GET',
       request
     );
