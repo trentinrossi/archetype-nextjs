@@ -155,7 +155,7 @@ import { forwardAuthRequest, handleAuthApiResponse } from '@/lib/auth-middleware
 // GET /api/widgets - List all widgets
 export async function GET(request: NextRequest) {
   try {
-    const response = await forwardAuthRequest('/api/v1/widgets', 'GET', request);
+    const response = await forwardAuthRequest('/api/widgets', 'GET', request);
     const result = await handleAuthApiResponse(response);
     return NextResponse.json(result.data, { status: result.status });
   } catch (error) {
@@ -167,7 +167,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const response = await forwardAuthRequest('/api/v1/widgets', 'POST', request, body);
+    const response = await forwardAuthRequest('/api/widgets', 'POST', request, body);
     const result = await handleAuthApiResponse(response);
     return NextResponse.json(result.data, { status: result.status });
   } catch (error) {
@@ -185,7 +185,7 @@ export async function GET(
 ) {
   try {
     const response = await forwardAuthRequest(
-      `/api/v1/widgets/${params.id}`,
+      `/api/widgets/${params.id}`,
       'GET',
       request
     );
@@ -204,7 +204,7 @@ export async function PUT(
   try {
     const body = await request.json();
     const response = await forwardAuthRequest(
-      `/api/v1/widgets/${params.id}`,
+      `/api/widgets/${params.id}`,
       'PUT',
       request,
       body
@@ -223,7 +223,7 @@ export async function DELETE(
 ) {
   try {
     const response = await forwardAuthRequest(
-      `/api/v1/widgets/${params.id}`,
+      `/api/widgets/${params.id}`,
       'DELETE',
       request
     );
@@ -244,7 +244,7 @@ export async function GET(
 ) {
   try {
     const response = await forwardAuthRequest(
-      `/api/v1/widgets?category=${params.category}`,
+      `/api/widgets?category=${params.category}`,
       'GET',
       request
     );
@@ -365,7 +365,64 @@ export const widgetService = new WidgetService();
 - `Input` - Text inputs with labels and validation
 - `Select` - Dropdown selects
 - `Modal` - Modal dialogs
-- `Table` - Data tables with sorting and pagination
+- `Table` - Compositional table components (`Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`)
+
+#### Using the Table Component
+
+The Table component uses a **compositional pattern** (not a data-driven props pattern). You must build the table structure manually using the component parts:
+
+**Correct Usage:**
+
+```typescript
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui';
+
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>Column 1</TableHead>
+      <TableHead>Column 2</TableHead>
+      <TableHead>Actions</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    {items.map((item) => (
+      <TableRow key={item.id}>
+        <TableCell>
+          <div className="cursor-pointer" onClick={() => handleClick(item)}>
+            {item.name}
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="cursor-pointer" onClick={() => handleClick(item)}>
+            {item.value}
+          </div>
+        </TableCell>
+        <TableCell>
+          <Button size="sm" onClick={() => handleEdit(item)}>Edit</Button>
+        </TableCell>
+      </TableRow>
+    ))}
+  </TableBody>
+</Table>
+```
+
+**❌ Incorrect Usage (DO NOT USE):**
+
+```typescript
+// This will NOT work - the Table component does not accept these props
+<Table
+  columns={[...]}
+  data={items}
+  onRowClick={...}
+  actions={...}
+/>
+```
+
+**Key Points:**
+- Import all needed components: `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`
+- Wrap clickable cell content in `<div>` with `onClick` handlers (cells don't accept onClick directly)
+- Use `colSpan` on `TableCell` for empty states spanning multiple columns
+- Stop event propagation with `e.stopPropagation()` for action buttons to prevent row clicks
 
 ---
 
@@ -394,7 +451,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { widgetService } from '@/services/widgetService';
 import { Widget } from '@/types/widget';
-import { Table, Button } from '@/components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '@/components/ui';
 
 export default function WidgetsPage() {
   const router = useRouter();
@@ -429,8 +486,8 @@ export default function WidgetsPage() {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) return <div className="p-6">Loading...</div>;
+  if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
 
   return (
     <div className="p-6">
@@ -441,26 +498,78 @@ export default function WidgetsPage() {
         </Button>
       </div>
       
-      <Table
-        columns={[
-          { key: 'name', label: 'Name' },
-          { key: 'category', label: 'Category' },
-          { key: 'price', label: 'Price' },
-          { key: 'isActive', label: 'Status' },
-        ]}
-        data={widgets}
-        onRowClick={(widget) => router.push(`/widgets/${widget.id}`)}
-        actions={(widget) => (
-          <>
-            <Button size="sm" onClick={() => router.push(`/widgets/${widget.id}/edit`)}>
-              Edit
-            </Button>
-            <Button size="sm" variant="danger" onClick={() => handleDelete(widget.id)}>
-              Delete
-            </Button>
-          </>
-        )}
-      />
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {widgets.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                No widgets found
+              </TableCell>
+            </TableRow>
+          ) : (
+            widgets.map((widget) => (
+              <TableRow key={widget.id}>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/widgets/${widget.id}`)}>
+                    {widget.name}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/widgets/${widget.id}`)}>
+                    {widget.category}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/widgets/${widget.id}`)}>
+                    ${widget.price.toFixed(2)}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/widgets/${widget.id}`)}>
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                      widget.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {widget.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/widgets/${widget.id}/edit`);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="danger" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(widget.id);
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -845,7 +954,7 @@ import { forwardAuthRequest, handleAuthApiResponse } from '@/lib/auth-middleware
 // GET /api/gadgets - List all gadgets
 export async function GET(request: NextRequest) {
   try {
-    const response = await forwardAuthRequest('/api/v1/gadgets', 'GET', request);
+    const response = await forwardAuthRequest('/api/gadgets', 'GET', request);
     const result = await handleAuthApiResponse(response);
     return NextResponse.json(result.data, { status: result.status });
   } catch (error) {
@@ -858,7 +967,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const response = await forwardAuthRequest('/api/v1/gadgets', 'POST', request, body);
+    const response = await forwardAuthRequest('/api/gadgets', 'POST', request, body);
     const result = await handleAuthApiResponse(response);
     return NextResponse.json(result.data, { status: result.status });
   } catch (error) {
@@ -880,7 +989,7 @@ export async function GET(
 ) {
   try {
     const response = await forwardAuthRequest(
-      `/api/v1/gadgets/${params.id}`,
+      `/api/gadgets/${params.id}`,
       'GET',
       request
     );
@@ -899,7 +1008,7 @@ export async function PUT(
   try {
     const body = await request.json();
     const response = await forwardAuthRequest(
-      `/api/v1/gadgets/${params.id}`,
+      `/api/gadgets/${params.id}`,
       'PUT',
       request,
       body
@@ -918,7 +1027,7 @@ export async function DELETE(
 ) {
   try {
     const response = await forwardAuthRequest(
-      `/api/v1/gadgets/${params.id}`,
+      `/api/gadgets/${params.id}`,
       'DELETE',
       request
     );
@@ -943,7 +1052,7 @@ export async function GET(
 ) {
   try {
     const response = await forwardAuthRequest(
-      `/api/v1/gadgets?status=${params.status}`,
+      `/api/gadgets?status=${params.status}`,
       'GET',
       request
     );
@@ -1062,7 +1171,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { gadgetService } from '@/services/gadgetService';
 import { Gadget } from '@/types/gadget';
-import { Table, Button } from '@/components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '@/components/ui';
 
 export default function GadgetsPage() {
   const router = useRouter();
@@ -1112,39 +1221,80 @@ export default function GadgetsPage() {
         </Button>
       </div>
       
-      <Table
-        columns={[
-          { key: 'name', label: 'Name' },
-          { key: 'status', label: 'Status' },
-          { key: 'quantity', label: 'Quantity' },
-          { key: 'createdAt', label: 'Created' },
-        ]}
-        data={gadgets}
-        onRowClick={(gadget) => router.push(`/gadgets/${gadget.id}`)}
-        actions={(gadget) => (
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/gadgets/${gadget.id}/edit`);
-              }}
-            >
-              Edit
-            </Button>
-            <Button 
-              size="sm" 
-              variant="danger" 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(gadget.id);
-              }}
-            >
-              Delete
-            </Button>
-          </div>
-        )}
-      />
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Quantity</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {gadgets.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                No gadgets found
+              </TableCell>
+            </TableRow>
+          ) : (
+            gadgets.map((gadget) => (
+              <TableRow key={gadget.id}>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/gadgets/${gadget.id}`)}>
+                    {gadget.name}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/gadgets/${gadget.id}`)}>
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                      gadget.status === 'active' ? 'bg-green-100 text-green-800' : 
+                      gadget.status === 'inactive' ? 'bg-gray-100 text-gray-800' : 
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {gadget.status}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/gadgets/${gadget.id}`)}>
+                    {gadget.quantity}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="cursor-pointer" onClick={() => router.push(`/gadgets/${gadget.id}`)}>
+                    {new Date(gadget.createdAt).toLocaleDateString()}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/gadgets/${gadget.id}/edit`);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="danger" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(gadget.id);
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -1585,7 +1735,7 @@ import { forwardAuthRequest, handleAuthApiResponse } from '@/lib/auth-middleware
 
 export async function GET(request: NextRequest) {
   try {
-    const response = await forwardAuthRequest('/api/v1/endpoint', 'GET', request);
+    const response = await forwardAuthRequest('/api/endpoint', 'GET', request);
     const result = await handleAuthApiResponse(response);
     return NextResponse.json(result.data, { status: result.status });
   } catch (error) {
@@ -1620,18 +1770,14 @@ class FeatureService {
 ```typescript
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { featureService } from '@/services/featureService';
 
 export default function FeaturePage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const result = await featureService.getItems();
       setData(result);
@@ -1640,13 +1786,22 @@ export default function FeaturePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // Add dependencies if fetchData uses external values
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   if (loading) return <div>Loading...</div>;
   
   return <div>{/* Render data */}</div>;
 }
 ```
+
+**Important Notes:**
+- Use `useCallback` for fetch functions to avoid React Hook dependency warnings
+- Add dependencies to `useCallback` if the function uses props, state, or context values
+- Import `useCallback` from React when creating fetch functions
 
 ---
 
@@ -1668,6 +1823,21 @@ export default function FeaturePage() {
 
 **Issue**: Styles not applying
 **Solution**: Verify TailwindCSS classes are used correctly and `globals.css` imports Tailwind
+
+**Issue**: Table component errors - "render does not exist in type Column" or "onRowClick parameter has any type"
+**Solution**: Use the compositional pattern with `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` components. Do NOT use `columns`, `data`, `onRowClick`, `actions`, or `render` props.
+
+**Issue**: React Hook useEffect has missing dependency
+**Solution**: Wrap fetch functions in `useCallback` and include them in the dependency array:
+```typescript
+const fetchData = useCallback(async () => {
+  // fetch logic
+}, [/* dependencies */]);
+
+useEffect(() => {
+  fetchData();
+}, [fetchData]);
+```
 
 ---
 
