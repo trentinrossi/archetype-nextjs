@@ -117,7 +117,7 @@ export default function TransactionsPage() {
                 </TableCell>
                 <TableCell>
                   <div className="cursor-pointer font-semibold" onClick={() => router.push(`/transactions/${transaction.transactionId}`)}>
-                    ${transaction.amount.toFixed(2)}
+                    ${transaction.amount ? transaction.amount.toFixed(2) : '0.00'}
                   </div>
                 </TableCell>
                 <TableCell>
