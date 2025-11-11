@@ -1,0 +1,1280 @@
+{
+  "application_metadata": {
+    "name": "Account Statement Generation System",
+    "description": "Batch program that generates comprehensive account statements for card demo application by processing transaction data and producing statements in plain text and HTML formats",
+    "domain": "Financial Services - Card Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "Transaction",
+        "description": "Represents a financial transaction associated with a card",
+        "attributes": [
+          {
+            "name": "card_number",
+            "type": "Alphanumeric",
+            "length": 16,
+            "required": true,
+            "description": "Card number associated with the transaction"
+          },
+          {
+            "name": "transaction_id",
+            "type": "Alphanumeric",
+            "length": 16,
+            "required": true,
+            "description": "Unique identifier for the transaction"
+          },
+          {
+            "name": "transaction_type_code",
+            "type": "Alphanumeric",
+            "length": 2,
+            "required": true,
+            "description": "Code identifying the type of transaction"
+          },
+          {
+            "name": "transaction_category_code",
+            "type": "Numeric",
+            "length": 4,
+            "required": true,
+            "description": "Code categorizing the transaction"
+          },
+          {
+            "name": "transaction_source",
+            "type": "Alphanumeric",
+            "length": 10,
+            "required": true,
+            "description": "Source where the transaction originated"
+          },
+          {
+            "name": "transaction_description",
+            "type": "Alphanumeric",
+            "length": 100,
+            "required": true,
+            "description": "Detailed description of the transaction"
+          },
+          {
+            "name": "transaction_amount",
+            "type": "Signed Numeric",
+            "length": 11,
+            "required": true,
+            "description": "Amount of the transaction with 2 decimal places"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Card",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          }
+        ]
+      },
+      {
+        "name": "Customer",
+        "description": "Represents a customer in the card system",
+        "attributes": [
+          {
+            "name": "customer_id",
+            "type": "Numeric",
+            "length": 9,
+            "required": true,
+            "description": "Unique customer identifier"
+          },
+          {
+            "name": "first_name",
+            "type": "Alphanumeric",
+            "length": 25,
+            "required": true,
+            "description": "Customer's first name"
+          },
+          {
+            "name": "middle_name",
+            "type": "Alphanumeric",
+            "length": 25,
+            "required": false,
+            "description": "Customer's middle name"
+          },
+          {
+            "name": "last_name",
+            "type": "Alphanumeric",
+            "length": 25,
+            "required": true,
+            "description": "Customer's last name"
+          },
+          {
+            "name": "address_line_1",
+            "type": "Alphanumeric",
+            "length": 50,
+            "required": true,
+            "description": "First line of customer's address"
+          },
+          {
+            "name": "address_line_2",
+            "type": "Alphanumeric",
+            "length": 50,
+            "required": false,
+            "description": "Second line of customer's address"
+          },
+          {
+            "name": "address_line_3",
+            "type": "Alphanumeric",
+            "length": 50,
+            "required": false,
+            "description": "Third line of customer's address"
+          },
+          {
+            "name": "state_code",
+            "type": "Alphanumeric",
+            "length": 2,
+            "required": true,
+            "description": "State code of customer's address"
+          },
+          {
+            "name": "country_code",
+            "type": "Alphanumeric",
+            "length": 3,
+            "required": true,
+            "description": "Country code of customer's address"
+          },
+          {
+            "name": "zip_code",
+            "type": "Alphanumeric",
+            "length": 10,
+            "required": true,
+            "description": "ZIP code of customer's address"
+          },
+          {
+            "name": "fico_credit_score",
+            "type": "Numeric",
+            "length": 3,
+            "required": true,
+            "description": "Customer's FICO credit score"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "has_many",
+            "cardinality": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "Account",
+        "description": "Represents a financial account",
+        "attributes": [
+          {
+            "name": "account_id",
+            "type": "Numeric",
+            "length": 11,
+            "required": true,
+            "description": "Unique account identifier"
+          },
+          {
+            "name": "current_balance",
+            "type": "Signed Numeric",
+            "length": 12,
+            "required": true,
+            "description": "Current balance of the account with 2 decimal places"
+          },
+          {
+            "name": "credit_limit",
+            "type": "Signed Numeric",
+            "length": 12,
+            "required": true,
+            "description": "Credit limit of the account with 2 decimal places"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Customer",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          },
+          {
+            "related_entity": "Card",
+            "relationship_type": "has_many",
+            "cardinality": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "Card",
+        "description": "Represents a card linked to an account and customer through cross-reference",
+        "attributes": [
+          {
+            "name": "card_number",
+            "type": "Alphanumeric",
+            "length": 16,
+            "required": true,
+            "description": "Unique card number"
+          },
+          {
+            "name": "customer_id",
+            "type": "Numeric",
+            "length": 9,
+            "required": true,
+            "description": "Customer ID linked to the card"
+          },
+          {
+            "name": "account_id",
+            "type": "Numeric",
+            "length": 11,
+            "required": true,
+            "description": "Account ID linked to the card"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Customer",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          },
+          {
+            "related_entity": "Account",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          },
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "has_many",
+            "cardinality": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "Statement",
+        "description": "Generated account statement containing customer, account, and transaction information",
+        "attributes": [
+          {
+            "name": "customer_name",
+            "type": "Alphanumeric",
+            "length": 75,
+            "required": true,
+            "description": "Full customer name (first, middle, last)"
+          },
+          {
+            "name": "customer_address",
+            "type": "Alphanumeric",
+            "length": 150,
+            "required": true,
+            "description": "Complete customer address"
+          },
+          {
+            "name": "account_id",
+            "type": "Numeric",
+            "length": 11,
+            "required": true,
+            "description": "Account identifier"
+          },
+          {
+            "name": "current_balance",
+            "type": "Signed Numeric",
+            "length": 12,
+            "required": true,
+            "description": "Current account balance"
+          },
+          {
+            "name": "fico_score",
+            "type": "Numeric",
+            "length": 3,
+            "required": true,
+            "description": "Customer's FICO credit score"
+          },
+          {
+            "name": "total_transaction_amount",
+            "type": "Signed Numeric",
+            "length": 12,
+            "required": true,
+            "description": "Sum of all transaction amounts for the statement period"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Customer",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          },
+          {
+            "related_entity": "Account",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          },
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "has_many",
+            "cardinality": "one-to-many"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Transaction Grouping by Card",
+        "description": "Transactions must be grouped by card number for efficient processing and statement generation",
+        "category": "Data Processing",
+        "logic": "All transactions are organized into a two-dimensional array structure where transactions are grouped by card number, with up to 51 cards and 10 transactions per card",
+        "conditions": [
+          "Transaction record contains valid card number",
+          "Card number matches existing card in cross-reference"
+        ],
+        "actions": [
+          "Group transactions by card number",
+          "Store up to 10 transactions per card",
+          "Maintain transaction counter for each card"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Statement Generation Per Account",
+        "description": "A comprehensive statement must be generated for each account containing customer information, account details, and all related transactions",
+        "category": "Statement Generation",
+        "logic": "For each account, retrieve customer information, account details, and all transactions associated with cards linked to that account, then generate statement in both plain text and HTML formats",
+        "conditions": [
+          "Valid cross-reference record exists linking card, customer, and account",
+          "Customer record exists for the customer ID",
+          "Account record exists for the account ID"
+        ],
+        "actions": [
+          "Retrieve customer information using customer ID",
+          "Retrieve account details using account ID",
+          "Collect all transactions for cards linked to the account",
+          "Generate plain text statement",
+          "Generate HTML formatted statement",
+          "Include customer name and complete address",
+          "Include account ID, current balance, and FICO score",
+          "List all transaction details",
+          "Calculate and display total transaction amount"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Transaction Amount Summation",
+        "description": "All transaction amounts for a statement period must be summed to provide a total transaction amount",
+        "category": "Calculation",
+        "logic": "Initialize total to zero, iterate through all transactions for the account's cards, add each transaction amount to the running total, and display the final sum on the statement",
+        "conditions": [
+          "Transactions exist for the card",
+          "Transaction amounts are valid numeric values"
+        ],
+        "actions": [
+          "Initialize total transaction amount to zero",
+          "For each transaction, add transaction amount to total",
+          "Display total transaction amount on statement"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Dual Format Statement Output",
+        "description": "Statements must be generated in both plain text and HTML formats for different consumption methods",
+        "category": "Output Generation",
+        "logic": "After collecting all necessary data, generate the statement content in both plain text format and HTML format with appropriate styling and structure",
+        "conditions": [
+          "All required data has been retrieved",
+          "Output files are successfully opened"
+        ],
+        "actions": [
+          "Generate plain text statement with customer, account, and transaction details",
+          "Generate HTML statement with structured sections and styling",
+          "Include bank information header in HTML format",
+          "Apply appropriate styling for readability in HTML format",
+          "Write both formats to respective output files"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Transaction Table Capacity Limit",
+        "description": "The system can process up to 51 cards with a maximum of 10 transactions per card in memory",
+        "category": "System Constraint",
+        "logic": "Transaction data is stored in a two-dimensional array with fixed dimensions of 51 cards and 10 transactions per card",
+        "conditions": [
+          "Number of unique cards does not exceed 51",
+          "Number of transactions per card does not exceed 10"
+        ],
+        "actions": [
+          "Store transaction data in memory array",
+          "Track card count and transaction count per card",
+          "Process transactions within defined capacity limits"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Customer Name Composition",
+        "description": "Customer full name must be composed from first name, middle name (if present), and last name",
+        "category": "Data Formatting",
+        "logic": "Combine customer first name, middle name (if not spaces), and last name to create the full customer name for display on statements",
+        "conditions": [
+          "First name is mandatory and present",
+          "Last name is mandatory and present",
+          "Middle name is optional"
+        ],
+        "actions": [
+          "Concatenate first name, middle name (if present), and last name",
+          "Display full name on statement header"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Complete Address Display",
+        "description": "Customer address must include all available address lines, state, country, and ZIP code",
+        "category": "Data Formatting",
+        "logic": "Display all non-empty address lines along with state code, country code, and ZIP code on the statement",
+        "conditions": [
+          "Address line 1 is mandatory",
+          "State code is mandatory",
+          "Country code is mandatory",
+          "ZIP code is mandatory",
+          "Address lines 2 and 3 are optional"
+        ],
+        "actions": [
+          "Display address line 1",
+          "Display address line 2 if present",
+          "Display address line 3 if present",
+          "Display state code, country code, and ZIP code"
+        ]
+      },
+      {
+        "id": "BR008",
+        "name": "HTML Statement Styling Standards",
+        "description": "HTML statements must follow specific styling standards for consistent presentation",
+        "category": "Presentation",
+        "logic": "Apply predefined color schemes, fonts, and layout structure to HTML statements for professional appearance and readability",
+        "conditions": [
+          "HTML statement is being generated"
+        ],
+        "actions": [
+          "Use 12px Segoe UI sans-serif font for main content",
+          "Apply background color #FFAF33 for bank information section",
+          "Apply background color #f2f2f2 for customer information",
+          "Apply background color #33FFD1 for transaction summary header",
+          "Apply background color #33FF5E for transaction column headers",
+          "Use 16px font size for bank name, section headers, and column headers",
+          "Center-align section headers",
+          "Right-align transaction amounts",
+          "Set table width to 70% and center it"
+        ]
+      },
+      {
+        "id": "BR009",
+        "name": "Card-Account-Customer Linkage",
+        "description": "Cards must be properly linked to both accounts and customers through cross-reference records",
+        "category": "Data Integrity",
+        "logic": "Use cross-reference records to establish relationships between cards, accounts, and customers for accurate statement generation",
+        "conditions": [
+          "Cross-reference record exists for the card",
+          "Customer ID in cross-reference matches existing customer",
+          "Account ID in cross-reference matches existing account"
+        ],
+        "actions": [
+          "Retrieve cross-reference record using card number",
+          "Use customer ID from cross-reference to retrieve customer data",
+          "Use account ID from cross-reference to retrieve account data",
+          "Link all transactions for the card to the appropriate account statement"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "card_number",
+        "rule": "Must be 16 characters alphanumeric",
+        "error_message": "Invalid card number format",
+        "severity": "error"
+      },
+      {
+        "field": "transaction_id",
+        "rule": "Must be 16 characters alphanumeric and unique",
+        "error_message": "Invalid or duplicate transaction ID",
+        "severity": "error"
+      },
+      {
+        "field": "customer_id",
+        "rule": "Must be 9 digits numeric and exist in customer file",
+        "error_message": "Invalid customer ID",
+        "severity": "error"
+      },
+      {
+        "field": "account_id",
+        "rule": "Must be 11 digits numeric and exist in account file",
+        "error_message": "Invalid account ID",
+        "severity": "error"
+      },
+      {
+        "field": "transaction_amount",
+        "rule": "Must be valid signed numeric with 2 decimal places",
+        "error_message": "Invalid transaction amount",
+        "severity": "error"
+      },
+      {
+        "field": "fico_credit_score",
+        "rule": "Must be 3 digits numeric",
+        "error_message": "Invalid FICO credit score",
+        "severity": "error"
+      },
+      {
+        "field": "first_name",
+        "rule": "Must not be empty, maximum 25 characters",
+        "error_message": "First name is required",
+        "severity": "error"
+      },
+      {
+        "field": "last_name",
+        "rule": "Must not be empty, maximum 25 characters",
+        "error_message": "Last name is required",
+        "severity": "error"
+      },
+      {
+        "field": "address_line_1",
+        "rule": "Must not be empty, maximum 50 characters",
+        "error_message": "Address line 1 is required",
+        "severity": "error"
+      },
+      {
+        "field": "state_code",
+        "rule": "Must be 2 characters",
+        "error_message": "Invalid state code",
+        "severity": "error"
+      },
+      {
+        "field": "country_code",
+        "rule": "Must be 3 characters",
+        "error_message": "Invalid country code",
+        "severity": "error"
+      },
+      {
+        "field": "zip_code",
+        "rule": "Must be 10 characters alphanumeric",
+        "error_message": "Invalid ZIP code",
+        "severity": "error"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Total Transaction Amount",
+        "description": "Sum of all transaction amounts for a statement period",
+        "formula": "SUM(transaction_amount) for all transactions associated with cards linked to the account",
+        "input_fields": [
+          "transaction_amount"
+        ],
+        "output_field": "total_transaction_amount"
+      },
+      {
+        "name": "Transaction Count Per Card",
+        "description": "Count of transactions for each card",
+        "formula": "COUNT(transactions) WHERE card_number = specific_card",
+        "input_fields": [
+          "card_number",
+          "transaction_id"
+        ],
+        "output_field": "transaction_count"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Statement Generation Process",
+        "description": "Complete workflow for generating account statements from transaction and customer data",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize program and verify JCL environment",
+            "conditions": [
+              "Program starts execution"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Open all input and output files",
+            "conditions": [
+              "All required files are available"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Initialize transaction table and counters",
+            "conditions": [
+              "Files opened successfully"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Load all transactions into memory array grouped by card number",
+            "conditions": [
+              "Transaction file contains records"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Process each cross-reference record",
+            "conditions": [
+              "Cross-reference records exist"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Retrieve customer information using customer ID from cross-reference",
+            "conditions": [
+              "Valid customer ID exists"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Retrieve account information using account ID from cross-reference",
+            "conditions": [
+              "Valid account ID exists"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Generate statement header with customer name and address",
+            "conditions": [
+              "Customer data retrieved successfully"
+            ],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "Add account details to statement",
+            "conditions": [
+              "Account data retrieved successfully"
+            ],
+            "next_step": "10"
+          },
+          {
+            "step_number": 10,
+            "action": "Process and list all transactions for the card",
+            "conditions": [
+              "Transactions exist for the card"
+            ],
+            "next_step": "11"
+          },
+          {
+            "step_number": 11,
+            "action": "Calculate total transaction amount",
+            "conditions": [
+              "All transactions processed"
+            ],
+            "next_step": "12"
+          },
+          {
+            "step_number": 12,
+            "action": "Generate plain text statement",
+            "conditions": [
+              "All data collected"
+            ],
+            "next_step": "13"
+          },
+          {
+            "step_number": 13,
+            "action": "Generate HTML formatted statement",
+            "conditions": [
+              "All data collected"
+            ],
+            "next_step": "14"
+          },
+          {
+            "step_number": 14,
+            "action": "Check if more cross-reference records exist",
+            "conditions": [
+              "Not end of cross-reference file"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 15,
+            "action": "Close all files",
+            "conditions": [
+              "All cross-reference records processed"
+            ],
+            "next_step": "16"
+          },
+          {
+            "step_number": 16,
+            "action": "Terminate program",
+            "conditions": [
+              "All files closed successfully"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Transaction Loading Process",
+        "description": "Process for loading transactions into memory array",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize card counter to 1 and transaction counter to 0",
+            "conditions": [
+              "Transaction file opened"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Read first transaction record",
+            "conditions": [
+              "Transaction file not empty"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Store card number in saved card variable",
+            "conditions": [
+              "Transaction record read successfully"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Check if current transaction card matches saved card",
+            "conditions": [
+              "Transaction record available"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "If card matches, increment transaction counter; if not, store transaction count, increment card counter, reset transaction counter",
+            "conditions": [
+              "Card comparison completed"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Store transaction data in array at current card and transaction position",
+            "conditions": [
+              "Array position available"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Update saved card with current card number",
+            "conditions": [
+              "Transaction stored"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Read next transaction record",
+            "conditions": [
+              "Not end of file"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 9,
+            "action": "Store final transaction count when end of file reached",
+            "conditions": [
+              "End of transaction file"
+            ],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "Transaction Data Source",
+        "type": "Data Input",
+        "purpose": "Retrieve transaction records for statement generation",
+        "data_exchanged": [
+          "card_number",
+          "transaction_id",
+          "transaction_type_code",
+          "transaction_category_code",
+          "transaction_source",
+          "transaction_description",
+          "transaction_amount"
+        ],
+        "trigger_conditions": [
+          "Statement generation process initiated"
+        ]
+      },
+      {
+        "name": "Customer Data Source",
+        "type": "Data Input",
+        "purpose": "Retrieve customer information for statement generation",
+        "data_exchanged": [
+          "customer_id",
+          "first_name",
+          "middle_name",
+          "last_name",
+          "address_line_1",
+          "address_line_2",
+          "address_line_3",
+          "state_code",
+          "country_code",
+          "zip_code",
+          "fico_credit_score"
+        ],
+        "trigger_conditions": [
+          "Customer ID obtained from cross-reference"
+        ]
+      },
+      {
+        "name": "Account Data Source",
+        "type": "Data Input",
+        "purpose": "Retrieve account details for statement generation",
+        "data_exchanged": [
+          "account_id",
+          "current_balance",
+          "credit_limit"
+        ],
+        "trigger_conditions": [
+          "Account ID obtained from cross-reference"
+        ]
+      },
+      {
+        "name": "Cross-Reference Data Source",
+        "type": "Data Input",
+        "purpose": "Link cards to customers and accounts",
+        "data_exchanged": [
+          "card_number",
+          "customer_id",
+          "account_id"
+        ],
+        "trigger_conditions": [
+          "Statement generation process initiated"
+        ]
+      },
+      {
+        "name": "Plain Text Statement Output",
+        "type": "Data Output",
+        "purpose": "Generate plain text formatted account statements",
+        "data_exchanged": [
+          "customer_name",
+          "customer_address",
+          "account_id",
+          "current_balance",
+          "fico_score",
+          "transaction_details",
+          "total_transaction_amount"
+        ],
+        "trigger_conditions": [
+          "All data collected for account statement"
+        ]
+      },
+      {
+        "name": "HTML Statement Output",
+        "type": "Data Output",
+        "purpose": "Generate HTML formatted account statements",
+        "data_exchanged": [
+          "customer_name",
+          "customer_address",
+          "account_id",
+          "current_balance",
+          "fico_score",
+          "transaction_details",
+          "total_transaction_amount"
+        ],
+        "trigger_conditions": [
+          "All data collected for account statement"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Batch Process Executor"
+      ],
+      "permissions": [
+        {
+          "role": "Batch Process Executor",
+          "resource": "Transaction Data",
+          "actions": [
+            "read"
+          ]
+        },
+        {
+          "role": "Batch Process Executor",
+          "resource": "Customer Data",
+          "actions": [
+            "read"
+          ]
+        },
+        {
+          "role": "Batch Process Executor",
+          "resource": "Account Data",
+          "actions": [
+            "read"
+          ]
+        },
+        {
+          "role": "Batch Process Executor",
+          "resource": "Statement Output",
+          "actions": [
+            "write"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "Batch job must be executed in authorized mainframe environment",
+        "Access to transaction, customer, and account files must be granted"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "FILE_OPEN_ERROR",
+        "condition": "Return code not '00' or '04' when opening input or output files",
+        "business_impact": "Statement generation cannot proceed without access to required data files",
+        "suggested_action": "Display error message with file name and return code, then abort program"
+      },
+      {
+        "error_code": "FILE_CLOSE_ERROR",
+        "condition": "Return code not '00' or '04' when closing files",
+        "business_impact": "Data may not be properly persisted or resources may not be released",
+        "suggested_action": "Display error message with file name and return code, then abort program"
+      },
+      {
+        "error_code": "CUSTOMER_NOT_FOUND",
+        "condition": "Customer ID from cross-reference does not match any customer record",
+        "business_impact": "Cannot generate complete statement without customer information",
+        "suggested_action": "Log error and skip statement generation for this account"
+      },
+      {
+        "error_code": "ACCOUNT_NOT_FOUND",
+        "condition": "Account ID from cross-reference does not match any account record",
+        "business_impact": "Cannot generate complete statement without account information",
+        "suggested_action": "Log error and skip statement generation for this account"
+      },
+      {
+        "error_code": "TRANSACTION_TABLE_OVERFLOW",
+        "condition": "Number of cards exceeds 51 or transactions per card exceed 10",
+        "business_impact": "Not all transactions can be processed in memory",
+        "suggested_action": "Increase array dimensions or implement alternative processing method"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [],
+    "reports": [
+      {
+        "name": "Account Statement - Plain Text",
+        "description": "Plain text formatted account statement showing customer information, account details, and transaction history",
+        "type": "Statement",
+        "data_sources": [
+          "Customer",
+          "Account",
+          "Transaction",
+          "Card Cross-Reference"
+        ],
+        "filters": [
+          "Account ID"
+        ],
+        "columns": [
+          {
+            "name": "Customer Name",
+            "data_field": "customer_full_name",
+            "format": "Text",
+            "aggregation": "none"
+          },
+          {
+            "name": "Customer Address",
+            "data_field": "customer_full_address",
+            "format": "Multi-line Text",
+            "aggregation": "none"
+          },
+          {
+            "name": "Account ID",
+            "data_field": "account_id",
+            "format": "Numeric",
+            "aggregation": "none"
+          },
+          {
+            "name": "Current Balance",
+            "data_field": "current_balance",
+            "format": "Currency",
+            "aggregation": "none"
+          },
+          {
+            "name": "FICO Score",
+            "data_field": "fico_credit_score",
+            "format": "Numeric",
+            "aggregation": "none"
+          },
+          {
+            "name": "Transaction ID",
+            "data_field": "transaction_id",
+            "format": "Text",
+            "aggregation": "none"
+          },
+          {
+            "name": "Transaction Description",
+            "data_field": "transaction_description",
+            "format": "Text",
+            "aggregation": "none"
+          },
+          {
+            "name": "Transaction Amount",
+            "data_field": "transaction_amount",
+            "format": "Currency",
+            "aggregation": "sum"
+          }
+        ],
+        "sorting": [
+          "card_number",
+          "transaction_id"
+        ],
+        "grouping": [
+          "account_id",
+          "card_number"
+        ]
+      },
+      {
+        "name": "Account Statement - HTML",
+        "description": "HTML formatted account statement with styled sections for customer information, account details, and transaction history",
+        "type": "Statement",
+        "data_sources": [
+          "Customer",
+          "Account",
+          "Transaction",
+          "Card Cross-Reference"
+        ],
+        "filters": [
+          "Account ID"
+        ],
+        "columns": [
+          {
+            "name": "Bank Information",
+            "data_field": "bank_name_and_address",
+            "format": "HTML Header",
+            "aggregation": "none"
+          },
+          {
+            "name": "Customer Name",
+            "data_field": "customer_full_name",
+            "format": "HTML Text",
+            "aggregation": "none"
+          },
+          {
+            "name": "Customer Address",
+            "data_field": "customer_full_address",
+            "format": "HTML Multi-line",
+            "aggregation": "none"
+          },
+          {
+            "name": "Account ID",
+            "data_field": "account_id",
+            "format": "HTML Numeric",
+            "aggregation": "none"
+          },
+          {
+            "name": "Current Balance",
+            "data_field": "current_balance",
+            "format": "HTML Currency",
+            "aggregation": "none"
+          },
+          {
+            "name": "FICO Score",
+            "data_field": "fico_credit_score",
+            "format": "HTML Numeric",
+            "aggregation": "none"
+          },
+          {
+            "name": "Transaction ID",
+            "data_field": "transaction_id",
+            "format": "HTML Table Cell",
+            "aggregation": "none"
+          },
+          {
+            "name": "Transaction Details",
+            "data_field": "transaction_description",
+            "format": "HTML Table Cell",
+            "aggregation": "none"
+          },
+          {
+            "name": "Amount",
+            "data_field": "transaction_amount",
+            "format": "HTML Currency Right-aligned",
+            "aggregation": "sum"
+          }
+        ],
+        "sorting": [
+          "card_number",
+          "transaction_id"
+        ],
+        "grouping": [
+          "account_id",
+          "card_number"
+        ]
+      }
+    ],
+    "navigation_flow": [],
+    "user_messages": [
+      {
+        "code": "FILE_OPEN_SUCCESS",
+        "type": "Information",
+        "message": "File opened successfully",
+        "context": "File operations"
+      },
+      {
+        "code": "FILE_OPEN_ERROR",
+        "type": "Error",
+        "message": "ERROR OPENING [filename] - Return Code: [rc]",
+        "context": "File operations"
+      },
+      {
+        "code": "FILE_CLOSE_ERROR",
+        "type": "Error",
+        "message": "ERROR CLOSING [filename] - Return Code: [rc]",
+        "context": "File operations"
+      },
+      {
+        "code": "PROGRAM_ABEND",
+        "type": "Error",
+        "message": "ABENDING PROGRAM",
+        "context": "Critical error handling"
+      },
+      {
+        "code": "JCL_INFO_DISPLAY",
+        "type": "Information",
+        "message": "Job Name and Step Name information",
+        "context": "Program initialization"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Transaction Data Flow",
+      "description": "Flow of transaction data from source file to in-memory array",
+      "source": "Transaction File (TRNXFILE)",
+      "destination": "Transaction Table (WS-TRNX-TABLE)",
+      "data_elements": [
+        "card_number",
+        "transaction_id",
+        "transaction_type_code",
+        "transaction_category_code",
+        "transaction_source",
+        "transaction_description",
+        "transaction_amount"
+      ],
+      "transformations": [
+        "Group transactions by card number",
+        "Store up to 10 transactions per card",
+        "Maintain transaction count per card"
+      ]
+    },
+    {
+      "name": "Customer Data Flow",
+      "description": "Flow of customer data from customer file to statement",
+      "source": "Customer File (CUSTFILE)",
+      "destination": "Statement Output",
+      "data_elements": [
+        "customer_id",
+        "first_name",
+        "middle_name",
+        "last_name",
+        "address_line_1",
+        "address_line_2",
+        "address_line_3",
+        "state_code",
+        "country_code",
+        "zip_code",
+        "fico_credit_score"
+      ],
+      "transformations": [
+        "Combine first, middle, and last name into full name",
+        "Format complete address from multiple address lines",
+        "Include state, country, and ZIP code in address"
+      ]
+    },
+    {
+      "name": "Account Data Flow",
+      "description": "Flow of account data from account file to statement",
+      "source": "Account File (ACCTFILE)",
+      "destination": "Statement Output",
+      "data_elements": [
+        "account_id",
+        "current_balance",
+        "credit_limit"
+      ],
+      "transformations": [
+        "Format balance for display",
+        "Include account ID in statement header"
+      ]
+    },
+    {
+      "name": "Cross-Reference Data Flow",
+      "description": "Flow of cross-reference data to link cards, customers, and accounts",
+      "source": "Cross-Reference File (XREFFILE)",
+      "destination": "Statement Generation Process",
+      "data_elements": [
+        "card_number",
+        "customer_id",
+        "account_id"
+      ],
+      "transformations": [
+        "Use customer_id to retrieve customer information",
+        "Use account_id to retrieve account information",
+        "Use card_number to filter transactions"
+      ]
+    },
+    {
+      "name": "Statement Output Data Flow",
+      "description": "Flow of compiled statement data to output files",
+      "source": "Statement Generation Process",
+      "destination": "Statement Files (STMT-FILE and HTML-FILE)",
+      "data_elements": [
+        "customer_name",
+        "customer_address",
+        "account_id",
+        "current_balance",
+        "fico_score",
+        "transaction_list",
+        "total_transaction_amount"
+      ],
+      "transformations": [
+        "Format as plain text for STMT-FILE",
+        "Format as HTML with styling for HTML-FILE",
+        "Calculate total transaction amount",
+        "Apply appropriate formatting and structure"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Capacity",
+      "description": "Maximum of 51 cards can be processed with up to 10 transactions per card in a single execution",
+      "impact": "Limits the volume of data that can be processed in memory at one time"
+    },
+    {
+      "type": "Data Dependency",
+      "description": "Statement generation requires valid cross-reference records linking cards to customers and accounts",
+      "impact": "Cannot generate statements for cards without proper cross-reference data"
+    },
+    {
+      "type": "Data Integrity",
+      "description": "Customer and account records must exist for IDs referenced in cross-reference file",
+      "impact": "Missing customer or account data will prevent complete statement generation"
+    },
+    {
+      "type": "Processing Order",
+      "description": "Transactions must be grouped by card number for efficient processing",
+      "impact": "Transaction file must be sorted or organized by card number"
+    },
+    {
+      "type": "Output Format",
+      "description": "Statements must be generated in both plain text and HTML formats",
+      "impact": "Requires dual output generation and formatting logic"
+    },
+    {
+      "type": "Batch Processing",
+      "description": "Program operates as a batch process without user interaction",
+      "impact": "All processing decisions must be automated; no manual intervention possible during execution"
+    },
+    {
+      "type": "Data Completeness",
+      "description": "Mandatory fields (first name, last name, address line 1, state, country, ZIP) must be populated",
+      "impact": "Incomplete customer data may result in improperly formatted statements"
+    }
+  ]
+}

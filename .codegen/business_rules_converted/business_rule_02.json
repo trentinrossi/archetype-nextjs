@@ -1,0 +1,667 @@
+{
+  "application_metadata": {
+    "name": "CBSTM03B - Transaction Report File Processing Subroutine",
+    "description": "A batch subroutine designed to handle file processing operations related to the Transaction Report functionality in the CardDemo application. It provides file handling capabilities for Transaction, Cross-Reference, Customer, and Account files.",
+    "domain": "Financial Services - Credit Card Transaction Reporting"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "Transaction",
+        "description": "Represents individual credit card transactions",
+        "attributes": [
+          {
+            "name": "transaction_id",
+            "type": "string",
+            "length": 32,
+            "required": true,
+            "description": "Composite key consisting of 16-character card number and 16-character transaction ID"
+          },
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Credit card number associated with the transaction"
+          },
+          {
+            "name": "transaction_identifier",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Unique identifier for the transaction"
+          },
+          {
+            "name": "account_data",
+            "type": "string",
+            "length": 318,
+            "required": true,
+            "description": "Additional transaction and account information"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "CardCrossReference",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          },
+          {
+            "related_entity": "Account",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          }
+        ]
+      },
+      {
+        "name": "CardCrossReference",
+        "description": "Links credit cards to accounts and customers",
+        "attributes": [
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Credit card number serving as the primary key"
+          },
+          {
+            "name": "cross_reference_data",
+            "type": "string",
+            "length": 34,
+            "required": true,
+            "description": "Additional cross-reference information linking cards to accounts and customers"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          },
+          {
+            "related_entity": "Customer",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          },
+          {
+            "related_entity": "Account",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          }
+        ]
+      },
+      {
+        "name": "Customer",
+        "description": "Represents customer information in the system",
+        "attributes": [
+          {
+            "name": "customer_id",
+            "type": "string",
+            "length": 9,
+            "required": true,
+            "description": "Unique identifier for customers"
+          },
+          {
+            "name": "customer_data",
+            "type": "string",
+            "length": 491,
+            "required": true,
+            "description": "Comprehensive customer information including personal and contact details"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          },
+          {
+            "related_entity": "CardCrossReference",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          }
+        ]
+      },
+      {
+        "name": "Account",
+        "description": "Represents customer account information",
+        "attributes": [
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Unique identifier for accounts"
+          },
+          {
+            "name": "account_data",
+            "type": "string",
+            "length": 289,
+            "required": true,
+            "description": "Comprehensive account information including balances and status"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Customer",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          },
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          },
+          {
+            "related_entity": "CardCrossReference",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "File Operation Routing",
+        "description": "Routes file operations to the appropriate file handler based on the file identifier",
+        "category": "Data Access",
+        "logic": "Based on the file identifier (TRNXFILE, XREFFILE, CUSTFILE, or ACCTFILE), the system routes the operation request to the corresponding file processing procedure",
+        "conditions": [
+          "File identifier must be one of: TRNXFILE, XREFFILE, CUSTFILE, or ACCTFILE",
+          "Operation code must be valid for the specified file type"
+        ],
+        "actions": [
+          "Route to TRNXFILE processing if file identifier is TRNXFILE",
+          "Route to XREFFILE processing if file identifier is XREFFILE",
+          "Route to CUSTFILE processing if file identifier is CUSTFILE",
+          "Route to ACCTFILE processing if file identifier is ACCTFILE",
+          "Return control if file identifier is not recognized"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Transaction File Sequential Access",
+        "description": "Transaction records are accessed sequentially using a composite key of card number and transaction ID",
+        "category": "Data Access",
+        "logic": "Transactions are organized by a composite key consisting of card number (16 characters) and transaction ID (16 characters), allowing sequential retrieval of transaction records",
+        "conditions": [
+          "Transaction file must be opened before reading",
+          "Sequential read operations retrieve records in key order"
+        ],
+        "actions": [
+          "Read transaction records sequentially",
+          "Return entire transaction record including account data",
+          "Provide file status after each operation"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Cross-Reference Sequential Access",
+        "description": "Card cross-reference records are accessed sequentially by card number",
+        "category": "Data Access",
+        "logic": "Cross-reference records linking cards to accounts and customers are accessed sequentially using the card number as the key",
+        "conditions": [
+          "Cross-reference file must be opened before reading",
+          "Card number serves as the primary access key"
+        ],
+        "actions": [
+          "Read cross-reference records sequentially by card number",
+          "Return cross-reference data linking cards to accounts and customers",
+          "Provide file status after each operation"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Customer Random Access by Key",
+        "description": "Customer records are accessed randomly using customer ID as the key",
+        "category": "Data Access",
+        "logic": "Customer information is retrieved directly using the customer ID, allowing random access to specific customer records",
+        "conditions": [
+          "Customer file must be opened before reading",
+          "Valid customer ID must be provided",
+          "Customer ID length must be specified"
+        ],
+        "actions": [
+          "Accept customer ID and length as input",
+          "Retrieve specific customer record using the provided key",
+          "Return complete customer data",
+          "Provide file status indicating success or failure"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Account Random Access by Key",
+        "description": "Account records are accessed randomly using account ID as the key",
+        "category": "Data Access",
+        "logic": "Account information is retrieved directly using the account ID, allowing random access to specific account records",
+        "conditions": [
+          "Account file must be opened before reading",
+          "Valid numeric account ID must be provided",
+          "Account ID length must be specified"
+        ],
+        "actions": [
+          "Accept account ID and length as input",
+          "Retrieve specific account record using the provided key",
+          "Return complete account data",
+          "Provide file status indicating success or failure"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Operation Status Reporting",
+        "description": "All file operations return a status code to the calling program for error handling",
+        "category": "Error Handling",
+        "logic": "After each file operation, the system captures the file status and returns it to the calling program for interpretation and error handling",
+        "conditions": [
+          "File operation must be attempted",
+          "Status code must be captured regardless of success or failure"
+        ],
+        "actions": [
+          "Capture file status after each operation",
+          "Return status code to calling program",
+          "Allow calling program to interpret and handle errors"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Transaction Report Data Aggregation",
+        "description": "The subroutine enables transaction report generation by providing access to all necessary data sources",
+        "category": "Reporting",
+        "logic": "By providing unified access to transaction, cross-reference, customer, and account data, the subroutine enables comprehensive transaction report generation",
+        "conditions": [
+          "All required files must be accessible",
+          "Calling program must coordinate data retrieval across multiple files"
+        ],
+        "actions": [
+          "Provide access to transaction details",
+          "Enable cross-referencing between cards, accounts, and customers",
+          "Supply customer information for report context",
+          "Supply account information for report completeness"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "file_identifier",
+        "rule": "Must be one of: TRNXFILE, XREFFILE, CUSTFILE, or ACCTFILE",
+        "error_message": "Invalid file identifier provided",
+        "severity": "error"
+      },
+      {
+        "field": "operation_code",
+        "rule": "Must be one of: O (Open), C (Close), R (Read), K (Read by Key)",
+        "error_message": "Invalid operation code provided",
+        "severity": "error"
+      },
+      {
+        "field": "customer_id",
+        "rule": "Must be 9 characters or less when performing key-based customer lookup",
+        "error_message": "Customer ID exceeds maximum length",
+        "severity": "error"
+      },
+      {
+        "field": "account_id",
+        "rule": "Must be numeric and 11 digits or less when performing key-based account lookup",
+        "error_message": "Account ID must be numeric and within valid length",
+        "severity": "error"
+      },
+      {
+        "field": "key_length",
+        "rule": "Must not exceed the maximum key length for the specified file",
+        "error_message": "Key length exceeds maximum allowed for file type",
+        "severity": "error"
+      }
+    ],
+    "calculations": [],
+    "workflows": [
+      {
+        "name": "File Operation Processing",
+        "description": "Main workflow for processing file operations requested by calling programs",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Receive input parameters including file identifier, operation code, key, and key length",
+            "conditions": [
+              "Input parameters must be provided through linkage section"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Evaluate file identifier to determine target file",
+            "conditions": [
+              "File identifier matches one of the supported file types"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Route to appropriate file-specific processing procedure",
+            "conditions": [
+              "Valid file identifier provided"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Execute requested operation based on operation code",
+            "conditions": [
+              "Operation code is valid for the file type",
+              "File is in appropriate state for the operation"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Capture file status from operation",
+            "conditions": [
+              "Operation has been attempted"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Return file status to calling program",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Transaction File Sequential Read",
+        "description": "Workflow for sequentially reading transaction records",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Open transaction file for input",
+            "conditions": [
+              "Operation code is 'O' (Open)"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 2,
+            "action": "Read next transaction record sequentially",
+            "conditions": [
+              "Operation code is 'R' (Read)",
+              "Transaction file is open"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Move transaction record to output buffer",
+            "conditions": [
+              "Record was successfully read"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 4,
+            "action": "Close transaction file",
+            "conditions": [
+              "Operation code is 'C' (Close)"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Customer Random Access by Key",
+        "description": "Workflow for retrieving specific customer records by customer ID",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Open customer file for input",
+            "conditions": [
+              "Operation code is 'O' (Open)"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 2,
+            "action": "Extract customer ID from key parameter using specified length",
+            "conditions": [
+              "Operation code is 'K' (Read by Key)",
+              "Customer file is open",
+              "Valid key and key length provided"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Read customer record using customer ID key",
+            "conditions": [
+              "Customer ID has been set"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Move customer record to output buffer",
+            "conditions": [
+              "Record was successfully read"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 5,
+            "action": "Close customer file",
+            "conditions": [
+              "Operation code is 'C' (Close)"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Account Random Access by Key",
+        "description": "Workflow for retrieving specific account records by account ID",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Open account file for input",
+            "conditions": [
+              "Operation code is 'O' (Open)"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 2,
+            "action": "Extract account ID from key parameter using specified length",
+            "conditions": [
+              "Operation code is 'K' (Read by Key)",
+              "Account file is open",
+              "Valid key and key length provided"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Read account record using account ID key",
+            "conditions": [
+              "Account ID has been set"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Move account record to output buffer",
+            "conditions": [
+              "Record was successfully read"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 5,
+            "action": "Close account file",
+            "conditions": [
+              "Operation code is 'C' (Close)"
+            ],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "Transaction Report Main Program Interface",
+        "type": "Internal Subroutine Call",
+        "purpose": "Provides file handling services to the main transaction report generation program",
+        "data_exchanged": [
+          "File identifier",
+          "Operation code",
+          "Record key and length",
+          "Record data buffer",
+          "Operation status code"
+        ],
+        "trigger_conditions": [
+          "Main program requires access to transaction data",
+          "Main program requires access to cross-reference data",
+          "Main program requires access to customer data",
+          "Main program requires access to account data"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [],
+      "permissions": [],
+      "authentication_requirements": []
+    },
+    "error_handling": [
+      {
+        "error_code": "file_status",
+        "condition": "Any file operation completes (success or failure)",
+        "business_impact": "Calling program must interpret status to determine if operation succeeded and handle accordingly",
+        "suggested_action": "Return file status code to calling program for interpretation and error handling"
+      },
+      {
+        "error_code": "invalid_file_identifier",
+        "condition": "File identifier does not match any supported file type",
+        "business_impact": "Operation cannot be performed, control returns to calling program without action",
+        "suggested_action": "Validate file identifier before calling subroutine"
+      },
+      {
+        "error_code": "record_not_found",
+        "condition": "Key-based read operation cannot locate the specified record",
+        "business_impact": "Requested customer or account data is not available for report generation",
+        "suggested_action": "Check file status code and handle missing record appropriately in calling program"
+      },
+      {
+        "error_code": "end_of_file",
+        "condition": "Sequential read operation reaches end of transaction or cross-reference file",
+        "business_impact": "No more records available for processing in current file",
+        "suggested_action": "Check file status code and complete processing for current file"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [],
+    "reports": [
+      {
+        "name": "Transaction Report",
+        "description": "Comprehensive report of credit card transactions with associated customer and account information",
+        "type": "Batch Report",
+        "data_sources": [
+          "Transaction File (TRNXFILE)",
+          "Cross-Reference File (XREFFILE)",
+          "Customer File (CUSTFILE)",
+          "Account File (ACCTFILE)"
+        ],
+        "filters": [],
+        "columns": [],
+        "sorting": [
+          "Transaction records sorted by composite key (card number + transaction ID)"
+        ],
+        "grouping": []
+      }
+    ],
+    "navigation_flow": [],
+    "user_messages": []
+  },
+  "data_flows": [
+    {
+      "name": "Transaction Data Retrieval",
+      "description": "Sequential retrieval of transaction records for report generation",
+      "source": "Transaction File (TRNXFILE)",
+      "destination": "Transaction Report Main Program",
+      "data_elements": [
+        "Transaction ID (composite key)",
+        "Card Number",
+        "Transaction Identifier",
+        "Account Data"
+      ],
+      "transformations": [
+        "Record moved from file buffer to linkage section output buffer"
+      ]
+    },
+    {
+      "name": "Cross-Reference Data Retrieval",
+      "description": "Sequential retrieval of card cross-reference records linking cards to accounts and customers",
+      "source": "Cross-Reference File (XREFFILE)",
+      "destination": "Transaction Report Main Program",
+      "data_elements": [
+        "Card Number",
+        "Cross-Reference Data"
+      ],
+      "transformations": [
+        "Record moved from file buffer to linkage section output buffer"
+      ]
+    },
+    {
+      "name": "Customer Data Retrieval",
+      "description": "Random access retrieval of customer records by customer ID",
+      "source": "Customer File (CUSTFILE)",
+      "destination": "Transaction Report Main Program",
+      "data_elements": [
+        "Customer ID",
+        "Customer Data"
+      ],
+      "transformations": [
+        "Customer ID extracted from key parameter",
+        "Record moved from file buffer to linkage section output buffer"
+      ]
+    },
+    {
+      "name": "Account Data Retrieval",
+      "description": "Random access retrieval of account records by account ID",
+      "source": "Account File (ACCTFILE)",
+      "destination": "Transaction Report Main Program",
+      "data_elements": [
+        "Account ID",
+        "Account Data"
+      ],
+      "transformations": [
+        "Account ID extracted from key parameter",
+        "Record moved from file buffer to linkage section output buffer"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Data Access Pattern",
+      "description": "Transaction and cross-reference files support only sequential access, while customer and account files support random access by key",
+      "impact": "Report generation must process transactions and cross-references sequentially, then perform random lookups for customer and account details"
+    },
+    {
+      "type": "Operation Limitation",
+      "description": "Write and rewrite operations are not currently implemented in this version of the subroutine",
+      "impact": "The subroutine is read-only and cannot modify or create records in any of the files"
+    },
+    {
+      "type": "Error Handling Delegation",
+      "description": "The subroutine does not include explicit error handling logic and relies on the calling program to interpret file status codes",
+      "impact": "Calling programs must implement comprehensive error handling based on returned status codes"
+    },
+    {
+      "type": "Modularity Design",
+      "description": "The subroutine encapsulates all file I/O operations for transaction reporting, promoting code reusability",
+      "impact": "Changes to file access logic can be centralized in this subroutine without affecting calling programs"
+    },
+    {
+      "type": "Data Buffer Size",
+      "description": "The output buffer (LK-M03B-FLDT) is limited to 1000 characters",
+      "impact": "All record types must fit within the 1000-character buffer, which accommodates the largest record (Customer: 500 characters)"
+    }
+  ]
+}

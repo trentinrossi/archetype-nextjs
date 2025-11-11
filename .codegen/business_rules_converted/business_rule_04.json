@@ -1,0 +1,1394 @@
+{
+  "application_metadata": {
+    "name": "CBTRN02C - Daily Transaction Processing and Posting",
+    "description": "Batch program responsible for processing and posting daily credit card transactions. Reads transactions from a daily file, validates them against business rules, updates account balances and transaction category balances, and handles rejected transactions by writing them to a separate file.",
+    "domain": "Credit Card Transaction Processing"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "DailyTransaction",
+        "description": "Represents a daily transaction received for processing",
+        "attributes": [
+          {
+            "name": "transaction_id",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Unique identifier for each transaction"
+          },
+          {
+            "name": "transaction_type_code",
+            "type": "string",
+            "length": 2,
+            "required": true,
+            "description": "Categorizes the type of transaction"
+          },
+          {
+            "name": "transaction_category_code",
+            "type": "numeric",
+            "length": 4,
+            "required": true,
+            "description": "Further categorizes the transaction"
+          },
+          {
+            "name": "transaction_source",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "Indicates where the transaction originated"
+          },
+          {
+            "name": "transaction_description",
+            "type": "string",
+            "length": 100,
+            "required": true,
+            "description": "Detailed description of the transaction"
+          },
+          {
+            "name": "transaction_amount",
+            "type": "decimal",
+            "length": 11,
+            "required": true,
+            "description": "Amount of the transaction with sign (positive for credits, negative for debits)"
+          },
+          {
+            "name": "merchant_id",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Identifier for the merchant"
+          },
+          {
+            "name": "merchant_name",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Name of the merchant"
+          },
+          {
+            "name": "merchant_city",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "City where the merchant is located"
+          },
+          {
+            "name": "merchant_zip",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "ZIP code of the merchant"
+          },
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Credit card number used in the transaction"
+          },
+          {
+            "name": "original_timestamp",
+            "type": "timestamp",
+            "length": 26,
+            "required": true,
+            "description": "Timestamp when the transaction occurred"
+          },
+          {
+            "name": "processing_timestamp",
+            "type": "timestamp",
+            "length": 26,
+            "required": true,
+            "description": "Timestamp when the transaction was processed"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "CardCrossReference",
+            "relationship_type": "lookup",
+            "cardinality": "many-to-one"
+          },
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "transforms_to",
+            "cardinality": "one-to-one"
+          }
+        ]
+      },
+      {
+        "name": "CardCrossReference",
+        "description": "Links card numbers with customer and account identifiers",
+        "attributes": [
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Credit card number"
+          },
+          {
+            "name": "customer_id",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Unique identifier for the customer"
+          },
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Unique identifier for the account"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "references",
+            "cardinality": "many-to-one"
+          }
+        ]
+      },
+      {
+        "name": "Account",
+        "description": "Represents a credit card account with balance and limit information",
+        "attributes": [
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Unique identifier for the account"
+          },
+          {
+            "name": "active_status",
+            "type": "string",
+            "length": 1,
+            "required": true,
+            "description": "Indicates if the account is active"
+          },
+          {
+            "name": "current_balance",
+            "type": "decimal",
+            "length": 12,
+            "required": true,
+            "description": "Current balance of the account"
+          },
+          {
+            "name": "credit_limit",
+            "type": "decimal",
+            "length": 12,
+            "required": true,
+            "description": "Credit limit of the account"
+          },
+          {
+            "name": "cash_credit_limit",
+            "type": "decimal",
+            "length": 12,
+            "required": true,
+            "description": "Cash credit limit of the account"
+          },
+          {
+            "name": "open_date",
+            "type": "date",
+            "length": 10,
+            "required": true,
+            "description": "Date when the account was opened"
+          },
+          {
+            "name": "expiration_date",
+            "type": "date",
+            "length": 10,
+            "required": true,
+            "description": "Date when the account expires"
+          },
+          {
+            "name": "current_cycle_credit",
+            "type": "decimal",
+            "length": 12,
+            "required": true,
+            "description": "Total credit for the current billing cycle"
+          },
+          {
+            "name": "current_cycle_debit",
+            "type": "decimal",
+            "length": 12,
+            "required": true,
+            "description": "Total debit for the current billing cycle"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "has_many",
+            "cardinality": "one-to-many"
+          },
+          {
+            "related_entity": "TransactionCategoryBalance",
+            "relationship_type": "has_many",
+            "cardinality": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "Transaction",
+        "description": "Posted transaction record in the main transaction file",
+        "attributes": [
+          {
+            "name": "transaction_id",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Unique identifier for the transaction"
+          },
+          {
+            "name": "transaction_type_code",
+            "type": "string",
+            "length": 2,
+            "required": true,
+            "description": "Type code for the transaction"
+          },
+          {
+            "name": "transaction_category_code",
+            "type": "numeric",
+            "length": 4,
+            "required": true,
+            "description": "Category code for the transaction"
+          },
+          {
+            "name": "transaction_source",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "Source of the transaction"
+          },
+          {
+            "name": "transaction_description",
+            "type": "string",
+            "length": 100,
+            "required": true,
+            "description": "Description of the transaction"
+          },
+          {
+            "name": "transaction_amount",
+            "type": "decimal",
+            "length": 11,
+            "required": true,
+            "description": "Transaction amount"
+          },
+          {
+            "name": "merchant_id",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Merchant identifier"
+          },
+          {
+            "name": "merchant_name",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Merchant name"
+          },
+          {
+            "name": "merchant_city",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Merchant city"
+          },
+          {
+            "name": "merchant_zip",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "Merchant ZIP code"
+          },
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Card number used"
+          },
+          {
+            "name": "original_timestamp",
+            "type": "timestamp",
+            "length": 26,
+            "required": true,
+            "description": "Original transaction timestamp"
+          },
+          {
+            "name": "processing_timestamp",
+            "type": "timestamp",
+            "length": 26,
+            "required": true,
+            "description": "Processing timestamp in DB2 format (YYYY-MM-DD-HH.MM.SS.NNNNNN)"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          }
+        ]
+      },
+      {
+        "name": "TransactionCategoryBalance",
+        "description": "Maintains balance totals by transaction category for each account",
+        "attributes": [
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Account identifier"
+          },
+          {
+            "name": "transaction_type_code",
+            "type": "string",
+            "length": 2,
+            "required": true,
+            "description": "Transaction type code"
+          },
+          {
+            "name": "transaction_category_code",
+            "type": "numeric",
+            "length": 4,
+            "required": true,
+            "description": "Transaction category code"
+          },
+          {
+            "name": "category_balance",
+            "type": "decimal",
+            "length": 11,
+            "required": true,
+            "description": "Balance for the specific transaction category"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          }
+        ]
+      },
+      {
+        "name": "RejectedTransaction",
+        "description": "Transaction that failed validation with rejection reason",
+        "attributes": [
+          {
+            "name": "transaction_data",
+            "type": "string",
+            "length": 350,
+            "required": true,
+            "description": "Complete daily transaction record data"
+          },
+          {
+            "name": "rejection_reason_code",
+            "type": "numeric",
+            "length": 4,
+            "required": true,
+            "description": "Code indicating reason for rejection"
+          },
+          {
+            "name": "rejection_reason_description",
+            "type": "string",
+            "length": 76,
+            "required": true,
+            "description": "Description of rejection reason"
+          }
+        ],
+        "relationships": []
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Card Number Validation",
+        "description": "Validates that the card number exists in the cross-reference system",
+        "category": "validation",
+        "logic": "Look up the transaction card number in the card cross-reference file. If the card number is not found, reject the transaction.",
+        "conditions": [
+          "Card number from daily transaction must exist in cross-reference file"
+        ],
+        "actions": [
+          "If card number not found: Reject transaction with code 100 and message 'INVALID CARD NUMBER FOUND'"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Account Existence Validation",
+        "description": "Validates that the account associated with the card exists",
+        "category": "validation",
+        "logic": "After validating the card number, look up the associated account ID in the account master file. If the account does not exist, reject the transaction.",
+        "conditions": [
+          "Account ID from cross-reference must exist in account master file"
+        ],
+        "actions": [
+          "If account not found: Reject transaction with code 101 and message 'ACCOUNT RECORD NOT FOUND'"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Credit Limit Validation",
+        "description": "Ensures transaction does not cause account to exceed credit limit",
+        "category": "validation",
+        "logic": "Calculate projected balance by adding transaction amount to the difference between current cycle credit and current cycle debit. If projected balance exceeds credit limit, reject the transaction.",
+        "conditions": [
+          "Projected balance = Current Cycle Credit - Current Cycle Debit + Transaction Amount",
+          "Projected balance must not exceed Account Credit Limit"
+        ],
+        "actions": [
+          "If projected balance > credit limit: Reject transaction with code 102 and message 'OVERLIMIT TRANSACTION'"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Account Expiration Validation",
+        "description": "Validates that transaction date is before account expiration date",
+        "category": "validation",
+        "logic": "Compare the transaction original timestamp date with the account expiration date. If the transaction occurred after the account expired, reject the transaction.",
+        "conditions": [
+          "Transaction original timestamp date must be before or equal to account expiration date"
+        ],
+        "actions": [
+          "If transaction date > expiration date: Reject transaction with code 103 and message 'TRANSACTION RECEIVED AFTER ACCT EXPIRATION'"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Account Balance Update",
+        "description": "Updates account current balance with transaction amount",
+        "category": "calculation",
+        "logic": "Add the transaction amount to the account's current balance. The transaction amount can be positive (credit) or negative (debit).",
+        "conditions": [
+          "Transaction must pass all validations"
+        ],
+        "actions": [
+          "Add transaction amount to account current balance",
+          "Update account record"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Current Cycle Credit/Debit Update",
+        "description": "Updates current cycle credit or debit based on transaction amount sign",
+        "category": "calculation",
+        "logic": "If transaction amount is positive or zero, add to current cycle credit. If transaction amount is negative, add to current cycle debit.",
+        "conditions": [
+          "Transaction must pass all validations"
+        ],
+        "actions": [
+          "If transaction amount >= 0: Add to current cycle credit",
+          "If transaction amount < 0: Add to current cycle debit"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Transaction Category Balance Update",
+        "description": "Updates or creates transaction category balance for the account",
+        "category": "calculation",
+        "logic": "Look up the transaction category balance record using account ID, transaction type code, and transaction category code. If record exists, add transaction amount to existing balance. If record does not exist, create new record with transaction amount as initial balance.",
+        "conditions": [
+          "Transaction must pass all validations"
+        ],
+        "actions": [
+          "If category balance record exists: Add transaction amount to category balance",
+          "If category balance record does not exist: Create new record with transaction amount",
+          "Update or create transaction category balance record"
+        ]
+      },
+      {
+        "id": "BR008",
+        "name": "Transaction Processing Timestamp",
+        "description": "Generates processing timestamp in DB2 format for posted transactions",
+        "category": "calculation",
+        "logic": "Generate current system timestamp and format as YYYY-MM-DD-HH.MM.SS.NNNNNN where NNNNNN includes milliseconds followed by zeros.",
+        "conditions": [
+          "Transaction is being posted"
+        ],
+        "actions": [
+          "Get current system date and time",
+          "Format as DB2 timestamp: YYYY-MM-DD-HH.MM.SS.NNNNNN",
+          "Set processing timestamp on transaction record"
+        ]
+      },
+      {
+        "id": "BR009",
+        "name": "Rejection Handling",
+        "description": "Handles rejected transactions by writing to reject file",
+        "category": "error_handling",
+        "logic": "When a transaction fails any validation, write the complete transaction data along with rejection reason code and description to the reject file. Increment reject counter.",
+        "conditions": [
+          "Transaction fails any validation rule"
+        ],
+        "actions": [
+          "Copy complete daily transaction record to reject record",
+          "Add rejection reason code and description",
+          "Write reject record to daily rejects file",
+          "Increment reject counter"
+        ]
+      },
+      {
+        "id": "BR010",
+        "name": "Return Code Setting",
+        "description": "Sets program return code based on rejection count",
+        "category": "processing",
+        "logic": "If any transactions were rejected during processing, set the program return code to 4 to indicate partial success.",
+        "conditions": [
+          "Processing completed"
+        ],
+        "actions": [
+          "If reject count > 0: Set return code to 4",
+          "If reject count = 0: Return code remains 0"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "card_number",
+        "rule": "Must exist in card cross-reference file",
+        "error_message": "INVALID CARD NUMBER FOUND",
+        "severity": "error"
+      },
+      {
+        "field": "account_id",
+        "rule": "Must exist in account master file",
+        "error_message": "ACCOUNT RECORD NOT FOUND",
+        "severity": "error"
+      },
+      {
+        "field": "transaction_amount",
+        "rule": "Must not cause account balance to exceed credit limit",
+        "error_message": "OVERLIMIT TRANSACTION",
+        "severity": "error"
+      },
+      {
+        "field": "original_timestamp",
+        "rule": "Transaction date must be before or equal to account expiration date",
+        "error_message": "TRANSACTION RECEIVED AFTER ACCT EXPIRATION",
+        "severity": "error"
+      },
+      {
+        "field": "account_record",
+        "rule": "Account record must be found during update operation",
+        "error_message": "ACCOUNT RECORD NOT FOUND",
+        "severity": "error"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Projected Balance Calculation",
+        "description": "Calculates projected account balance after applying transaction",
+        "formula": "Current Cycle Credit - Current Cycle Debit + Transaction Amount",
+        "input_fields": [
+          "account.current_cycle_credit",
+          "account.current_cycle_debit",
+          "transaction.transaction_amount"
+        ],
+        "output_field": "projected_balance"
+      },
+      {
+        "name": "Account Balance Update",
+        "description": "Updates account current balance with transaction amount",
+        "formula": "Current Balance + Transaction Amount",
+        "input_fields": [
+          "account.current_balance",
+          "transaction.transaction_amount"
+        ],
+        "output_field": "account.current_balance"
+      },
+      {
+        "name": "Current Cycle Credit Update",
+        "description": "Updates current cycle credit for positive transactions",
+        "formula": "Current Cycle Credit + Transaction Amount (when amount >= 0)",
+        "input_fields": [
+          "account.current_cycle_credit",
+          "transaction.transaction_amount"
+        ],
+        "output_field": "account.current_cycle_credit"
+      },
+      {
+        "name": "Current Cycle Debit Update",
+        "description": "Updates current cycle debit for negative transactions",
+        "formula": "Current Cycle Debit + Transaction Amount (when amount < 0)",
+        "input_fields": [
+          "account.current_cycle_debit",
+          "transaction.transaction_amount"
+        ],
+        "output_field": "account.current_cycle_debit"
+      },
+      {
+        "name": "Transaction Category Balance Update",
+        "description": "Updates balance for specific transaction category",
+        "formula": "Category Balance + Transaction Amount",
+        "input_fields": [
+          "transaction_category_balance.category_balance",
+          "transaction.transaction_amount"
+        ],
+        "output_field": "transaction_category_balance.category_balance"
+      },
+      {
+        "name": "DB2 Timestamp Generation",
+        "description": "Generates current timestamp in DB2 format",
+        "formula": "YYYY-MM-DD-HH.MM.SS.NNNNNN from current system date and time",
+        "input_fields": [
+          "system.current_date",
+          "system.current_time"
+        ],
+        "output_field": "transaction.processing_timestamp"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Daily Transaction Processing",
+        "description": "Main workflow for processing daily transactions from input file through validation, posting, and rejection handling",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize processing counters (transaction count and reject count to zero)",
+            "conditions": [
+              "Program start"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Read next transaction from daily transaction file",
+            "conditions": [
+              "Daily transaction file is open",
+              "Not end of file"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Increment transaction counter",
+            "conditions": [
+              "Transaction record read successfully"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Initialize validation failure reason to zero",
+            "conditions": [
+              "Transaction ready for validation"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Validate card number exists in cross-reference file",
+            "conditions": [
+              "Transaction has card number"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "If card valid, validate account exists in account master file",
+            "conditions": [
+              "Card number validation passed",
+              "Account ID retrieved from cross-reference"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "If account valid, validate transaction does not exceed credit limit",
+            "conditions": [
+              "Account validation passed",
+              "Account record retrieved"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "If credit limit valid, validate transaction date is before account expiration",
+            "conditions": [
+              "Credit limit validation passed"
+            ],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "Check if any validation failed",
+            "conditions": [
+              "All validations completed"
+            ],
+            "next_step": "10 or 15"
+          },
+          {
+            "step_number": 10,
+            "action": "If validation passed, prepare transaction record with processing timestamp",
+            "conditions": [
+              "Validation failure reason is zero"
+            ],
+            "next_step": "11"
+          },
+          {
+            "step_number": 11,
+            "action": "Update or create transaction category balance record",
+            "conditions": [
+              "Transaction is valid"
+            ],
+            "next_step": "12"
+          },
+          {
+            "step_number": 12,
+            "action": "Update account current balance and cycle credit/debit",
+            "conditions": [
+              "Transaction category balance updated"
+            ],
+            "next_step": "13"
+          },
+          {
+            "step_number": 13,
+            "action": "Write transaction to main transaction file",
+            "conditions": [
+              "Account updated successfully"
+            ],
+            "next_step": "14"
+          },
+          {
+            "step_number": 14,
+            "action": "Continue to next transaction",
+            "conditions": [
+              "Transaction posted successfully"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 15,
+            "action": "If validation failed, increment reject counter",
+            "conditions": [
+              "Validation failure reason is not zero"
+            ],
+            "next_step": "16"
+          },
+          {
+            "step_number": 16,
+            "action": "Write reject record with transaction data and rejection reason",
+            "conditions": [
+              "Reject counter incremented"
+            ],
+            "next_step": "14"
+          },
+          {
+            "step_number": 17,
+            "action": "Display processing statistics (transactions processed and rejected)",
+            "conditions": [
+              "End of file reached",
+              "All transactions processed"
+            ],
+            "next_step": "18"
+          },
+          {
+            "step_number": 18,
+            "action": "Set return code to 4 if any rejections occurred",
+            "conditions": [
+              "Processing complete"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Transaction Validation",
+        "description": "Validates a single transaction against all business rules",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Look up card number in cross-reference file",
+            "conditions": [
+              "Transaction has card number"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "If card not found, set rejection reason 100",
+            "conditions": [
+              "Card number not in cross-reference file"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 3,
+            "action": "Look up account using account ID from cross-reference",
+            "conditions": [
+              "Card found in cross-reference"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "If account not found, set rejection reason 101",
+            "conditions": [
+              "Account ID not in account master file"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 5,
+            "action": "Calculate projected balance",
+            "conditions": [
+              "Account found"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "If projected balance exceeds credit limit, set rejection reason 102",
+            "conditions": [
+              "Projected balance > credit limit"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 7,
+            "action": "Compare transaction date with account expiration date",
+            "conditions": [
+              "Credit limit check passed"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "If transaction date after expiration, set rejection reason 103",
+            "conditions": [
+              "Transaction date > expiration date"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 9,
+            "action": "All validations passed",
+            "conditions": [
+              "No rejection reason set"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Transaction Posting",
+        "description": "Posts a valid transaction and updates all related records",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Generate DB2 format processing timestamp",
+            "conditions": [
+              "Transaction validated successfully"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Look up transaction category balance record",
+            "conditions": [
+              "Have account ID, transaction type code, and category code"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "If category balance record exists, add transaction amount to balance",
+            "conditions": [
+              "Category balance record found"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 4,
+            "action": "If category balance record does not exist, create new record with transaction amount",
+            "conditions": [
+              "Category balance record not found"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Update account current balance by adding transaction amount",
+            "conditions": [
+              "Category balance updated"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "If transaction amount >= 0, add to current cycle credit",
+            "conditions": [
+              "Transaction amount is positive or zero"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 7,
+            "action": "If transaction amount < 0, add to current cycle debit",
+            "conditions": [
+              "Transaction amount is negative"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Write updated account record",
+            "conditions": [
+              "Account balances calculated"
+            ],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "Write transaction record to main transaction file",
+            "conditions": [
+              "Account updated successfully"
+            ],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "Daily Transaction File Input",
+        "type": "batch_file_input",
+        "purpose": "Receives daily transactions for processing",
+        "data_exchanged": [
+          "transaction_id",
+          "transaction_type_code",
+          "transaction_category_code",
+          "transaction_source",
+          "transaction_description",
+          "transaction_amount",
+          "merchant_id",
+          "merchant_name",
+          "merchant_city",
+          "merchant_zip",
+          "card_number",
+          "original_timestamp",
+          "processing_timestamp"
+        ],
+        "trigger_conditions": [
+          "Daily batch processing schedule"
+        ]
+      },
+      {
+        "name": "Card Cross-Reference Lookup",
+        "type": "data_lookup",
+        "purpose": "Links card numbers to customer and account identifiers",
+        "data_exchanged": [
+          "card_number",
+          "customer_id",
+          "account_id"
+        ],
+        "trigger_conditions": [
+          "For each transaction during validation"
+        ]
+      },
+      {
+        "name": "Account Master File Access",
+        "type": "data_read_write",
+        "purpose": "Retrieves account information and updates balances",
+        "data_exchanged": [
+          "account_id",
+          "active_status",
+          "current_balance",
+          "credit_limit",
+          "cash_credit_limit",
+          "open_date",
+          "expiration_date",
+          "current_cycle_credit",
+          "current_cycle_debit"
+        ],
+        "trigger_conditions": [
+          "For each valid transaction during posting"
+        ]
+      },
+      {
+        "name": "Transaction Category Balance Update",
+        "type": "data_read_write",
+        "purpose": "Maintains category-level balance aggregations",
+        "data_exchanged": [
+          "account_id",
+          "transaction_type_code",
+          "transaction_category_code",
+          "category_balance"
+        ],
+        "trigger_conditions": [
+          "For each valid transaction during posting"
+        ]
+      },
+      {
+        "name": "Main Transaction File Output",
+        "type": "data_write",
+        "purpose": "Stores posted transactions",
+        "data_exchanged": [
+          "All transaction fields including processing timestamp"
+        ],
+        "trigger_conditions": [
+          "For each successfully validated and posted transaction"
+        ]
+      },
+      {
+        "name": "Daily Rejects File Output",
+        "type": "error_output",
+        "purpose": "Records rejected transactions with rejection reasons",
+        "data_exchanged": [
+          "Complete transaction data",
+          "rejection_reason_code",
+          "rejection_reason_description"
+        ],
+        "trigger_conditions": [
+          "For each transaction that fails validation"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [],
+      "permissions": [],
+      "authentication_requirements": []
+    },
+    "error_handling": [
+      {
+        "error_code": "100",
+        "condition": "Card number not found in cross-reference file",
+        "business_impact": "Transaction cannot be associated with an account",
+        "suggested_action": "Reject transaction and write to reject file with reason 'INVALID CARD NUMBER FOUND'"
+      },
+      {
+        "error_code": "101",
+        "condition": "Account record not found in account master file",
+        "business_impact": "Cannot validate or post transaction without account information",
+        "suggested_action": "Reject transaction and write to reject file with reason 'ACCOUNT RECORD NOT FOUND'"
+      },
+      {
+        "error_code": "102",
+        "condition": "Transaction would cause account to exceed credit limit",
+        "business_impact": "Account would be overlimit if transaction is posted",
+        "suggested_action": "Reject transaction and write to reject file with reason 'OVERLIMIT TRANSACTION'"
+      },
+      {
+        "error_code": "103",
+        "condition": "Transaction date is after account expiration date",
+        "business_impact": "Transaction occurred on expired account",
+        "suggested_action": "Reject transaction and write to reject file with reason 'TRANSACTION RECEIVED AFTER ACCT EXPIRATION'"
+      },
+      {
+        "error_code": "109",
+        "condition": "Account record not found during update operation",
+        "business_impact": "Cannot update account balance for valid transaction",
+        "suggested_action": "Reject transaction and write to reject file with reason 'ACCOUNT RECORD NOT FOUND'"
+      },
+      {
+        "error_code": "999",
+        "condition": "Critical file operation error (open, close, read, write failure)",
+        "business_impact": "Program cannot continue processing",
+        "suggested_action": "Display error message with file status and abort program"
+      },
+      {
+        "error_code": "4",
+        "condition": "One or more transactions rejected during processing",
+        "business_impact": "Partial success - some transactions could not be posted",
+        "suggested_action": "Set program return code to 4 to indicate partial success"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [],
+    "reports": [
+      {
+        "name": "Transaction Processing Summary",
+        "description": "Displays summary statistics at end of batch processing",
+        "type": "console_output",
+        "data_sources": [
+          "transaction_counter",
+          "reject_counter"
+        ],
+        "filters": [],
+        "columns": [
+          {
+            "name": "Transactions Processed",
+            "data_field": "transaction_count",
+            "format": "numeric",
+            "aggregation": "count"
+          },
+          {
+            "name": "Transactions Rejected",
+            "data_field": "reject_count",
+            "format": "numeric",
+            "aggregation": "count"
+          }
+        ],
+        "sorting": [],
+        "grouping": []
+      }
+    ],
+    "navigation_flow": [],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "error",
+        "message": "ERROR OPENING DALYTRAN",
+        "context": "File open operation failed for daily transaction file"
+      },
+      {
+        "code": "MSG002",
+        "type": "error",
+        "message": "ERROR OPENING TRANSACTION FILE",
+        "context": "File open operation failed for main transaction file"
+      },
+      {
+        "code": "MSG003",
+        "type": "error",
+        "message": "ERROR OPENING CROSS REF FILE",
+        "context": "File open operation failed for cross-reference file"
+      },
+      {
+        "code": "MSG004",
+        "type": "error",
+        "message": "ERROR OPENING DALY REJECTS FILE",
+        "context": "File open operation failed for daily rejects file"
+      },
+      {
+        "code": "MSG005",
+        "type": "error",
+        "message": "ERROR OPENING ACCOUNT MASTER FILE",
+        "context": "File open operation failed for account master file"
+      },
+      {
+        "code": "MSG006",
+        "type": "error",
+        "message": "ERROR OPENING TRANSACTION BALANCE FILE",
+        "context": "File open operation failed for transaction category balance file"
+      },
+      {
+        "code": "MSG007",
+        "type": "error",
+        "message": "ERROR CLOSING DALYTRAN FILE",
+        "context": "File close operation failed for daily transaction file"
+      },
+      {
+        "code": "MSG008",
+        "type": "error",
+        "message": "ERROR CLOSING TRANSACTION FILE",
+        "context": "File close operation failed for main transaction file"
+      },
+      {
+        "code": "MSG009",
+        "type": "error",
+        "message": "ERROR CLOSING CROSS REF FILE",
+        "context": "File close operation failed for cross-reference file"
+      },
+      {
+        "code": "MSG010",
+        "type": "error",
+        "message": "ERROR CLOSING DAILY REJECTS FILE",
+        "context": "File close operation failed for daily rejects file"
+      },
+      {
+        "code": "MSG011",
+        "type": "error",
+        "message": "ERROR CLOSING ACCOUNT FILE",
+        "context": "File close operation failed for account master file"
+      },
+      {
+        "code": "MSG012",
+        "type": "error",
+        "message": "ERROR CLOSING TRANSACTION BALANCE FILE",
+        "context": "File close operation failed for transaction category balance file"
+      },
+      {
+        "code": "MSG013",
+        "type": "error",
+        "message": "ERROR WRITING TO REJECTS FILE",
+        "context": "Write operation failed for daily rejects file"
+      },
+      {
+        "code": "MSG014",
+        "type": "error",
+        "message": "ABENDING PROGRAM",
+        "context": "Critical error occurred, program is terminating abnormally"
+      },
+      {
+        "code": "MSG015",
+        "type": "info",
+        "message": "TRANSACTIONS PROCESSED",
+        "context": "Displays count of successfully processed transactions"
+      },
+      {
+        "code": "MSG016",
+        "type": "info",
+        "message": "TRANSACTIONS REJECTED",
+        "context": "Displays count of rejected transactions"
+      },
+      {
+        "code": "MSG017",
+        "type": "info",
+        "message": "END OF EXECUTION OF PROGRAM CBTRN02C",
+        "context": "Program completed execution"
+      },
+      {
+        "code": "REJ100",
+        "type": "validation_error",
+        "message": "INVALID CARD NUMBER FOUND",
+        "context": "Card number does not exist in cross-reference file"
+      },
+      {
+        "code": "REJ101",
+        "type": "validation_error",
+        "message": "ACCOUNT RECORD NOT FOUND",
+        "context": "Account does not exist in account master file"
+      },
+      {
+        "code": "REJ102",
+        "type": "validation_error",
+        "message": "OVERLIMIT TRANSACTION",
+        "context": "Transaction would cause account to exceed credit limit"
+      },
+      {
+        "code": "REJ103",
+        "type": "validation_error",
+        "message": "TRANSACTION RECEIVED AFTER ACCT EXPIRATION",
+        "context": "Transaction date is after account expiration date"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Daily Transaction to Posted Transaction",
+      "description": "Flow of transaction data from daily input through validation to posted transaction",
+      "source": "Daily Transaction File",
+      "destination": "Main Transaction File",
+      "data_elements": [
+        "transaction_id",
+        "transaction_type_code",
+        "transaction_category_code",
+        "transaction_source",
+        "transaction_description",
+        "transaction_amount",
+        "merchant_id",
+        "merchant_name",
+        "merchant_city",
+        "merchant_zip",
+        "card_number",
+        "original_timestamp"
+      ],
+      "transformations": [
+        "Add processing timestamp in DB2 format",
+        "Validate against business rules",
+        "Enrich with account information from cross-reference"
+      ]
+    },
+    {
+      "name": "Card to Account Resolution",
+      "description": "Resolution of card number to account ID through cross-reference",
+      "source": "Daily Transaction",
+      "destination": "Account Master",
+      "data_elements": [
+        "card_number",
+        "account_id"
+      ],
+      "transformations": [
+        "Look up card number in cross-reference file",
+        "Retrieve associated account ID"
+      ]
+    },
+    {
+      "name": "Account Balance Update",
+      "description": "Update of account balances based on transaction amounts",
+      "source": "Daily Transaction",
+      "destination": "Account Master",
+      "data_elements": [
+        "transaction_amount",
+        "current_balance",
+        "current_cycle_credit",
+        "current_cycle_debit"
+      ],
+      "transformations": [
+        "Add transaction amount to current balance",
+        "Add to cycle credit if amount >= 0",
+        "Add to cycle debit if amount < 0"
+      ]
+    },
+    {
+      "name": "Transaction Category Balance Aggregation",
+      "description": "Aggregation of transaction amounts by category",
+      "source": "Daily Transaction",
+      "destination": "Transaction Category Balance File",
+      "data_elements": [
+        "account_id",
+        "transaction_type_code",
+        "transaction_category_code",
+        "transaction_amount",
+        "category_balance"
+      ],
+      "transformations": [
+        "Look up or create category balance record",
+        "Add transaction amount to category balance"
+      ]
+    },
+    {
+      "name": "Rejected Transaction Recording",
+      "description": "Recording of failed transactions with rejection reasons",
+      "source": "Daily Transaction",
+      "destination": "Daily Rejects File",
+      "data_elements": [
+        "complete_transaction_data",
+        "rejection_reason_code",
+        "rejection_reason_description"
+      ],
+      "transformations": [
+        "Copy complete transaction record",
+        "Append validation failure reason and description"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "credit_limit",
+      "description": "Transactions must not cause account balance to exceed the account's credit limit",
+      "impact": "Transactions that would cause overlimit condition are rejected"
+    },
+    {
+      "type": "account_expiration",
+      "description": "Transactions must occur before the account expiration date",
+      "impact": "Transactions dated after account expiration are rejected"
+    },
+    {
+      "type": "card_validity",
+      "description": "Card number must exist in the cross-reference system",
+      "impact": "Transactions with invalid card numbers are rejected"
+    },
+    {
+      "type": "account_existence",
+      "description": "Account associated with card must exist in account master file",
+      "impact": "Transactions for non-existent accounts are rejected"
+    },
+    {
+      "type": "batch_processing",
+      "description": "All transactions in daily file must be processed in a single batch run",
+      "impact": "Program processes all transactions sequentially until end of file"
+    },
+    {
+      "type": "data_integrity",
+      "description": "All balance updates must be atomic - either all related records update or none",
+      "impact": "If any update fails, transaction is rejected and no partial updates occur"
+    },
+    {
+      "type": "audit_trail",
+      "description": "All rejected transactions must be recorded with specific rejection reasons",
+      "impact": "Rejected transactions are written to separate file with detailed rejection information"
+    },
+    {
+      "type": "return_code",
+      "description": "Program must indicate partial success when rejections occur",
+      "impact": "Return code set to 4 when any transactions are rejected, allowing downstream processes to handle appropriately"
+    }
+  ]
+}

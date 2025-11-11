@@ -1,0 +1,1266 @@
+{
+  "application_metadata": {
+    "name": "CardDemo Transaction List",
+    "description": "CICS transaction program that displays a paginated list of transactions from the TRANSACT file, allowing users to view and navigate through transaction records and select specific transactions for detailed viewing",
+    "domain": "Financial Services - Card Transaction Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "Transaction",
+        "description": "Represents a financial transaction in the card system",
+        "attributes": [
+          {
+            "name": "transaction_id",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Unique identifier for the transaction"
+          },
+          {
+            "name": "transaction_type_code",
+            "type": "string",
+            "length": 2,
+            "required": true,
+            "description": "Code indicating the type of transaction"
+          },
+          {
+            "name": "transaction_category_code",
+            "type": "numeric",
+            "length": 4,
+            "required": true,
+            "description": "Category code for the transaction"
+          },
+          {
+            "name": "transaction_source",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "Source of the transaction indicating origin"
+          },
+          {
+            "name": "transaction_description",
+            "type": "string",
+            "length": 100,
+            "required": true,
+            "description": "Detailed description of the transaction"
+          },
+          {
+            "name": "transaction_amount",
+            "type": "decimal",
+            "length": 11,
+            "required": true,
+            "description": "Monetary value of the transaction with 2 decimal places"
+          },
+          {
+            "name": "merchant_id",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Identifier for the merchant"
+          },
+          {
+            "name": "merchant_name",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Name of the merchant"
+          },
+          {
+            "name": "merchant_city",
+            "type": "string",
+            "length": 50,
+            "required": false,
+            "description": "City location of the merchant"
+          },
+          {
+            "name": "merchant_zip",
+            "type": "string",
+            "length": 10,
+            "required": false,
+            "description": "ZIP code of the merchant location"
+          },
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Card number used for the transaction, masked for security in displays"
+          },
+          {
+            "name": "original_timestamp",
+            "type": "timestamp",
+            "length": 26,
+            "required": true,
+            "description": "Original timestamp of the transaction in format YYYY-MM-DD-HH.MM.SS.MMMMMM"
+          },
+          {
+            "name": "processing_timestamp",
+            "type": "timestamp",
+            "length": 26,
+            "required": true,
+            "description": "Processing timestamp of the transaction in format YYYY-MM-DD-HH.MM.SS.MMMMMM"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Merchant",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          },
+          {
+            "related_entity": "Card",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          }
+        ]
+      },
+      {
+        "name": "Merchant",
+        "description": "Represents a merchant where transactions occur",
+        "attributes": [
+          {
+            "name": "merchant_id",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Unique identifier for the merchant"
+          },
+          {
+            "name": "merchant_name",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Name of the merchant"
+          },
+          {
+            "name": "merchant_city",
+            "type": "string",
+            "length": 50,
+            "required": false,
+            "description": "City location of the merchant"
+          },
+          {
+            "name": "merchant_zip",
+            "type": "string",
+            "length": 10,
+            "required": false,
+            "description": "ZIP code of the merchant"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          }
+        ]
+      },
+      {
+        "name": "Card",
+        "description": "Represents a card used for transactions",
+        "attributes": [
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Unique card number"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          }
+        ]
+      },
+      {
+        "name": "PageState",
+        "description": "Maintains pagination state for transaction list browsing",
+        "attributes": [
+          {
+            "name": "first_transaction_id",
+            "type": "string",
+            "length": 16,
+            "required": false,
+            "description": "Transaction ID of the first record on current page"
+          },
+          {
+            "name": "last_transaction_id",
+            "type": "string",
+            "length": 16,
+            "required": false,
+            "description": "Transaction ID of the last record on current page"
+          },
+          {
+            "name": "page_number",
+            "type": "numeric",
+            "length": 8,
+            "required": true,
+            "description": "Current page number in the transaction list"
+          },
+          {
+            "name": "next_page_flag",
+            "type": "string",
+            "length": 1,
+            "required": true,
+            "description": "Flag indicating if there are more pages available (Y/N)"
+          }
+        ],
+        "relationships": []
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Transaction List Pagination",
+        "description": "Display transactions in pages of 10 records each",
+        "category": "Display",
+        "logic": "The system displays up to 10 transactions per page. Users can navigate forward and backward through pages using designated navigation controls.",
+        "conditions": [
+          "Transaction file contains records",
+          "User requests transaction list display"
+        ],
+        "actions": [
+          "Retrieve up to 10 transaction records",
+          "Display transaction ID, date, description, and amount for each record",
+          "Track first and last transaction IDs on current page",
+          "Update page number",
+          "Set flag indicating if more pages exist"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Transaction Selection",
+        "description": "Allow users to select a specific transaction for detailed viewing",
+        "category": "Navigation",
+        "logic": "Users can enter 'S' next to a transaction to view its details. The system validates the selection and navigates to the transaction detail screen.",
+        "conditions": [
+          "User enters selection indicator next to a transaction",
+          "Selection indicator is 'S' or 's'"
+        ],
+        "actions": [
+          "Validate selection indicator is 'S' or 's'",
+          "Store selected transaction ID",
+          "Transfer control to transaction detail program (COTRN01C)",
+          "Pass transaction context information"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Transaction ID Search",
+        "description": "Allow users to search for transactions starting from a specific transaction ID",
+        "category": "Search",
+        "logic": "Users can enter a numeric transaction ID to start browsing from that point in the transaction list.",
+        "conditions": [
+          "User enters a transaction ID in the search field",
+          "Transaction ID is numeric"
+        ],
+        "actions": [
+          "Validate transaction ID is numeric",
+          "Start browsing from the specified transaction ID",
+          "Display first page of results starting from that transaction",
+          "Reset page number to 0"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Forward Page Navigation",
+        "description": "Navigate to the next page of transactions",
+        "category": "Navigation",
+        "logic": "When user requests next page, system retrieves the next set of up to 10 transactions starting after the last transaction on current page.",
+        "conditions": [
+          "User requests next page",
+          "More transactions exist after current page"
+        ],
+        "actions": [
+          "Start browsing from last transaction ID on current page",
+          "Read next transaction record",
+          "Retrieve up to 10 subsequent transactions",
+          "Increment page number",
+          "Update first and last transaction IDs for new page",
+          "Check if additional pages exist",
+          "Display new page"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Backward Page Navigation",
+        "description": "Navigate to the previous page of transactions",
+        "category": "Navigation",
+        "logic": "When user requests previous page, system retrieves the previous set of up to 10 transactions ending before the first transaction on current page.",
+        "conditions": [
+          "User requests previous page",
+          "Current page number is greater than 1"
+        ],
+        "actions": [
+          "Start browsing from first transaction ID on current page",
+          "Read previous transaction records in reverse order",
+          "Retrieve up to 10 preceding transactions",
+          "Decrement page number",
+          "Update first and last transaction IDs for new page",
+          "Display new page"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Transaction Date Formatting",
+        "description": "Format transaction timestamp for display",
+        "category": "Display",
+        "logic": "Convert transaction original timestamp from YYYY-MM-DD-HH.MM.SS.MMMMMM format to MM/DD/YY format for display.",
+        "conditions": [
+          "Transaction record contains original timestamp"
+        ],
+        "actions": [
+          "Extract year (last 2 digits), month, and day from timestamp",
+          "Format as MM/DD/YY",
+          "Display formatted date in transaction list"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Transaction Amount Formatting",
+        "description": "Format transaction amount for display",
+        "category": "Display",
+        "logic": "Display transaction amount with sign indicator and 2 decimal places in format +99999999.99.",
+        "conditions": [
+          "Transaction record contains amount"
+        ],
+        "actions": [
+          "Format amount with sign (+/-)",
+          "Display with 2 decimal places",
+          "Show in transaction list"
+        ]
+      },
+      {
+        "id": "BR008",
+        "name": "End of List Detection",
+        "description": "Detect and handle when user reaches the end of transaction list",
+        "category": "Navigation",
+        "logic": "When attempting to navigate forward and no more transactions exist, inform user they are at the bottom of the list.",
+        "conditions": [
+          "User requests next page",
+          "No more transactions exist after current page"
+        ],
+        "actions": [
+          "Set next page flag to 'N'",
+          "Display message 'You are already at the bottom of the page...'",
+          "Maintain current page display"
+        ]
+      },
+      {
+        "id": "BR009",
+        "name": "Beginning of List Detection",
+        "description": "Detect and handle when user reaches the beginning of transaction list",
+        "category": "Navigation",
+        "logic": "When attempting to navigate backward and already on first page, inform user they are at the top of the list.",
+        "conditions": [
+          "User requests previous page",
+          "Current page number is 1 or less"
+        ],
+        "actions": [
+          "Display message 'You are already at the top of the page...'",
+          "Maintain current page display"
+        ]
+      },
+      {
+        "id": "BR010",
+        "name": "Transaction File Browsing Initialization",
+        "description": "Initialize file browsing session for transaction retrieval",
+        "category": "Data Access",
+        "logic": "Start a browse session on the transaction file using the specified transaction ID as the starting key.",
+        "conditions": [
+          "User requests transaction list or navigation",
+          "Transaction ID key is provided"
+        ],
+        "actions": [
+          "Start browse on TRANSACT file with transaction ID as key",
+          "Handle file not found condition",
+          "Handle other file access errors",
+          "Prepare for sequential record retrieval"
+        ]
+      },
+      {
+        "id": "BR011",
+        "name": "Transaction File Browsing Termination",
+        "description": "Properly terminate file browsing session",
+        "category": "Data Access",
+        "logic": "End the browse session on the transaction file after completing record retrieval operations.",
+        "conditions": [
+          "Browse session is active",
+          "Record retrieval operations are complete"
+        ],
+        "actions": [
+          "End browse on TRANSACT file",
+          "Release file resources"
+        ]
+      },
+      {
+        "id": "BR012",
+        "name": "Page State Maintenance",
+        "description": "Maintain pagination state across user interactions",
+        "category": "State Management",
+        "logic": "Track current page number, first and last transaction IDs on page, and whether more pages exist to enable proper navigation.",
+        "conditions": [
+          "User navigates through transaction list"
+        ],
+        "actions": [
+          "Store first transaction ID on current page",
+          "Store last transaction ID on current page",
+          "Update current page number",
+          "Set flag indicating if next page exists",
+          "Preserve state between screen interactions"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "transaction_id_search",
+        "rule": "Must be numeric",
+        "error_message": "Tran ID must be Numeric ...",
+        "severity": "error"
+      },
+      {
+        "field": "transaction_selection",
+        "rule": "Must be 'S' or 's' if provided",
+        "error_message": "Invalid selection. Valid value is S",
+        "severity": "error"
+      },
+      {
+        "field": "transaction_id",
+        "rule": "Must exist in TRANSACT file",
+        "error_message": "Unable to lookup transaction...",
+        "severity": "error"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Format Transaction Date",
+        "description": "Convert transaction timestamp to display format",
+        "formula": "Extract MM, DD, YY from YYYY-MM-DD-HH.MM.SS.MMMMMM and format as MM/DD/YY",
+        "input_fields": [
+          "transaction_original_timestamp"
+        ],
+        "output_field": "formatted_transaction_date"
+      },
+      {
+        "name": "Format Transaction Amount",
+        "description": "Format transaction amount for display with sign and decimals",
+        "formula": "Format as +99999999.99 with sign indicator and 2 decimal places",
+        "input_fields": [
+          "transaction_amount"
+        ],
+        "output_field": "formatted_transaction_amount"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Display Transaction List",
+        "description": "Initial display of transaction list when user accesses the screen",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize page state with page number 0",
+            "conditions": [
+              "User accesses transaction list screen"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Start browse on TRANSACT file from beginning or specified transaction ID",
+            "conditions": [
+              "Transaction ID provided or start from beginning"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Retrieve up to 10 transaction records",
+            "conditions": [
+              "Browse session active"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Format transaction data for display (date and amount)",
+            "conditions": [
+              "Transaction records retrieved"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Populate screen fields with transaction data",
+            "conditions": [
+              "Data formatted"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Update page state (first ID, last ID, page number, next page flag)",
+            "conditions": [
+              "Screen populated"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "End browse session",
+            "conditions": [
+              "All records processed"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Display transaction list screen to user",
+            "conditions": [
+              "Page state updated"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Navigate Forward",
+        "description": "Process user request to view next page of transactions",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Check if next page exists",
+            "conditions": [
+              "User requests next page"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "If no next page, display message and maintain current page",
+            "conditions": [
+              "Next page flag is 'N'"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 3,
+            "action": "Start browse from last transaction ID on current page",
+            "conditions": [
+              "Next page exists"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Read next transaction record",
+            "conditions": [
+              "Browse session active"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Retrieve up to 10 subsequent transactions",
+            "conditions": [
+              "First record read successfully"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Format and populate screen with new transaction data",
+            "conditions": [
+              "Transactions retrieved"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Increment page number and update page state",
+            "conditions": [
+              "Screen populated"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Check for additional pages",
+            "conditions": [
+              "Page state updated"
+            ],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "End browse session and display updated screen",
+            "conditions": [
+              "Next page check complete"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Navigate Backward",
+        "description": "Process user request to view previous page of transactions",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Check if current page is first page",
+            "conditions": [
+              "User requests previous page"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "If on first page, display message and maintain current page",
+            "conditions": [
+              "Page number is 1 or less"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 3,
+            "action": "Start browse from first transaction ID on current page",
+            "conditions": [
+              "Not on first page"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Read previous transaction records in reverse order",
+            "conditions": [
+              "Browse session active"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Retrieve up to 10 preceding transactions",
+            "conditions": [
+              "Reading backwards"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Format and populate screen with transaction data",
+            "conditions": [
+              "Transactions retrieved"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Decrement page number and update page state",
+            "conditions": [
+              "Screen populated"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "End browse session and display updated screen",
+            "conditions": [
+              "Page state updated"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Select Transaction for Details",
+        "description": "Process user selection of a specific transaction to view details",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Check each selection field for user input",
+            "conditions": [
+              "User submits screen with selection"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Validate selection indicator is 'S' or 's'",
+            "conditions": [
+              "Selection found"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "If invalid selection, display error message",
+            "conditions": [
+              "Selection is not 'S' or 's'"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 4,
+            "action": "Store selected transaction ID",
+            "conditions": [
+              "Valid selection"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Set navigation context for transaction detail program",
+            "conditions": [
+              "Transaction ID stored"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Transfer control to transaction detail program (COTRN01C)",
+            "conditions": [
+              "Context set"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Search by Transaction ID",
+        "description": "Process user request to search for transactions starting from a specific ID",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Validate transaction ID is numeric",
+            "conditions": [
+              "User enters transaction ID"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "If not numeric, display error message",
+            "conditions": [
+              "Transaction ID is not numeric"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 3,
+            "action": "Reset page number to 0",
+            "conditions": [
+              "Valid transaction ID"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Start browse from specified transaction ID",
+            "conditions": [
+              "Page number reset"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Retrieve and display first page of results",
+            "conditions": [
+              "Browse started"
+            ],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "Transaction Detail Navigation",
+        "type": "Internal Program Transfer",
+        "purpose": "Navigate to transaction detail screen when user selects a transaction",
+        "data_exchanged": [
+          "selected_transaction_id",
+          "source_transaction_id",
+          "source_program_name",
+          "program_context"
+        ],
+        "trigger_conditions": [
+          "User selects transaction with 'S' indicator",
+          "Valid transaction ID exists"
+        ]
+      },
+      {
+        "name": "TRANSACT File Access",
+        "type": "Data Store",
+        "purpose": "Retrieve transaction records for display and navigation",
+        "data_exchanged": [
+          "transaction_id",
+          "transaction_type_code",
+          "transaction_category_code",
+          "transaction_source",
+          "transaction_description",
+          "transaction_amount",
+          "merchant_id",
+          "merchant_name",
+          "merchant_city",
+          "merchant_zip",
+          "card_number",
+          "original_timestamp",
+          "processing_timestamp"
+        ],
+        "trigger_conditions": [
+          "User requests transaction list display",
+          "User navigates forward or backward",
+          "User searches by transaction ID"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Transaction Viewer"
+      ],
+      "permissions": [
+        {
+          "role": "Transaction Viewer",
+          "resource": "Transaction List",
+          "actions": [
+            "view",
+            "navigate",
+            "search",
+            "select"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be authenticated to access transaction list",
+        "Card numbers are masked for security in displays"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "ERR001",
+        "condition": "Transaction ID entered is not numeric",
+        "business_impact": "User cannot search for transactions by ID",
+        "suggested_action": "Display error message 'Tran ID must be Numeric ...' and position cursor at transaction ID field"
+      },
+      {
+        "error_code": "ERR002",
+        "condition": "Invalid selection indicator entered",
+        "business_impact": "User cannot navigate to transaction details",
+        "suggested_action": "Display error message 'Invalid selection. Valid value is S' and position cursor at transaction ID field"
+      },
+      {
+        "error_code": "ERR003",
+        "condition": "Transaction file not found during browse",
+        "business_impact": "Cannot retrieve transaction data",
+        "suggested_action": "Display message 'You are at the top of the page...' and maintain current display"
+      },
+      {
+        "error_code": "ERR004",
+        "condition": "End of file reached during forward navigation",
+        "business_impact": "No more transactions to display",
+        "suggested_action": "Display message 'You have reached the bottom of the page...' and maintain current display"
+      },
+      {
+        "error_code": "ERR005",
+        "condition": "End of file reached during backward navigation",
+        "business_impact": "No previous transactions to display",
+        "suggested_action": "Display message 'You have reached the top of the page...' and maintain current display"
+      },
+      {
+        "error_code": "ERR006",
+        "condition": "User attempts to navigate forward when already at last page",
+        "business_impact": "Cannot display next page",
+        "suggested_action": "Display message 'You are already at the bottom of the page...' and maintain current display"
+      },
+      {
+        "error_code": "ERR007",
+        "condition": "User attempts to navigate backward when already at first page",
+        "business_impact": "Cannot display previous page",
+        "suggested_action": "Display message 'You are already at the top of the page...' and maintain current display"
+      },
+      {
+        "error_code": "ERR008",
+        "condition": "General file access error during transaction lookup",
+        "business_impact": "Cannot retrieve transaction data",
+        "suggested_action": "Display error message 'Unable to lookup transaction...' with response and reason codes"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "COTRN00",
+        "name": "Transaction List Screen",
+        "purpose": "Display paginated list of transactions with navigation and selection capabilities",
+        "screen_type": "List/Browse",
+        "navigation_from": [
+          "Main Menu",
+          "Transaction Detail Screen"
+        ],
+        "navigation_to": [
+          "Transaction Detail Screen (COTRN01C)"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "Information Display",
+            "fields": [
+              {
+                "name": "title",
+                "label": "Transaction List",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "Transaction List",
+                "validation": "",
+                "help_text": "Screen title"
+              },
+              {
+                "name": "current_date",
+                "label": "Date",
+                "type": "date",
+                "input_output": "output",
+                "required": false,
+                "default_value": "system_date",
+                "validation": "",
+                "help_text": "Current system date"
+              },
+              {
+                "name": "current_time",
+                "label": "Time",
+                "type": "time",
+                "input_output": "output",
+                "required": false,
+                "default_value": "system_time",
+                "validation": "",
+                "help_text": "Current system time"
+              }
+            ]
+          },
+          {
+            "name": "Search Criteria",
+            "type": "Input",
+            "fields": [
+              {
+                "name": "transaction_id_search",
+                "label": "Transaction ID",
+                "type": "text",
+                "input_output": "input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be numeric if provided",
+                "help_text": "Enter transaction ID to start browsing from that point"
+              }
+            ]
+          },
+          {
+            "name": "Transaction List",
+            "type": "Data Grid",
+            "fields": [
+              {
+                "name": "selection_indicator",
+                "label": "Sel",
+                "type": "text",
+                "input_output": "input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be 'S' or 's' if provided",
+                "help_text": "Enter 'S' to select transaction for details"
+              },
+              {
+                "name": "transaction_id",
+                "label": "Transaction ID",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Unique transaction identifier"
+              },
+              {
+                "name": "transaction_date",
+                "label": "Date",
+                "type": "date",
+                "input_output": "output",
+                "required": true,
+                "default_value": "00/00/00",
+                "validation": "",
+                "help_text": "Transaction date in MM/DD/YY format"
+              },
+              {
+                "name": "transaction_description",
+                "label": "Description",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Transaction description"
+              },
+              {
+                "name": "transaction_amount",
+                "label": "Amount",
+                "type": "decimal",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Transaction amount with sign and 2 decimal places"
+              }
+            ]
+          },
+          {
+            "name": "Pagination Info",
+            "type": "Information Display",
+            "fields": [
+              {
+                "name": "page_number",
+                "label": "Page",
+                "type": "numeric",
+                "input_output": "output",
+                "required": false,
+                "default_value": "0",
+                "validation": "",
+                "help_text": "Current page number"
+              }
+            ]
+          },
+          {
+            "name": "Messages",
+            "type": "Information Display",
+            "fields": [
+              {
+                "name": "error_message",
+                "label": "",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Error or informational messages"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Submit Search",
+            "trigger": "Enter Key",
+            "description": "Process transaction ID search or transaction selection",
+            "backend_process": "PROCESS-ENTER-KEY",
+            "success_navigation": "Refresh current screen or navigate to transaction detail",
+            "error_handling": "Display error message and position cursor at error field"
+          },
+          {
+            "name": "Previous Page",
+            "trigger": "PF7 Key",
+            "description": "Navigate to previous page of transactions",
+            "backend_process": "PROCESS-PF7-KEY",
+            "success_navigation": "Display previous page",
+            "error_handling": "Display message if already at first page"
+          },
+          {
+            "name": "Next Page",
+            "trigger": "PF8 Key",
+            "description": "Navigate to next page of transactions",
+            "backend_process": "PROCESS-PF8-KEY",
+            "success_navigation": "Display next page",
+            "error_handling": "Display message if already at last page"
+          },
+          {
+            "name": "Exit",
+            "trigger": "PF3 Key",
+            "description": "Return to previous screen or main menu",
+            "backend_process": "Return to calling program",
+            "success_navigation": "Previous screen",
+            "error_handling": "None"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "No transactions found",
+            "affected_fields": [
+              "transaction_list"
+            ],
+            "behavior": "Display empty list with appropriate message"
+          },
+          {
+            "condition": "Less than 10 transactions on page",
+            "affected_fields": [
+              "transaction_list"
+            ],
+            "behavior": "Display available transactions and leave remaining rows empty"
+          },
+          {
+            "condition": "Error occurs",
+            "affected_fields": [
+              "error_message"
+            ],
+            "behavior": "Display error message and position cursor at relevant field"
+          },
+          {
+            "condition": "At first page",
+            "affected_fields": [
+              "page_number"
+            ],
+            "behavior": "Display page number 1 and disable backward navigation message"
+          },
+          {
+            "condition": "At last page",
+            "affected_fields": [
+              "page_number"
+            ],
+            "behavior": "Display current page number and disable forward navigation message"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "Transaction List Screen",
+        "to_screen": "Transaction Detail Screen",
+        "trigger": "User selects transaction with 'S' indicator",
+        "conditions": [
+          "Valid transaction selected",
+          "Selection indicator is 'S' or 's'"
+        ]
+      },
+      {
+        "from_screen": "Transaction List Screen",
+        "to_screen": "Previous Screen",
+        "trigger": "User presses exit key",
+        "conditions": [
+          "User requests exit"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "error",
+        "message": "Tran ID must be Numeric ...",
+        "context": "User enters non-numeric transaction ID in search field"
+      },
+      {
+        "code": "MSG002",
+        "type": "error",
+        "message": "Invalid selection. Valid value is S",
+        "context": "User enters invalid selection indicator"
+      },
+      {
+        "code": "MSG003",
+        "type": "information",
+        "message": "You are already at the top of the page...",
+        "context": "User attempts to navigate backward from first page"
+      },
+      {
+        "code": "MSG004",
+        "type": "information",
+        "message": "You are already at the bottom of the page...",
+        "context": "User attempts to navigate forward from last page"
+      },
+      {
+        "code": "MSG005",
+        "type": "information",
+        "message": "You have reached the bottom of the page...",
+        "context": "End of file reached during forward navigation"
+      },
+      {
+        "code": "MSG006",
+        "type": "information",
+        "message": "You have reached the top of the page...",
+        "context": "End of file reached during backward navigation"
+      },
+      {
+        "code": "MSG007",
+        "type": "error",
+        "message": "Unable to lookup transaction...",
+        "context": "Error occurs during transaction file access"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Transaction List Retrieval",
+      "description": "Retrieve transaction records from TRANSACT file for display",
+      "source": "TRANSACT File",
+      "destination": "Transaction List Screen",
+      "data_elements": [
+        "transaction_id",
+        "transaction_date",
+        "transaction_description",
+        "transaction_amount"
+      ],
+      "transformations": [
+        "Format transaction date from timestamp to MM/DD/YY",
+        "Format transaction amount with sign and 2 decimal places"
+      ]
+    },
+    {
+      "name": "Transaction Selection",
+      "description": "Pass selected transaction information to detail screen",
+      "source": "Transaction List Screen",
+      "destination": "Transaction Detail Screen",
+      "data_elements": [
+        "selected_transaction_id",
+        "source_program_name",
+        "source_transaction_id",
+        "program_context"
+      ],
+      "transformations": [
+        "Store selection in communication area"
+      ]
+    },
+    {
+      "name": "Page State Persistence",
+      "description": "Maintain pagination state across screen interactions",
+      "source": "Transaction List Screen",
+      "destination": "Communication Area",
+      "data_elements": [
+        "first_transaction_id",
+        "last_transaction_id",
+        "page_number",
+        "next_page_flag"
+      ],
+      "transformations": [
+        "Update page state after each navigation action"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Display Limit",
+      "description": "Maximum of 10 transactions displayed per page",
+      "impact": "Users must navigate through pages to view all transactions"
+    },
+    {
+      "type": "Data Format",
+      "description": "Transaction dates displayed in MM/DD/YY format",
+      "impact": "Century information not visible in display"
+    },
+    {
+      "type": "Data Format",
+      "description": "Transaction amounts displayed with sign and 2 decimal places",
+      "impact": "Amounts limited to +/-99999999.99 range for display"
+    },
+    {
+      "type": "Navigation",
+      "description": "Sequential browsing of transactions by transaction ID",
+      "impact": "Cannot jump to arbitrary pages, must navigate sequentially"
+    },
+    {
+      "type": "Search",
+      "description": "Transaction ID search must be numeric",
+      "impact": "Cannot search by other transaction attributes"
+    },
+    {
+      "type": "Selection",
+      "description": "Only one transaction can be selected at a time",
+      "impact": "Cannot perform bulk operations on multiple transactions"
+    }
+  ]
+}

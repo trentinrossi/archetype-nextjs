@@ -1,0 +1,1070 @@
+{
+  "application_metadata": {
+    "name": "Transaction Detail Report Generator",
+    "description": "Batch program that generates detailed transaction reports by reading transaction records, cross-referencing them with account and card information, and producing formatted reports of transaction details within a specified date range",
+    "domain": "Credit Card Processing and Financial Reporting"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "Transaction",
+        "description": "Represents a credit card transaction with all associated details",
+        "attributes": [
+          {
+            "name": "transaction_id",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Unique transaction identifier"
+          },
+          {
+            "name": "transaction_type_code",
+            "type": "string",
+            "length": 2,
+            "required": true,
+            "description": "Code representing the type of transaction"
+          },
+          {
+            "name": "transaction_category_code",
+            "type": "numeric",
+            "length": 4,
+            "required": true,
+            "description": "Code for further categorization of the transaction"
+          },
+          {
+            "name": "transaction_amount",
+            "type": "decimal",
+            "length": 11,
+            "required": true,
+            "description": "Transaction amount with 2 decimal places, signed numeric"
+          },
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Card number used for the transaction"
+          },
+          {
+            "name": "processing_timestamp",
+            "type": "string",
+            "length": 26,
+            "required": true,
+            "description": "Timestamp when transaction was processed"
+          },
+          {
+            "name": "transaction_source",
+            "type": "string",
+            "length": 0,
+            "required": false,
+            "description": "Source of the transaction"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Card",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          },
+          {
+            "related_entity": "TransactionType",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          },
+          {
+            "related_entity": "TransactionCategory",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          }
+        ]
+      },
+      {
+        "name": "Card",
+        "description": "Represents a credit card and its associated account",
+        "attributes": [
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Unique card number"
+          },
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Associated account identifier"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          },
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          }
+        ]
+      },
+      {
+        "name": "Account",
+        "description": "Represents a customer account that can have multiple cards",
+        "attributes": [
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Unique account identifier"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Card",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          }
+        ]
+      },
+      {
+        "name": "TransactionType",
+        "description": "Reference data for transaction type codes and descriptions",
+        "attributes": [
+          {
+            "name": "transaction_type_code",
+            "type": "string",
+            "length": 2,
+            "required": true,
+            "description": "Unique transaction type code"
+          },
+          {
+            "name": "transaction_type_description",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Description of the transaction type"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          }
+        ]
+      },
+      {
+        "name": "TransactionCategory",
+        "description": "Reference data for transaction category codes and descriptions",
+        "attributes": [
+          {
+            "name": "transaction_type_code",
+            "type": "string",
+            "length": 2,
+            "required": true,
+            "description": "Transaction type code part of composite key"
+          },
+          {
+            "name": "transaction_category_code",
+            "type": "numeric",
+            "length": 4,
+            "required": true,
+            "description": "Transaction category code part of composite key"
+          },
+          {
+            "name": "category_description",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Description of the transaction category"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          }
+        ]
+      },
+      {
+        "name": "DateParameter",
+        "description": "Contains date range parameters for report filtering",
+        "attributes": [
+          {
+            "name": "start_date",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "Start date for report period in YYYY-MM-DD format"
+          },
+          {
+            "name": "end_date",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "End date for report period in YYYY-MM-DD format"
+          }
+        ],
+        "relationships": []
+      },
+      {
+        "name": "ReportTotals",
+        "description": "Accumulates various totals for report generation",
+        "attributes": [
+          {
+            "name": "page_total",
+            "type": "decimal",
+            "length": 11,
+            "required": true,
+            "description": "Total amount for current page"
+          },
+          {
+            "name": "account_total",
+            "type": "decimal",
+            "length": 11,
+            "required": true,
+            "description": "Total amount for current account"
+          },
+          {
+            "name": "grand_total",
+            "type": "decimal",
+            "length": 11,
+            "required": true,
+            "description": "Total amount for entire report"
+          }
+        ],
+        "relationships": []
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Date Range Filtering",
+        "description": "Transactions must be filtered based on a specified date range from the date parameter file",
+        "category": "Data Filtering",
+        "logic": "Only process transactions where the processing timestamp falls within the start date and end date range (inclusive)",
+        "conditions": [
+          "Transaction processing timestamp (first 10 characters) must be greater than or equal to start date",
+          "Transaction processing timestamp (first 10 characters) must be less than or equal to end date"
+        ],
+        "actions": [
+          "Include transaction in report if within date range",
+          "Skip transaction if outside date range"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Card Number Grouping",
+        "description": "Transactions must be grouped by card number in the report",
+        "category": "Report Organization",
+        "logic": "When the card number changes, write account totals for the previous card before processing the new card",
+        "conditions": [
+          "Current transaction card number differs from previous transaction card number"
+        ],
+        "actions": [
+          "Write account totals for previous card",
+          "Reset account total to zero",
+          "Update current card number tracking variable",
+          "Lookup account information for new card"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Page Break Management",
+        "description": "Report must break into pages with a maximum of 20 lines per page",
+        "category": "Report Formatting",
+        "logic": "When line counter reaches a multiple of page size (20), write page totals and start a new page with headers",
+        "conditions": [
+          "Line counter modulo page size equals zero"
+        ],
+        "actions": [
+          "Write page totals",
+          "Add page total to grand total",
+          "Reset page total to zero",
+          "Write new page headers",
+          "Continue processing transactions"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Transaction Amount Accumulation",
+        "description": "Transaction amounts must be accumulated at page, account, and grand total levels",
+        "category": "Calculation",
+        "logic": "For each transaction, add the transaction amount to both page total and account total",
+        "conditions": [
+          "Transaction is within date range",
+          "Transaction has valid amount"
+        ],
+        "actions": [
+          "Add transaction amount to page total",
+          "Add transaction amount to account total",
+          "Page total is added to grand total when page breaks"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Card Cross-Reference Validation",
+        "description": "Every card number must have a valid account cross-reference",
+        "category": "Data Validation",
+        "logic": "When processing a transaction, the card number must exist in the card cross-reference file",
+        "conditions": [
+          "Card number from transaction is used as lookup key"
+        ],
+        "actions": [
+          "If card found, retrieve associated account ID",
+          "If card not found, display error message with card number",
+          "Abort program if invalid card number encountered"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Transaction Type Validation",
+        "description": "Every transaction type code must be valid and have a description",
+        "category": "Data Validation",
+        "logic": "Transaction type code must exist in the transaction type reference file",
+        "conditions": [
+          "Transaction type code from transaction is used as lookup key"
+        ],
+        "actions": [
+          "If type found, retrieve transaction type description",
+          "If type not found, display error message with type code",
+          "Abort program if invalid transaction type encountered"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Transaction Category Validation",
+        "description": "Every transaction category must be valid based on composite key of type and category codes",
+        "category": "Data Validation",
+        "logic": "Combination of transaction type code and category code must exist in the transaction category reference file",
+        "conditions": [
+          "Transaction type code and category code form composite lookup key"
+        ],
+        "actions": [
+          "If category found, retrieve category description",
+          "If category not found, display error message with composite key",
+          "Abort program if invalid transaction category encountered"
+        ]
+      },
+      {
+        "id": "BR008",
+        "name": "Report Header Generation",
+        "description": "Report must include headers at the beginning and after each page break",
+        "category": "Report Formatting",
+        "logic": "Headers include report name, date range, and column headers",
+        "conditions": [
+          "First transaction being processed",
+          "Page break occurs (line counter reaches page size)"
+        ],
+        "actions": [
+          "Write report name header with date range",
+          "Write blank line",
+          "Write transaction column headers",
+          "Write separator line",
+          "Increment line counter for each header line"
+        ]
+      },
+      {
+        "id": "BR009",
+        "name": "Account Totals Reporting",
+        "description": "Account totals must be written when switching to a new card number",
+        "category": "Report Totals",
+        "logic": "When card number changes, write the accumulated total for the previous account",
+        "conditions": [
+          "Current card number differs from previous card number",
+          "Not the first transaction being processed"
+        ],
+        "actions": [
+          "Write account total line to report",
+          "Reset account total to zero",
+          "Write separator line",
+          "Increment line counter"
+        ]
+      },
+      {
+        "id": "BR010",
+        "name": "Grand Totals Reporting",
+        "description": "Grand total must be written at the end of the report",
+        "category": "Report Totals",
+        "logic": "After all transactions are processed, write the cumulative grand total",
+        "conditions": [
+          "All transactions have been processed",
+          "End of transaction file reached"
+        ],
+        "actions": [
+          "Write final page totals if any",
+          "Write final account totals if any",
+          "Write grand total line to report"
+        ]
+      },
+      {
+        "id": "BR011",
+        "name": "Date Parameter Reading",
+        "description": "Date parameters must be read from parameter file before processing transactions",
+        "category": "Initialization",
+        "logic": "Read start and end dates from date parameter file to establish reporting period",
+        "conditions": [
+          "Date parameter file is available and readable"
+        ],
+        "actions": [
+          "Extract start date from positions 1-10 of parameter record",
+          "Extract end date from positions 12-21 of parameter record",
+          "Display date range to user",
+          "Use dates for transaction filtering and report headers",
+          "Abort if parameter file cannot be read"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "card_number",
+        "rule": "Must exist in card cross-reference file",
+        "error_message": "INVALID CARD NUMBER: [card_number]",
+        "severity": "critical"
+      },
+      {
+        "field": "transaction_type_code",
+        "rule": "Must exist in transaction type reference file",
+        "error_message": "INVALID TRANSACTION TYPE: [transaction_type_code]",
+        "severity": "critical"
+      },
+      {
+        "field": "transaction_category_key",
+        "rule": "Composite key of transaction type code and category code must exist in transaction category reference file",
+        "error_message": "INVALID TRAN CATG KEY: [transaction_category_key]",
+        "severity": "critical"
+      },
+      {
+        "field": "processing_timestamp",
+        "rule": "Must be within the specified date range (start_date to end_date inclusive)",
+        "error_message": "Transaction outside date range",
+        "severity": "warning"
+      },
+      {
+        "field": "date_parameter_file",
+        "rule": "Must be readable and contain valid date parameters",
+        "error_message": "Error reading date parameter file",
+        "severity": "critical"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Page Total Calculation",
+        "description": "Sum of all transaction amounts on the current page",
+        "formula": "page_total = SUM(transaction_amount) for all transactions on current page",
+        "input_fields": [
+          "transaction_amount"
+        ],
+        "output_field": "page_total"
+      },
+      {
+        "name": "Account Total Calculation",
+        "description": "Sum of all transaction amounts for the current account/card",
+        "formula": "account_total = SUM(transaction_amount) for all transactions with same card_number",
+        "input_fields": [
+          "transaction_amount",
+          "card_number"
+        ],
+        "output_field": "account_total"
+      },
+      {
+        "name": "Grand Total Calculation",
+        "description": "Sum of all page totals, representing total of all transactions in the report",
+        "formula": "grand_total = SUM(page_total) for all pages",
+        "input_fields": [
+          "page_total"
+        ],
+        "output_field": "grand_total"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Transaction Report Generation",
+        "description": "Main workflow for generating the detailed transaction report",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Read date parameters from parameter file",
+            "conditions": [
+              "Date parameter file is accessible"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Extract start date and end date from parameter record",
+            "conditions": [
+              "Parameter record successfully read"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Display date range to user",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Read transaction record from transaction file",
+            "conditions": [
+              "Transaction file is accessible"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Check if end of file reached",
+            "conditions": [
+              "More transactions available"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Filter transaction by date range",
+            "conditions": [
+              "Transaction processing timestamp within start and end dates"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Check if card number changed",
+            "conditions": [
+              "Current card number differs from previous"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Write account totals for previous card if applicable",
+            "conditions": [
+              "Not first transaction"
+            ],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "Lookup card cross-reference to get account ID",
+            "conditions": [
+              "Card number is valid"
+            ],
+            "next_step": "10"
+          },
+          {
+            "step_number": 10,
+            "action": "Lookup transaction type description",
+            "conditions": [
+              "Transaction type code is valid"
+            ],
+            "next_step": "11"
+          },
+          {
+            "step_number": 11,
+            "action": "Lookup transaction category description",
+            "conditions": [
+              "Transaction category key is valid"
+            ],
+            "next_step": "12"
+          },
+          {
+            "step_number": 12,
+            "action": "Write report headers if first transaction or page break",
+            "conditions": [
+              "First transaction or line counter at page boundary"
+            ],
+            "next_step": "13"
+          },
+          {
+            "step_number": 13,
+            "action": "Write page totals if page break",
+            "conditions": [
+              "Line counter modulo page size equals zero"
+            ],
+            "next_step": "14"
+          },
+          {
+            "step_number": 14,
+            "action": "Add transaction amount to page and account totals",
+            "conditions": [],
+            "next_step": "15"
+          },
+          {
+            "step_number": 15,
+            "action": "Write transaction detail line to report",
+            "conditions": [],
+            "next_step": "16"
+          },
+          {
+            "step_number": 16,
+            "action": "Increment line counter",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 17,
+            "action": "Write final page totals",
+            "conditions": [
+              "End of file reached"
+            ],
+            "next_step": "18"
+          },
+          {
+            "step_number": 18,
+            "action": "Write final account totals",
+            "conditions": [],
+            "next_step": "19"
+          },
+          {
+            "step_number": 19,
+            "action": "Write grand totals",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "Transaction Data Source",
+        "type": "Data Input",
+        "purpose": "Provides transaction records for report generation",
+        "data_exchanged": [
+          "transaction_id",
+          "transaction_type_code",
+          "transaction_category_code",
+          "transaction_amount",
+          "card_number",
+          "processing_timestamp",
+          "transaction_source"
+        ],
+        "trigger_conditions": [
+          "Batch job execution initiated"
+        ]
+      },
+      {
+        "name": "Card Cross-Reference Lookup",
+        "type": "Reference Data",
+        "purpose": "Maps card numbers to account IDs",
+        "data_exchanged": [
+          "card_number",
+          "account_id"
+        ],
+        "trigger_conditions": [
+          "Transaction with new card number encountered"
+        ]
+      },
+      {
+        "name": "Transaction Type Reference",
+        "type": "Reference Data",
+        "purpose": "Provides descriptive information for transaction type codes",
+        "data_exchanged": [
+          "transaction_type_code",
+          "transaction_type_description"
+        ],
+        "trigger_conditions": [
+          "Transaction processed requiring type description"
+        ]
+      },
+      {
+        "name": "Transaction Category Reference",
+        "type": "Reference Data",
+        "purpose": "Provides descriptive information for transaction category codes",
+        "data_exchanged": [
+          "transaction_type_code",
+          "transaction_category_code",
+          "category_description"
+        ],
+        "trigger_conditions": [
+          "Transaction processed requiring category description"
+        ]
+      },
+      {
+        "name": "Date Parameter Input",
+        "type": "Configuration",
+        "purpose": "Provides date range parameters for report filtering",
+        "data_exchanged": [
+          "start_date",
+          "end_date"
+        ],
+        "trigger_conditions": [
+          "Report generation initiated"
+        ]
+      },
+      {
+        "name": "Report Output",
+        "type": "Data Output",
+        "purpose": "Generates formatted transaction detail report",
+        "data_exchanged": [
+          "transaction_id",
+          "account_id",
+          "transaction_type_code",
+          "transaction_type_description",
+          "transaction_category_code",
+          "category_description",
+          "transaction_source",
+          "transaction_amount",
+          "page_total",
+          "account_total",
+          "grand_total"
+        ],
+        "trigger_conditions": [
+          "Transaction detail line generated",
+          "Page break occurs",
+          "Account change occurs",
+          "End of report reached"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Batch Job Executor",
+        "Report Viewer",
+        "System Administrator"
+      ],
+      "permissions": [
+        {
+          "role": "Batch Job Executor",
+          "resource": "Transaction Report Generation",
+          "actions": [
+            "execute",
+            "read_transaction_data",
+            "read_reference_data",
+            "write_report"
+          ]
+        },
+        {
+          "role": "Report Viewer",
+          "resource": "Transaction Report",
+          "actions": [
+            "view",
+            "download"
+          ]
+        },
+        {
+          "role": "System Administrator",
+          "resource": "All Resources",
+          "actions": [
+            "execute",
+            "read",
+            "write",
+            "configure",
+            "monitor"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "Valid system credentials required for batch job execution",
+        "Access to transaction data requires appropriate authorization",
+        "Report access restricted based on user role"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "ERR001",
+        "condition": "Date parameter file cannot be read or has invalid status",
+        "business_impact": "Report cannot be generated without date range parameters",
+        "suggested_action": "Display error message, show IO status, abort program"
+      },
+      {
+        "error_code": "ERR002",
+        "condition": "Invalid card number encountered during cross-reference lookup",
+        "business_impact": "Cannot associate transaction with account, data integrity issue",
+        "suggested_action": "Display error message with card number, show IO status, abort program"
+      },
+      {
+        "error_code": "ERR003",
+        "condition": "Invalid transaction type code encountered",
+        "business_impact": "Cannot provide descriptive information for transaction type",
+        "suggested_action": "Display error message with type code, show IO status, abort program"
+      },
+      {
+        "error_code": "ERR004",
+        "condition": "Invalid transaction category key encountered",
+        "business_impact": "Cannot provide descriptive information for transaction category",
+        "suggested_action": "Display error message with category key, show IO status, abort program"
+      },
+      {
+        "error_code": "ERR005",
+        "condition": "Error writing to report file",
+        "business_impact": "Report generation incomplete or corrupted",
+        "suggested_action": "Display error message, show IO status, abort program"
+      },
+      {
+        "error_code": "ERR006",
+        "condition": "Transaction file cannot be opened or read",
+        "business_impact": "No transactions available for processing",
+        "suggested_action": "Display error message, show IO status, abort program"
+      },
+      {
+        "error_code": "ERR007",
+        "condition": "Reference data files cannot be accessed",
+        "business_impact": "Cannot enrich transaction data with descriptive information",
+        "suggested_action": "Display error message, show IO status, abort program"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [],
+    "reports": [
+      {
+        "name": "Transaction Detail Report",
+        "description": "Detailed report of credit card transactions within a specified date range, grouped by card number with page, account, and grand totals",
+        "type": "Batch Report",
+        "data_sources": [
+          "Transaction",
+          "Card",
+          "TransactionType",
+          "TransactionCategory"
+        ],
+        "filters": [
+          "Date range (start_date to end_date)",
+          "Processing timestamp within specified range"
+        ],
+        "columns": [
+          {
+            "name": "Transaction ID",
+            "data_field": "transaction_id",
+            "format": "alphanumeric",
+            "aggregation": "none"
+          },
+          {
+            "name": "Account ID",
+            "data_field": "account_id",
+            "format": "numeric",
+            "aggregation": "none"
+          },
+          {
+            "name": "Transaction Type Code",
+            "data_field": "transaction_type_code",
+            "format": "alphanumeric",
+            "aggregation": "none"
+          },
+          {
+            "name": "Transaction Type Description",
+            "data_field": "transaction_type_description",
+            "format": "alphanumeric",
+            "aggregation": "none"
+          },
+          {
+            "name": "Transaction Category Code",
+            "data_field": "transaction_category_code",
+            "format": "numeric",
+            "aggregation": "none"
+          },
+          {
+            "name": "Category Description",
+            "data_field": "category_description",
+            "format": "alphanumeric",
+            "aggregation": "none"
+          },
+          {
+            "name": "Transaction Source",
+            "data_field": "transaction_source",
+            "format": "alphanumeric",
+            "aggregation": "none"
+          },
+          {
+            "name": "Transaction Amount",
+            "data_field": "transaction_amount",
+            "format": "decimal(11,2)",
+            "aggregation": "sum"
+          },
+          {
+            "name": "Page Total",
+            "data_field": "page_total",
+            "format": "decimal(11,2)",
+            "aggregation": "sum"
+          },
+          {
+            "name": "Account Total",
+            "data_field": "account_total",
+            "format": "decimal(11,2)",
+            "aggregation": "sum"
+          },
+          {
+            "name": "Grand Total",
+            "data_field": "grand_total",
+            "format": "decimal(11,2)",
+            "aggregation": "sum"
+          }
+        ],
+        "sorting": [
+          "card_number ascending",
+          "processing_timestamp ascending"
+        ],
+        "grouping": [
+          "card_number",
+          "page (20 lines per page)"
+        ]
+      }
+    ],
+    "navigation_flow": [],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "informational",
+        "message": "Reporting from [start_date] to [end_date]",
+        "context": "Displayed at start of report generation to show date range"
+      },
+      {
+        "code": "ERR001",
+        "type": "error",
+        "message": "ERROR READING DATEPARM",
+        "context": "Date parameter file cannot be read"
+      },
+      {
+        "code": "ERR002",
+        "type": "error",
+        "message": "INVALID CARD NUMBER: [card_number]",
+        "context": "Card number not found in cross-reference file"
+      },
+      {
+        "code": "ERR003",
+        "type": "error",
+        "message": "INVALID TRANSACTION TYPE: [transaction_type_code]",
+        "context": "Transaction type code not found in reference file"
+      },
+      {
+        "code": "ERR004",
+        "type": "error",
+        "message": "INVALID TRAN CATG KEY: [transaction_category_key]",
+        "context": "Transaction category key not found in reference file"
+      },
+      {
+        "code": "ERR005",
+        "type": "error",
+        "message": "ERROR WRITING REPTFILE",
+        "context": "Report file write operation failed"
+      },
+      {
+        "code": "MSG002",
+        "type": "informational",
+        "message": "ABENDING PROGRAM",
+        "context": "Program termination due to critical error"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Transaction to Report Flow",
+      "description": "Flow of transaction data from source file through enrichment to final report",
+      "source": "Transaction File",
+      "destination": "Transaction Detail Report",
+      "data_elements": [
+        "transaction_id",
+        "transaction_type_code",
+        "transaction_category_code",
+        "transaction_amount",
+        "card_number",
+        "processing_timestamp",
+        "transaction_source"
+      ],
+      "transformations": [
+        "Filter by date range",
+        "Lookup account ID from card number",
+        "Lookup transaction type description",
+        "Lookup transaction category description",
+        "Calculate page totals",
+        "Calculate account totals",
+        "Calculate grand total",
+        "Format for report output"
+      ]
+    },
+    {
+      "name": "Date Parameter Flow",
+      "description": "Flow of date parameters from parameter file to report filtering logic",
+      "source": "Date Parameter File",
+      "destination": "Transaction Processing Logic",
+      "data_elements": [
+        "start_date",
+        "end_date"
+      ],
+      "transformations": [
+        "Extract dates from parameter record",
+        "Use for transaction filtering",
+        "Display in report header"
+      ]
+    },
+    {
+      "name": "Reference Data Enrichment Flow",
+      "description": "Flow of reference data to enrich transaction information",
+      "source": "Reference Data Files (Card, Type, Category)",
+      "destination": "Transaction Detail Report",
+      "data_elements": [
+        "account_id",
+        "transaction_type_description",
+        "category_description"
+      ],
+      "transformations": [
+        "Lookup based on transaction keys",
+        "Merge with transaction data",
+        "Include in report output"
+      ]
+    },
+    {
+      "name": "Totals Accumulation Flow",
+      "description": "Flow of transaction amounts through various totaling levels",
+      "source": "Transaction Amount",
+      "destination": "Report Totals (Page, Account, Grand)",
+      "data_elements": [
+        "transaction_amount"
+      ],
+      "transformations": [
+        "Add to page total",
+        "Add to account total",
+        "Add page total to grand total at page break",
+        "Reset page total after page break",
+        "Reset account total after account change"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Data Integrity",
+      "description": "All card numbers in transactions must have corresponding entries in the card cross-reference file",
+      "impact": "Program aborts if invalid card number encountered"
+    },
+    {
+      "type": "Data Integrity",
+      "description": "All transaction type codes must exist in the transaction type reference file",
+      "impact": "Program aborts if invalid transaction type encountered"
+    },
+    {
+      "type": "Data Integrity",
+      "description": "All transaction category keys must exist in the transaction category reference file",
+      "impact": "Program aborts if invalid transaction category encountered"
+    },
+    {
+      "type": "Processing",
+      "description": "Transactions must be processed within a specified date range",
+      "impact": "Transactions outside date range are excluded from report"
+    },
+    {
+      "type": "Report Formatting",
+      "description": "Report pages are limited to 20 lines per page",
+      "impact": "Page breaks and totals are automatically inserted"
+    },
+    {
+      "type": "Report Organization",
+      "description": "Transactions must be grouped by card number",
+      "impact": "Account totals are calculated and displayed when card number changes"
+    },
+    {
+      "type": "Batch Processing",
+      "description": "Program operates as a batch process with no user interaction during execution",
+      "impact": "All parameters must be provided before execution begins"
+    },
+    {
+      "type": "Error Handling",
+      "description": "Critical errors result in immediate program termination",
+      "impact": "Report generation is all-or-nothing; partial reports are not produced"
+    }
+  ]
+}

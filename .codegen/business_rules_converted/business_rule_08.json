@@ -1,0 +1,958 @@
+{
+  "application_metadata": {
+    "name": "CardDemo Transaction View",
+    "description": "CICS COBOL program that allows users to view detailed transaction information from the TRANSACT file by entering a transaction ID",
+    "domain": "Financial Services - Credit Card Transaction Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "Transaction",
+        "description": "Represents a credit card transaction with complete details including merchant information and timestamps",
+        "attributes": [
+          {
+            "name": "transaction_id",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Unique identifier for the transaction"
+          },
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Credit card number associated with the transaction, masked for security"
+          },
+          {
+            "name": "transaction_type_code",
+            "type": "string",
+            "length": 2,
+            "required": true,
+            "description": "Code indicating the type of transaction"
+          },
+          {
+            "name": "transaction_category_code",
+            "type": "numeric",
+            "length": 4,
+            "required": true,
+            "description": "Code indicating the category of the transaction"
+          },
+          {
+            "name": "transaction_source",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "Source of the transaction (e.g., POS, ATM, ONLINE)"
+          },
+          {
+            "name": "transaction_amount",
+            "type": "decimal",
+            "length": 11,
+            "required": true,
+            "description": "Amount of the transaction with two decimal places, signed numeric"
+          },
+          {
+            "name": "transaction_description",
+            "type": "string",
+            "length": 100,
+            "required": false,
+            "description": "Detailed description of the transaction, may contain merchant details"
+          },
+          {
+            "name": "original_transaction_timestamp",
+            "type": "timestamp",
+            "length": 26,
+            "required": true,
+            "description": "Timestamp when the transaction was initiated in format YYYY-MM-DD-HH.MM.SS.MMMMMM"
+          },
+          {
+            "name": "processed_transaction_timestamp",
+            "type": "timestamp",
+            "length": 26,
+            "required": true,
+            "description": "Timestamp when the transaction was processed in format YYYY-MM-DD-HH.MM.SS.MMMMMM"
+          },
+          {
+            "name": "merchant_id",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Unique identifier for the merchant"
+          },
+          {
+            "name": "merchant_name",
+            "type": "string",
+            "length": 50,
+            "required": false,
+            "description": "Name of the merchant"
+          },
+          {
+            "name": "merchant_city",
+            "type": "string",
+            "length": 50,
+            "required": false,
+            "description": "City where the merchant is located"
+          },
+          {
+            "name": "merchant_zip",
+            "type": "string",
+            "length": 10,
+            "required": false,
+            "description": "ZIP code of the merchant location"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Merchant",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          },
+          {
+            "related_entity": "CreditCard",
+            "relationship_type": "many-to-one",
+            "cardinality": "N:1"
+          }
+        ]
+      },
+      {
+        "name": "Merchant",
+        "description": "Represents a merchant where transactions occur",
+        "attributes": [
+          {
+            "name": "merchant_id",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Unique identifier for the merchant"
+          },
+          {
+            "name": "merchant_name",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Name of the merchant"
+          },
+          {
+            "name": "merchant_city",
+            "type": "string",
+            "length": 50,
+            "required": false,
+            "description": "City where the merchant is located"
+          },
+          {
+            "name": "merchant_zip",
+            "type": "string",
+            "length": 10,
+            "required": false,
+            "description": "ZIP code of the merchant"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "one-to-many",
+            "cardinality": "1:N"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Transaction ID Required",
+        "description": "Transaction ID must be provided and cannot be empty or contain only spaces",
+        "category": "validation",
+        "logic": "Check if transaction ID input field is empty or contains only spaces before processing",
+        "conditions": [
+          "User submits transaction view request",
+          "Transaction ID field is empty or spaces"
+        ],
+        "actions": [
+          "Set error flag to 'Y'",
+          "Display error message 'Tran ID can NOT be empty...'",
+          "Position cursor on transaction ID input field",
+          "Prevent transaction lookup"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Transaction Retrieval",
+        "description": "System retrieves transaction details from TRANSACT file using the provided transaction ID",
+        "category": "data_retrieval",
+        "logic": "Use transaction ID as primary key to retrieve complete transaction record",
+        "conditions": [
+          "Valid transaction ID is provided",
+          "Transaction ID passes validation"
+        ],
+        "actions": [
+          "Query TRANSACT file with transaction ID",
+          "Retrieve all transaction fields",
+          "Display transaction details on screen if found",
+          "Display error message if not found"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Transaction Not Found Handling",
+        "description": "When a transaction ID does not exist in the system, appropriate error message is displayed",
+        "category": "error_handling",
+        "logic": "Check if transaction record exists for the provided ID",
+        "conditions": [
+          "Transaction ID is valid format",
+          "No matching record found in TRANSACT file"
+        ],
+        "actions": [
+          "Set error flag to 'Y'",
+          "Display error message 'Transaction ID NOT found...'",
+          "Position cursor on transaction ID input field",
+          "Keep input field populated for correction"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Transaction Amount Formatting",
+        "description": "Transaction amount must be formatted for display with proper currency representation",
+        "category": "formatting",
+        "logic": "Convert signed numeric amount to display format with decimal places",
+        "conditions": [
+          "Transaction record is successfully retrieved",
+          "Transaction amount field contains valid numeric data"
+        ],
+        "actions": [
+          "Format amount with two decimal places",
+          "Apply currency formatting for display",
+          "Display formatted amount on screen"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Screen Header Population",
+        "description": "Screen header must display current date, time, transaction name, and program name",
+        "category": "display",
+        "logic": "Populate header information with system and context data before displaying screen",
+        "conditions": [
+          "Screen is being prepared for display"
+        ],
+        "actions": [
+          "Get current system date and time",
+          "Format date as MM/DD/YY",
+          "Format time as HH:MM:SS",
+          "Display transaction ID in header",
+          "Display program name in header",
+          "Display application title"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Screen Clear Operation",
+        "description": "All screen fields must be cleared and reset to initial state when clear function is invoked",
+        "category": "screen_management",
+        "logic": "Reset all input and output fields to spaces and reposition cursor",
+        "conditions": [
+          "User invokes clear screen function (PF4)"
+        ],
+        "actions": [
+          "Clear transaction ID input field",
+          "Clear all transaction detail fields",
+          "Clear error messages",
+          "Position cursor on transaction ID input field",
+          "Redisplay empty screen"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Transaction Lookup Error Handling",
+        "description": "System errors during transaction lookup must be handled with appropriate user messaging",
+        "category": "error_handling",
+        "logic": "Catch and handle any system errors that occur during transaction retrieval",
+        "conditions": [
+          "System error occurs during transaction file access",
+          "Error is not a 'record not found' condition"
+        ],
+        "actions": [
+          "Set error flag to 'Y'",
+          "Display error message 'Unable to lookup Transaction...'",
+          "Position cursor on transaction ID input field",
+          "Log response and reason codes for debugging"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "transaction_id",
+        "rule": "required_not_empty",
+        "error_message": "Tran ID can NOT be empty...",
+        "severity": "error"
+      },
+      {
+        "field": "transaction_id",
+        "rule": "exists_in_database",
+        "error_message": "Transaction ID NOT found...",
+        "severity": "error"
+      },
+      {
+        "field": "transaction_id",
+        "rule": "max_length_16",
+        "error_message": "Transaction ID must not exceed 16 characters",
+        "severity": "error"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Format Transaction Amount",
+        "description": "Converts signed numeric transaction amount to formatted display string",
+        "formula": "Convert S9(09)V99 to display format with decimal point and currency formatting",
+        "input_fields": [
+          "transaction_amount"
+        ],
+        "output_field": "formatted_transaction_amount"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "View Transaction Details",
+        "description": "Complete workflow for viewing a transaction by ID",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "User enters transaction ID",
+            "conditions": [
+              "User is on transaction view screen"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Validate transaction ID is not empty",
+            "conditions": [
+              "User presses Enter key"
+            ],
+            "next_step": "3_or_error"
+          },
+          {
+            "step_number": 3,
+            "action": "Retrieve transaction from TRANSACT file",
+            "conditions": [
+              "Transaction ID is valid"
+            ],
+            "next_step": "4_or_error"
+          },
+          {
+            "step_number": 4,
+            "action": "Format transaction amount for display",
+            "conditions": [
+              "Transaction record found"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Populate all transaction fields on screen",
+            "conditions": [
+              "Amount formatted successfully"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Display transaction details to user",
+            "conditions": [
+              "All fields populated"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Clear Screen",
+        "description": "Workflow for clearing the transaction view screen",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "User invokes clear function",
+            "conditions": [
+              "User presses PF4 key"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Initialize all screen fields to spaces",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Clear error messages",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Position cursor on transaction ID field",
+            "conditions": [],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Display cleared screen",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "TRANSACT File Access",
+        "type": "database",
+        "purpose": "Retrieve transaction records by transaction ID",
+        "data_exchanged": [
+          "transaction_id",
+          "card_number",
+          "transaction_type_code",
+          "transaction_category_code",
+          "transaction_source",
+          "transaction_amount",
+          "transaction_description",
+          "original_transaction_timestamp",
+          "processed_transaction_timestamp",
+          "merchant_id",
+          "merchant_name",
+          "merchant_city",
+          "merchant_zip"
+        ],
+        "trigger_conditions": [
+          "Valid transaction ID provided by user",
+          "User submits view request"
+        ]
+      },
+      {
+        "name": "Transaction List Navigation",
+        "type": "screen_navigation",
+        "purpose": "Navigate to transaction list screen (COTRN00C)",
+        "data_exchanged": [
+          "navigation_context"
+        ],
+        "trigger_conditions": [
+          "User presses PF5 key"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "transaction_viewer",
+        "card_services_representative",
+        "system_administrator"
+      ],
+      "permissions": [
+        {
+          "role": "transaction_viewer",
+          "resource": "transaction_details",
+          "actions": [
+            "view"
+          ]
+        },
+        {
+          "role": "card_services_representative",
+          "resource": "transaction_details",
+          "actions": [
+            "view"
+          ]
+        },
+        {
+          "role": "system_administrator",
+          "resource": "transaction_details",
+          "actions": [
+            "view"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be authenticated to access transaction view",
+        "Card number is masked for security purposes"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "ERR001",
+        "condition": "Transaction ID is empty or contains only spaces",
+        "business_impact": "User cannot view transaction details without providing valid ID",
+        "suggested_action": "Display error message and prompt user to enter transaction ID"
+      },
+      {
+        "error_code": "ERR002",
+        "condition": "Transaction ID not found in TRANSACT file",
+        "business_impact": "Requested transaction does not exist or may have been deleted",
+        "suggested_action": "Display 'Transaction ID NOT found' message and allow user to retry with different ID"
+      },
+      {
+        "error_code": "ERR003",
+        "condition": "System error during transaction file access",
+        "business_impact": "Unable to retrieve transaction data due to system issue",
+        "suggested_action": "Display 'Unable to lookup Transaction' message and log error details for technical support"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "COTRN1A",
+        "name": "Transaction View Screen",
+        "purpose": "Display detailed information for a specific transaction based on transaction ID",
+        "screen_type": "detail_view",
+        "navigation_from": [
+          "transaction_list_screen",
+          "main_menu"
+        ],
+        "navigation_to": [
+          "transaction_list_screen",
+          "previous_screen"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "header",
+            "fields": [
+              {
+                "name": "title01",
+                "label": "Application Title Line 1",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "First line of application title"
+              },
+              {
+                "name": "title02",
+                "label": "Application Title Line 2",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Second line of application title"
+              },
+              {
+                "name": "current_date",
+                "label": "Current Date",
+                "type": "date",
+                "input_output": "output",
+                "required": true,
+                "default_value": "system_date",
+                "validation": "MM/DD/YY format",
+                "help_text": "Current system date"
+              },
+              {
+                "name": "current_time",
+                "label": "Current Time",
+                "type": "time",
+                "input_output": "output",
+                "required": true,
+                "default_value": "system_time",
+                "validation": "HH:MM:SS format",
+                "help_text": "Current system time"
+              },
+              {
+                "name": "transaction_name",
+                "label": "Transaction Name",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Name of the current transaction"
+              },
+              {
+                "name": "program_name",
+                "label": "Program Name",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "COTRN01C",
+                "validation": "",
+                "help_text": "Name of the executing program"
+              }
+            ]
+          },
+          {
+            "name": "Search Criteria",
+            "type": "input",
+            "fields": [
+              {
+                "name": "transaction_id_input",
+                "label": "Transaction ID",
+                "type": "text",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "not_empty, max_length_16",
+                "help_text": "Enter the transaction ID to view details"
+              }
+            ]
+          },
+          {
+            "name": "Transaction Details",
+            "type": "display",
+            "fields": [
+              {
+                "name": "transaction_id_display",
+                "label": "Transaction ID",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Unique identifier for the transaction"
+              },
+              {
+                "name": "card_number",
+                "label": "Card Number",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Credit card number (masked for security)"
+              },
+              {
+                "name": "transaction_type_code",
+                "label": "Transaction Type Code",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Code indicating the type of transaction"
+              },
+              {
+                "name": "transaction_category_code",
+                "label": "Transaction Category Code",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Code indicating the category of the transaction"
+              },
+              {
+                "name": "transaction_source",
+                "label": "Transaction Source",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Source of the transaction (POS, ATM, ONLINE)"
+              },
+              {
+                "name": "transaction_amount",
+                "label": "Transaction Amount",
+                "type": "currency",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "currency_format",
+                "help_text": "Amount of the transaction"
+              },
+              {
+                "name": "transaction_description",
+                "label": "Transaction Description",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Detailed description of the transaction"
+              },
+              {
+                "name": "original_timestamp",
+                "label": "Original Transaction Timestamp",
+                "type": "timestamp",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "timestamp_format",
+                "help_text": "When the transaction was initiated"
+              },
+              {
+                "name": "processed_timestamp",
+                "label": "Processed Transaction Timestamp",
+                "type": "timestamp",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "timestamp_format",
+                "help_text": "When the transaction was processed"
+              }
+            ]
+          },
+          {
+            "name": "Merchant Information",
+            "type": "display",
+            "fields": [
+              {
+                "name": "merchant_id",
+                "label": "Merchant ID",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Unique identifier for the merchant"
+              },
+              {
+                "name": "merchant_name",
+                "label": "Merchant Name",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Name of the merchant"
+              },
+              {
+                "name": "merchant_city",
+                "label": "Merchant City",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "City where the merchant is located"
+              },
+              {
+                "name": "merchant_zip",
+                "label": "Merchant ZIP",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "ZIP code of the merchant"
+              }
+            ]
+          },
+          {
+            "name": "Messages",
+            "type": "message",
+            "fields": [
+              {
+                "name": "error_message",
+                "label": "Error Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays error or information messages to the user"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "View Transaction",
+            "trigger": "enter_key",
+            "description": "Retrieves and displays transaction details for the entered transaction ID",
+            "backend_process": "PROCESS-ENTER-KEY",
+            "success_navigation": "stay_on_screen",
+            "error_handling": "display_error_message_on_screen"
+          },
+          {
+            "name": "Return to Previous Screen",
+            "trigger": "pf3_key",
+            "description": "Returns user to the previous screen",
+            "backend_process": "navigation",
+            "success_navigation": "previous_screen",
+            "error_handling": "none"
+          },
+          {
+            "name": "Clear Screen",
+            "trigger": "pf4_key",
+            "description": "Clears all fields on the current screen and resets to initial state",
+            "backend_process": "CLEAR-CURRENT-SCREEN",
+            "success_navigation": "stay_on_screen",
+            "error_handling": "none"
+          },
+          {
+            "name": "Go to Transaction List",
+            "trigger": "pf5_key",
+            "description": "Navigates to the transaction list screen",
+            "backend_process": "navigation",
+            "success_navigation": "COTRN00C",
+            "error_handling": "none"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "transaction_id_is_empty",
+            "affected_fields": [
+              "all_transaction_detail_fields"
+            ],
+            "behavior": "clear_and_hide"
+          },
+          {
+            "condition": "transaction_not_found",
+            "affected_fields": [
+              "error_message"
+            ],
+            "behavior": "display_error"
+          },
+          {
+            "condition": "transaction_found",
+            "affected_fields": [
+              "all_transaction_detail_fields"
+            ],
+            "behavior": "populate_and_display"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "COTRN1A",
+        "to_screen": "previous_screen",
+        "trigger": "pf3_key",
+        "conditions": []
+      },
+      {
+        "from_screen": "COTRN1A",
+        "to_screen": "COTRN00C",
+        "trigger": "pf5_key",
+        "conditions": []
+      },
+      {
+        "from_screen": "COTRN1A",
+        "to_screen": "COTRN1A",
+        "trigger": "pf4_key",
+        "conditions": [
+          "clear_screen_action"
+        ]
+      },
+      {
+        "from_screen": "COTRN1A",
+        "to_screen": "COTRN1A",
+        "trigger": "enter_key",
+        "conditions": [
+          "view_transaction_action"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "error",
+        "message": "Tran ID can NOT be empty...",
+        "context": "User attempts to view transaction without entering transaction ID"
+      },
+      {
+        "code": "MSG002",
+        "type": "error",
+        "message": "Transaction ID NOT found...",
+        "context": "Entered transaction ID does not exist in the system"
+      },
+      {
+        "code": "MSG003",
+        "type": "error",
+        "message": "Unable to lookup Transaction...",
+        "context": "System error occurred while attempting to retrieve transaction"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Transaction Retrieval Flow",
+      "description": "Flow of data from user input through transaction retrieval to screen display",
+      "source": "user_input",
+      "destination": "transaction_view_screen",
+      "data_elements": [
+        "transaction_id",
+        "card_number",
+        "transaction_type_code",
+        "transaction_category_code",
+        "transaction_source",
+        "transaction_amount",
+        "transaction_description",
+        "original_transaction_timestamp",
+        "processed_transaction_timestamp",
+        "merchant_id",
+        "merchant_name",
+        "merchant_city",
+        "merchant_zip"
+      ],
+      "transformations": [
+        "Validate transaction ID is not empty",
+        "Retrieve transaction record from TRANSACT file",
+        "Format transaction amount for display",
+        "Populate screen output fields"
+      ]
+    },
+    {
+      "name": "Screen Header Population Flow",
+      "description": "Flow of system data to populate screen header information",
+      "source": "system",
+      "destination": "screen_header",
+      "data_elements": [
+        "current_date",
+        "current_time",
+        "transaction_name",
+        "program_name",
+        "application_title"
+      ],
+      "transformations": [
+        "Get current system date and time",
+        "Format date as MM/DD/YY",
+        "Format time as HH:MM:SS",
+        "Populate header fields"
+      ]
+    },
+    {
+      "name": "Error Message Flow",
+      "description": "Flow of error information from validation or processing to user display",
+      "source": "validation_or_processing",
+      "destination": "error_message_field",
+      "data_elements": [
+        "error_flag",
+        "error_message",
+        "cursor_position"
+      ],
+      "transformations": [
+        "Set error flag based on condition",
+        "Generate appropriate error message",
+        "Position cursor on relevant field",
+        "Display error message on screen"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "data_integrity",
+      "description": "Transaction ID must be unique and exist in the TRANSACT file to be viewable",
+      "impact": "Users can only view transactions that have been properly recorded in the system"
+    },
+    {
+      "type": "security",
+      "description": "Card numbers are masked for security purposes when displayed",
+      "impact": "Full card numbers are not visible to users viewing transaction details"
+    },
+    {
+      "type": "usability",
+      "description": "Transaction ID is required input before any transaction details can be displayed",
+      "impact": "Users must know the specific transaction ID they want to view"
+    },
+    {
+      "type": "operational",
+      "description": "System supports viewing transactions for verification, dispute resolution, and monitoring purposes",
+      "impact": "Critical for customer service and fraud detection operations"
+    },
+    {
+      "type": "data_format",
+      "description": "Timestamps are stored and displayed in format YYYY-MM-DD-HH.MM.SS.MMMMMM",
+      "impact": "Provides precise timing information for transaction tracking and audit purposes"
+    }
+  ]
+}

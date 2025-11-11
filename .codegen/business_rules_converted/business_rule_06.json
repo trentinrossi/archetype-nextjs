@@ -1,0 +1,1524 @@
+{
+  "application_metadata": {
+    "name": "CardDemo Transaction Report Generation",
+    "description": "CICS COBOL program that generates and prints transaction reports by submitting batch jobs from an online interface using an extra partition Transient Data Queue (TDQ). Allows users to select different report types (monthly, yearly, or custom date range) and submit corresponding batch jobs for report generation.",
+    "domain": "Financial Services - Credit Card Transaction Reporting"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "TransactionReport",
+        "description": "Represents a transaction report request with date range and type specifications",
+        "attributes": [
+          {
+            "name": "report_type",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "Type of report: Monthly, Yearly, or Custom"
+          },
+          {
+            "name": "start_date",
+            "type": "date",
+            "length": 10,
+            "required": true,
+            "description": "Start date for the report in YYYY-MM-DD format"
+          },
+          {
+            "name": "end_date",
+            "type": "date",
+            "length": 10,
+            "required": true,
+            "description": "End date for the report in YYYY-MM-DD format"
+          },
+          {
+            "name": "confirmation_flag",
+            "type": "string",
+            "length": 1,
+            "required": true,
+            "description": "User confirmation to proceed with report generation (Y/N)"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "references",
+            "cardinality": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "Transaction",
+        "description": "Individual transaction record from the TRANSACT file",
+        "attributes": [
+          {
+            "name": "transaction_amount",
+            "type": "decimal",
+            "length": 11,
+            "required": true,
+            "description": "Transaction amount with format +99999999.99"
+          },
+          {
+            "name": "transaction_date",
+            "type": "date",
+            "length": 8,
+            "required": true,
+            "description": "Date of transaction in MM/DD/YY format"
+          }
+        ],
+        "relationships": []
+      },
+      {
+        "name": "JobSubmission",
+        "description": "Represents a batch job submission for report generation",
+        "attributes": [
+          {
+            "name": "jcl_content",
+            "type": "string",
+            "length": 80,
+            "required": true,
+            "description": "JCL record content for job submission"
+          },
+          {
+            "name": "parameter_start_date",
+            "type": "date",
+            "length": 10,
+            "required": true,
+            "description": "Start date parameter for batch job"
+          },
+          {
+            "name": "parameter_end_date",
+            "type": "date",
+            "length": 10,
+            "required": true,
+            "description": "End date parameter for batch job"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "TransactionReport",
+            "relationship_type": "generated_from",
+            "cardinality": "one-to-one"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Monthly Report Date Range",
+        "description": "Monthly reports generate data from the first day of the current month to the last day of the current month",
+        "category": "Report Generation",
+        "logic": "When Monthly report is selected, automatically set start date to first day of current month (YYYY-MM-01) and end date to last day of current month by calculating next month's first day minus one day",
+        "conditions": [
+          "User selects Monthly report option",
+          "MONTHLYI field is not spaces or low-values"
+        ],
+        "actions": [
+          "Get current date using system function",
+          "Set start date year and month to current year and month, day to 01",
+          "Calculate end date by adding 1 to current month",
+          "If resulting month > 12, increment year and set month to 1",
+          "Subtract 1 day from first day of next month to get last day of current month",
+          "Submit job with calculated date range"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Yearly Report Date Range",
+        "description": "Yearly reports generate data from January 1st to December 31st of the current year",
+        "category": "Report Generation",
+        "logic": "When Yearly report is selected, automatically set start date to January 1st of current year and end date to December 31st of current year",
+        "conditions": [
+          "User selects Yearly report option",
+          "YEARLYI field is not spaces or low-values"
+        ],
+        "actions": [
+          "Get current year using system function",
+          "Set start date to current year, month 01, day 01",
+          "Set end date to current year, month 12, day 31",
+          "Submit job with calculated date range"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Custom Report Date Range Validation",
+        "description": "Custom reports require user to specify valid start and end dates with comprehensive validation",
+        "category": "Data Validation",
+        "logic": "When Custom report is selected, validate all date components (month, day, year) for both start and end dates, ensure dates are valid calendar dates, and verify date format compliance",
+        "conditions": [
+          "User selects Custom report option",
+          "CUSTOMI field is not spaces or low-values"
+        ],
+        "actions": [
+          "Validate all date fields are not empty (SDTMMI, SDTDDI, SDTYYYYI, EDTMMI, EDTDDI, EDTYYYYI)",
+          "Convert date fields from character to numeric using NUMVAL-C function",
+          "Validate month values are between 1 and 12",
+          "Validate day values are between 1 and 31",
+          "Validate year values are numeric",
+          "Construct dates in YYYY-MM-DD format",
+          "Call CSUTLDTC utility to validate start date",
+          "Call CSUTLDTC utility to validate end date",
+          "Check CSUTLDTC-RESULT-SEV-CD for validation results",
+          "If valid, submit job with user-specified date range",
+          "If invalid, display appropriate error message and set cursor to invalid field"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "User Confirmation Required",
+        "description": "Before submitting any report job, user must explicitly confirm the action",
+        "category": "User Interaction",
+        "logic": "System must receive explicit confirmation (Y or y) from user before proceeding with job submission. User can cancel (N or n) or must provide valid confirmation value",
+        "conditions": [
+          "Report type has been selected and validated",
+          "Date range has been determined and validated"
+        ],
+        "actions": [
+          "Check if CONFIRMI field is empty or low-values - display error requesting confirmation",
+          "If CONFIRMI is 'Y' or 'y', proceed with job submission",
+          "If CONFIRMI is 'N' or 'n', initialize all fields and return to screen",
+          "If CONFIRMI is any other value, display error for invalid confirmation",
+          "Set cursor to CONFIRML field for user input"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Job Submission to Internal Reader",
+        "description": "Validated report requests are submitted as batch jobs via Transient Data Queue named JOBS",
+        "category": "Job Submission",
+        "logic": "After validation and confirmation, generate JCL from predefined template with date parameters and write to TDQ for batch processing",
+        "conditions": [
+          "Report type is selected and validated",
+          "Date range is validated",
+          "User has confirmed with 'Y' or 'y'"
+        ],
+        "actions": [
+          "Initialize loop control flag",
+          "Loop through JOB-LINES array (max 1000 iterations)",
+          "Move current JOB-LINES entry to JCL-RECORD",
+          "Check for end-of-job marker (/*EOF, spaces, or low-values)",
+          "Write each JCL-RECORD to TDQ named 'JOBS'",
+          "Capture response and reason codes",
+          "If write fails, set error flag and display error message",
+          "If successful, display confirmation message with report name"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Report Type Selection Validation",
+        "description": "User must select exactly one report type before proceeding",
+        "category": "Data Validation",
+        "logic": "System validates that user has selected one of the three available report types (Monthly, Yearly, or Custom) before allowing report generation",
+        "conditions": [
+          "User presses Enter key to submit report request"
+        ],
+        "actions": [
+          "Check if MONTHLYI is not spaces or low-values - process Monthly report",
+          "Check if YEARLYI is not spaces or low-values - process Yearly report",
+          "Check if CUSTOMI is not spaces or low-values - process Custom report",
+          "If no report type selected, display error 'Select a report type to print report...'",
+          "Set cursor to MONTHLYL field"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Date Format Standardization",
+        "description": "All dates are formatted as YYYY-MM-DD for consistency in job submission and processing",
+        "category": "Data Formatting",
+        "logic": "Regardless of input format or report type, all dates are converted to YYYY-MM-DD format before job submission",
+        "conditions": [
+          "Date range has been determined (calculated or user-entered)"
+        ],
+        "actions": [
+          "Format start date as YYYY-MM-DD",
+          "Format end date as YYYY-MM-DD",
+          "Move formatted dates to PARM-START-DATE-1, PARM-START-DATE-2, PARM-END-DATE-1, and PARM-END-DATE-2",
+          "Include formatted dates in JCL parameters"
+        ]
+      },
+      {
+        "id": "BR008",
+        "name": "Error Handling and User Feedback",
+        "description": "System provides clear error messages and positions cursor at error location for user correction",
+        "category": "Error Handling",
+        "logic": "When validation errors or system errors occur, display specific error message, set error flag, position cursor at relevant field, and allow user to correct",
+        "conditions": [
+          "Any validation error occurs",
+          "Any system error occurs during processing"
+        ],
+        "actions": [
+          "Set WS-ERR-FLG to 'Y'",
+          "Set appropriate error message in WS-MESSAGE",
+          "Set cursor to field requiring correction",
+          "Set ERRMSGC color attribute appropriately",
+          "Send updated screen to user",
+          "Preserve user-entered data where possible"
+        ]
+      },
+      {
+        "id": "BR009",
+        "name": "Screen Initialization After Submission",
+        "description": "After successful job submission, all input fields are cleared and screen is reset for next report request",
+        "category": "User Interface",
+        "logic": "Upon successful job submission, initialize all input fields, clear messages, set success message, and position cursor for new entry",
+        "conditions": [
+          "Job has been successfully submitted to TDQ",
+          "No errors occurred during submission"
+        ],
+        "actions": [
+          "Initialize MONTHLYI, YEARLYI, CUSTOMI fields",
+          "Initialize all date input fields (SDTMMI, SDTDDI, SDTYYYYI, EDTMMI, EDTDDI, EDTYYYYI)",
+          "Initialize CONFIRMI field",
+          "Set success message with report name",
+          "Set ERRMSGC to green color",
+          "Set cursor to MONTHLYL field",
+          "Send updated screen to user"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "MONTHLYI",
+        "rule": "Must be not spaces or low-values if Monthly report is selected",
+        "error_message": "Select a report type to print report...",
+        "severity": "error"
+      },
+      {
+        "field": "YEARLYI",
+        "rule": "Must be not spaces or low-values if Yearly report is selected",
+        "error_message": "Select a report type to print report...",
+        "severity": "error"
+      },
+      {
+        "field": "CUSTOMI",
+        "rule": "Must be not spaces or low-values if Custom report is selected",
+        "error_message": "Select a report type to print report...",
+        "severity": "error"
+      },
+      {
+        "field": "SDTMMI",
+        "rule": "Must be numeric and between 1 and 12 for Custom report",
+        "error_message": "Invalid start date month",
+        "severity": "error"
+      },
+      {
+        "field": "SDTDDI",
+        "rule": "Must be numeric and between 1 and 31 for Custom report",
+        "error_message": "Invalid start date day",
+        "severity": "error"
+      },
+      {
+        "field": "SDTYYYYI",
+        "rule": "Must be numeric and valid year for Custom report",
+        "error_message": "Invalid start date year",
+        "severity": "error"
+      },
+      {
+        "field": "EDTMMI",
+        "rule": "Must be numeric and between 1 and 12 for Custom report",
+        "error_message": "Invalid end date month",
+        "severity": "error"
+      },
+      {
+        "field": "EDTDDI",
+        "rule": "Must be numeric and between 1 and 31 for Custom report",
+        "error_message": "Invalid end date day",
+        "severity": "error"
+      },
+      {
+        "field": "EDTYYYYI",
+        "rule": "Must be numeric and valid year for Custom report",
+        "error_message": "Invalid end date year",
+        "severity": "error"
+      },
+      {
+        "field": "start_date",
+        "rule": "Must be valid calendar date validated by CSUTLDTC utility",
+        "error_message": "Invalid start date",
+        "severity": "error"
+      },
+      {
+        "field": "end_date",
+        "rule": "Must be valid calendar date validated by CSUTLDTC utility",
+        "error_message": "Invalid end date",
+        "severity": "error"
+      },
+      {
+        "field": "CONFIRMI",
+        "rule": "Must be 'Y', 'y', 'N', or 'n' when provided",
+        "error_message": "Invalid confirmation value. Enter Y or N",
+        "severity": "error"
+      },
+      {
+        "field": "CONFIRMI",
+        "rule": "Must not be empty or low-values before job submission",
+        "error_message": "Please confirm to print report (Y/N)",
+        "severity": "error"
+      },
+      {
+        "field": "custom_date_fields",
+        "rule": "All date component fields must be filled for Custom report",
+        "error_message": "All date fields are required for custom report",
+        "severity": "error"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Calculate Last Day of Current Month",
+        "description": "Determines the last day of the current month for Monthly report date range",
+        "formula": "Add 1 to current month; if month > 12, increment year and set month to 1; subtract 1 day from first day of next month",
+        "input_fields": [
+          "current_year",
+          "current_month"
+        ],
+        "output_field": "end_date"
+      },
+      {
+        "name": "Format Date to YYYY-MM-DD",
+        "description": "Converts date components to standardized YYYY-MM-DD format",
+        "formula": "Concatenate year (4 digits), hyphen, month (2 digits), hyphen, day (2 digits)",
+        "input_fields": [
+          "year",
+          "month",
+          "day"
+        ],
+        "output_field": "formatted_date"
+      },
+      {
+        "name": "Convert Character to Numeric Date Component",
+        "description": "Converts character date input to numeric value for validation",
+        "formula": "NUMVAL-C function applied to character field",
+        "input_fields": [
+          "character_date_component"
+        ],
+        "output_field": "numeric_date_component"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Monthly Report Generation Workflow",
+        "description": "Complete workflow for generating a monthly transaction report",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "User selects Monthly report option on screen",
+            "conditions": [
+              "MONTHLYI field is populated"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "System retrieves current date",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "System calculates start date as first day of current month",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "System calculates end date as last day of current month",
+            "conditions": [],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "System prompts user for confirmation",
+            "conditions": [],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "User enters confirmation (Y/N)",
+            "conditions": [
+              "CONFIRMI is 'Y' or 'y' to proceed",
+              "CONFIRMI is 'N' or 'n' to cancel"
+            ],
+            "next_step": "7 if Y, 10 if N"
+          },
+          {
+            "step_number": 7,
+            "action": "System generates JCL with date parameters",
+            "conditions": [
+              "Confirmation is Y"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "System writes JCL to JOBS TDQ",
+            "conditions": [],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "System displays success message and initializes screen",
+            "conditions": [
+              "Job submission successful"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 10,
+            "action": "System cancels operation and initializes screen",
+            "conditions": [
+              "Confirmation is N"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Yearly Report Generation Workflow",
+        "description": "Complete workflow for generating a yearly transaction report",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "User selects Yearly report option on screen",
+            "conditions": [
+              "YEARLYI field is populated"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "System retrieves current year",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "System sets start date to January 1st of current year",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "System sets end date to December 31st of current year",
+            "conditions": [],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "System prompts user for confirmation",
+            "conditions": [],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "User enters confirmation (Y/N)",
+            "conditions": [
+              "CONFIRMI is 'Y' or 'y' to proceed",
+              "CONFIRMI is 'N' or 'n' to cancel"
+            ],
+            "next_step": "7 if Y, 10 if N"
+          },
+          {
+            "step_number": 7,
+            "action": "System generates JCL with date parameters",
+            "conditions": [
+              "Confirmation is Y"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "System writes JCL to JOBS TDQ",
+            "conditions": [],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "System displays success message and initializes screen",
+            "conditions": [
+              "Job submission successful"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 10,
+            "action": "System cancels operation and initializes screen",
+            "conditions": [
+              "Confirmation is N"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Custom Report Generation Workflow",
+        "description": "Complete workflow for generating a custom date range transaction report",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "User selects Custom report option on screen",
+            "conditions": [
+              "CUSTOMI field is populated"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "User enters start date components (month, day, year)",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "User enters end date components (month, day, year)",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "System validates all date fields are not empty",
+            "conditions": [
+              "All date fields contain values"
+            ],
+            "next_step": "5 if valid, error if invalid"
+          },
+          {
+            "step_number": 5,
+            "action": "System converts date fields to numeric values",
+            "conditions": [],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "System validates month values (1-12)",
+            "conditions": [
+              "Month values are between 1 and 12"
+            ],
+            "next_step": "7 if valid, error if invalid"
+          },
+          {
+            "step_number": 7,
+            "action": "System validates day values (1-31)",
+            "conditions": [
+              "Day values are between 1 and 31"
+            ],
+            "next_step": "8 if valid, error if invalid"
+          },
+          {
+            "step_number": 8,
+            "action": "System validates year values are numeric",
+            "conditions": [
+              "Year values are numeric"
+            ],
+            "next_step": "9 if valid, error if invalid"
+          },
+          {
+            "step_number": 9,
+            "action": "System constructs dates in YYYY-MM-DD format",
+            "conditions": [],
+            "next_step": "10"
+          },
+          {
+            "step_number": 10,
+            "action": "System calls CSUTLDTC to validate start date",
+            "conditions": [],
+            "next_step": "11"
+          },
+          {
+            "step_number": 11,
+            "action": "System calls CSUTLDTC to validate end date",
+            "conditions": [],
+            "next_step": "12"
+          },
+          {
+            "step_number": 12,
+            "action": "System checks validation results",
+            "conditions": [
+              "Both dates are valid"
+            ],
+            "next_step": "13 if valid, error if invalid"
+          },
+          {
+            "step_number": 13,
+            "action": "System prompts user for confirmation",
+            "conditions": [],
+            "next_step": "14"
+          },
+          {
+            "step_number": 14,
+            "action": "User enters confirmation (Y/N)",
+            "conditions": [
+              "CONFIRMI is 'Y' or 'y' to proceed",
+              "CONFIRMI is 'N' or 'n' to cancel"
+            ],
+            "next_step": "15 if Y, 18 if N"
+          },
+          {
+            "step_number": 15,
+            "action": "System generates JCL with user-specified date parameters",
+            "conditions": [
+              "Confirmation is Y"
+            ],
+            "next_step": "16"
+          },
+          {
+            "step_number": 16,
+            "action": "System writes JCL to JOBS TDQ",
+            "conditions": [],
+            "next_step": "17"
+          },
+          {
+            "step_number": 17,
+            "action": "System displays success message and initializes screen",
+            "conditions": [
+              "Job submission successful"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 18,
+            "action": "System cancels operation and initializes screen",
+            "conditions": [
+              "Confirmation is N"
+            ],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "CSUTLDTC Date Validation Utility",
+        "type": "Internal Utility Program",
+        "purpose": "Validates date values to ensure they represent valid calendar dates",
+        "data_exchanged": [
+          "Date string in YYYY-MM-DD format",
+          "Validation result severity code",
+          "Error messages if validation fails"
+        ],
+        "trigger_conditions": [
+          "Custom report date validation required",
+          "User has entered start and end dates"
+        ]
+      },
+      {
+        "name": "JOBS Transient Data Queue",
+        "type": "CICS TDQ Resource",
+        "purpose": "Receives JCL for batch job submission to internal reader",
+        "data_exchanged": [
+          "JCL records (80 characters each)",
+          "Job parameters including date range",
+          "Job control statements"
+        ],
+        "trigger_conditions": [
+          "Report validated and confirmed by user",
+          "JCL generated with appropriate parameters"
+        ]
+      },
+      {
+        "name": "TRANSACT File",
+        "type": "Transaction Data File",
+        "purpose": "Source file containing transaction records for report generation",
+        "data_exchanged": [
+          "Transaction records",
+          "Transaction amounts",
+          "Transaction dates"
+        ],
+        "trigger_conditions": [
+          "Batch job executes after submission",
+          "Date range parameters applied to filter transactions"
+        ]
+      },
+      {
+        "name": "COMEN01C Sign-on Program",
+        "type": "Navigation Integration",
+        "purpose": "Returns user to previous screen when PF3 is pressed",
+        "data_exchanged": [
+          "CARDDEMO-COMMAREA communication area",
+          "User session information"
+        ],
+        "trigger_conditions": [
+          "User presses PF3 key"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Report User",
+        "Transaction Analyst"
+      ],
+      "permissions": [
+        {
+          "role": "Report User",
+          "resource": "Transaction Report Screen",
+          "actions": [
+            "view",
+            "select_report_type",
+            "submit_report"
+          ]
+        },
+        {
+          "role": "Transaction Analyst",
+          "resource": "Transaction Report Screen",
+          "actions": [
+            "view",
+            "select_report_type",
+            "submit_report",
+            "specify_custom_dates"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be authenticated via CICS sign-on",
+        "Valid CARDDEMO-COMMAREA required",
+        "Transaction ID CR00 must be authorized for user"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "ERR001",
+        "condition": "No report type selected",
+        "business_impact": "User cannot proceed with report generation",
+        "suggested_action": "Display message 'Select a report type to print report...' and position cursor at MONTHLYL field"
+      },
+      {
+        "error_code": "ERR002",
+        "condition": "Invalid start date month for custom report",
+        "business_impact": "Report cannot be generated with invalid date",
+        "suggested_action": "Display error message for invalid month and position cursor at SDTMMI field"
+      },
+      {
+        "error_code": "ERR003",
+        "condition": "Invalid start date day for custom report",
+        "business_impact": "Report cannot be generated with invalid date",
+        "suggested_action": "Display error message for invalid day and position cursor at SDTDDI field"
+      },
+      {
+        "error_code": "ERR004",
+        "condition": "Invalid start date year for custom report",
+        "business_impact": "Report cannot be generated with invalid date",
+        "suggested_action": "Display error message for invalid year and position cursor at SDTYYYYI field"
+      },
+      {
+        "error_code": "ERR005",
+        "condition": "Invalid end date month for custom report",
+        "business_impact": "Report cannot be generated with invalid date",
+        "suggested_action": "Display error message for invalid month and position cursor at EDTMMI field"
+      },
+      {
+        "error_code": "ERR006",
+        "condition": "Invalid end date day for custom report",
+        "business_impact": "Report cannot be generated with invalid date",
+        "suggested_action": "Display error message for invalid day and position cursor at EDTDDI field"
+      },
+      {
+        "error_code": "ERR007",
+        "condition": "Invalid end date year for custom report",
+        "business_impact": "Report cannot be generated with invalid date",
+        "suggested_action": "Display error message for invalid year and position cursor at EDTYYYYI field"
+      },
+      {
+        "error_code": "ERR008",
+        "condition": "Date validation fails via CSUTLDTC utility",
+        "business_impact": "Report cannot be generated with invalid calendar date",
+        "suggested_action": "Display error message from CSUTLDTC and position cursor at appropriate date field"
+      },
+      {
+        "error_code": "ERR009",
+        "condition": "Confirmation field is empty",
+        "business_impact": "Job cannot be submitted without user confirmation",
+        "suggested_action": "Display message 'Please confirm to print report (Y/N)' and position cursor at CONFIRML field"
+      },
+      {
+        "error_code": "ERR010",
+        "condition": "Invalid confirmation value (not Y, y, N, or n)",
+        "business_impact": "Job cannot be submitted with invalid confirmation",
+        "suggested_action": "Display message 'Invalid confirmation value. Enter Y or N' and position cursor at CONFIRML field"
+      },
+      {
+        "error_code": "ERR011",
+        "condition": "TDQ write operation fails",
+        "business_impact": "Job cannot be submitted to batch processing",
+        "suggested_action": "Display message 'Unable to Write TDQ (JOBS)...' with RESP and REAS codes, position cursor at MONTHLYL field"
+      },
+      {
+        "error_code": "ERR012",
+        "condition": "Empty date fields for custom report",
+        "business_impact": "Report cannot be generated without complete date information",
+        "suggested_action": "Display message indicating all date fields are required and position cursor at first empty field"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "CORPT0A",
+        "name": "Transaction Report Screen",
+        "purpose": "Allows users to select report type, specify date ranges, and submit transaction reports for batch generation",
+        "screen_type": "data_entry",
+        "navigation_from": [
+          "COMEN01C (Sign-on screen)"
+        ],
+        "navigation_to": [
+          "COMEN01C (via PF3 key)"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "display",
+            "fields": [
+              {
+                "name": "TITLE01O",
+                "label": "Title Line 1",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "From CCDA-TITLE01",
+                "validation": "",
+                "help_text": "Application title from common area"
+              },
+              {
+                "name": "TITLE02O",
+                "label": "Title Line 2",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "From CCDA-TITLE02",
+                "validation": "",
+                "help_text": "Application subtitle from common area"
+              },
+              {
+                "name": "TRNNAMEO",
+                "label": "Transaction Name",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "CR00",
+                "validation": "",
+                "help_text": "Current transaction identifier"
+              },
+              {
+                "name": "PGMNAMEO",
+                "label": "Program Name",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "CORPT00C",
+                "validation": "",
+                "help_text": "Current program identifier"
+              },
+              {
+                "name": "CURDATEO",
+                "label": "Current Date",
+                "type": "date",
+                "input_output": "output",
+                "required": false,
+                "default_value": "System date in MM/DD/YY format",
+                "validation": "",
+                "help_text": "Current system date"
+              },
+              {
+                "name": "CURTIMEO",
+                "label": "Current Time",
+                "type": "time",
+                "input_output": "output",
+                "required": false,
+                "default_value": "System time in HH:MM:SS format",
+                "validation": "",
+                "help_text": "Current system time"
+              }
+            ]
+          },
+          {
+            "name": "Report Type Selection",
+            "type": "input",
+            "fields": [
+              {
+                "name": "MONTHLYI",
+                "label": "Monthly Report",
+                "type": "checkbox",
+                "input_output": "input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be selected if Monthly report desired",
+                "help_text": "Select to generate report for current month"
+              },
+              {
+                "name": "YEARLYI",
+                "label": "Yearly Report",
+                "type": "checkbox",
+                "input_output": "input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be selected if Yearly report desired",
+                "help_text": "Select to generate report for current year (Jan 1 - Dec 31)"
+              },
+              {
+                "name": "CUSTOMI",
+                "label": "Custom Report",
+                "type": "checkbox",
+                "input_output": "input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be selected if Custom date range desired",
+                "help_text": "Select to specify custom date range"
+              }
+            ]
+          },
+          {
+            "name": "Custom Date Range",
+            "type": "input",
+            "fields": [
+              {
+                "name": "SDTMMI",
+                "label": "Start Date Month",
+                "type": "numeric",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be numeric, between 1 and 12",
+                "help_text": "Enter start month (1-12) for custom report"
+              },
+              {
+                "name": "SDTDDI",
+                "label": "Start Date Day",
+                "type": "numeric",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be numeric, between 1 and 31",
+                "help_text": "Enter start day (1-31) for custom report"
+              },
+              {
+                "name": "SDTYYYYI",
+                "label": "Start Date Year",
+                "type": "numeric",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be numeric, valid year",
+                "help_text": "Enter start year (YYYY) for custom report"
+              },
+              {
+                "name": "EDTMMI",
+                "label": "End Date Month",
+                "type": "numeric",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be numeric, between 1 and 12",
+                "help_text": "Enter end month (1-12) for custom report"
+              },
+              {
+                "name": "EDTDDI",
+                "label": "End Date Day",
+                "type": "numeric",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be numeric, between 1 and 31",
+                "help_text": "Enter end day (1-31) for custom report"
+              },
+              {
+                "name": "EDTYYYYI",
+                "label": "End Date Year",
+                "type": "numeric",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be numeric, valid year",
+                "help_text": "Enter end year (YYYY) for custom report"
+              }
+            ]
+          },
+          {
+            "name": "Confirmation",
+            "type": "input",
+            "fields": [
+              {
+                "name": "CONFIRMI",
+                "label": "Confirm Report Printing",
+                "type": "text",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be Y, y, N, or n",
+                "help_text": "Enter Y to confirm report printing, N to cancel"
+              }
+            ]
+          },
+          {
+            "name": "Messages",
+            "type": "display",
+            "fields": [
+              {
+                "name": "ERRMSGO",
+                "label": "Error/Status Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays error messages or success confirmations"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Submit Report",
+            "trigger": "Enter key",
+            "description": "Validates report selection and date range, then submits job for batch processing",
+            "backend_process": "Process-Enter-Key",
+            "success_navigation": "Same screen with success message",
+            "error_handling": "Display error message and position cursor at error field"
+          },
+          {
+            "name": "Return to Main Menu",
+            "trigger": "PF3 key",
+            "description": "Returns user to sign-on screen without submitting report",
+            "backend_process": "Return-To-Prev-Screen",
+            "success_navigation": "COMEN01C",
+            "error_handling": "N/A"
+          },
+          {
+            "name": "Clear Screen",
+            "trigger": "Clear key",
+            "description": "Clears all input fields and messages",
+            "backend_process": "Initialize-All-Fields",
+            "success_navigation": "Same screen cleared",
+            "error_handling": "N/A"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "Monthly report selected",
+            "affected_fields": [
+              "Custom date fields"
+            ],
+            "behavior": "Custom date fields are not required"
+          },
+          {
+            "condition": "Yearly report selected",
+            "affected_fields": [
+              "Custom date fields"
+            ],
+            "behavior": "Custom date fields are not required"
+          },
+          {
+            "condition": "Custom report selected",
+            "affected_fields": [
+              "SDTMMI",
+              "SDTDDI",
+              "SDTYYYYI",
+              "EDTMMI",
+              "EDTDDI",
+              "EDTYYYYI"
+            ],
+            "behavior": "All custom date fields become required"
+          },
+          {
+            "condition": "Error occurs",
+            "affected_fields": [
+              "ERRMSGO"
+            ],
+            "behavior": "Error message displayed, cursor positioned at error field"
+          },
+          {
+            "condition": "Successful submission",
+            "affected_fields": [
+              "ERRMSGO",
+              "All input fields"
+            ],
+            "behavior": "Success message displayed in green, all input fields cleared"
+          },
+          {
+            "condition": "Confirmation required",
+            "affected_fields": [
+              "CONFIRMI"
+            ],
+            "behavior": "Cursor positioned at confirmation field, prompt displayed"
+          }
+        ]
+      }
+    ],
+    "reports": [
+      {
+        "name": "Monthly Transaction Report",
+        "description": "Transaction report covering the current month from first day to last day",
+        "type": "batch",
+        "data_sources": [
+          "TRANSACT file"
+        ],
+        "filters": [
+          "Transaction date >= first day of current month",
+          "Transaction date <= last day of current month"
+        ],
+        "columns": [
+          {
+            "name": "Transaction Date",
+            "data_field": "transaction_date",
+            "format": "MM/DD/YY",
+            "aggregation": ""
+          },
+          {
+            "name": "Transaction Amount",
+            "data_field": "transaction_amount",
+            "format": "+99999999.99",
+            "aggregation": "sum"
+          }
+        ],
+        "sorting": [
+          "Transaction date ascending"
+        ],
+        "grouping": [
+          "By transaction date"
+        ]
+      },
+      {
+        "name": "Yearly Transaction Report",
+        "description": "Transaction report covering the entire current year from January 1st to December 31st",
+        "type": "batch",
+        "data_sources": [
+          "TRANSACT file"
+        ],
+        "filters": [
+          "Transaction date >= January 1st of current year",
+          "Transaction date <= December 31st of current year"
+        ],
+        "columns": [
+          {
+            "name": "Transaction Date",
+            "data_field": "transaction_date",
+            "format": "MM/DD/YY",
+            "aggregation": ""
+          },
+          {
+            "name": "Transaction Amount",
+            "data_field": "transaction_amount",
+            "format": "+99999999.99",
+            "aggregation": "sum"
+          }
+        ],
+        "sorting": [
+          "Transaction date ascending"
+        ],
+        "grouping": [
+          "By month",
+          "By transaction date"
+        ]
+      },
+      {
+        "name": "Custom Date Range Transaction Report",
+        "description": "Transaction report covering user-specified date range",
+        "type": "batch",
+        "data_sources": [
+          "TRANSACT file"
+        ],
+        "filters": [
+          "Transaction date >= user-specified start date",
+          "Transaction date <= user-specified end date"
+        ],
+        "columns": [
+          {
+            "name": "Transaction Date",
+            "data_field": "transaction_date",
+            "format": "MM/DD/YY",
+            "aggregation": ""
+          },
+          {
+            "name": "Transaction Amount",
+            "data_field": "transaction_amount",
+            "format": "+99999999.99",
+            "aggregation": "sum"
+          }
+        ],
+        "sorting": [
+          "Transaction date ascending"
+        ],
+        "grouping": [
+          "By transaction date"
+        ]
+      }
+    ],
+    "navigation_flow": [
+      {
+        "from_screen": "COMEN01C",
+        "to_screen": "CORPT0A",
+        "trigger": "Transaction CR00 initiated",
+        "conditions": [
+          "User authenticated",
+          "Transaction authorized"
+        ]
+      },
+      {
+        "from_screen": "CORPT0A",
+        "to_screen": "COMEN01C",
+        "trigger": "PF3 key pressed",
+        "conditions": []
+      },
+      {
+        "from_screen": "CORPT0A",
+        "to_screen": "CORPT0A",
+        "trigger": "Enter key pressed",
+        "conditions": [
+          "Report submitted successfully or error occurred"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "error",
+        "message": "Select a report type to print report...",
+        "context": "No report type selected when Enter pressed"
+      },
+      {
+        "code": "MSG002",
+        "type": "error",
+        "message": "Invalid start date month",
+        "context": "Start date month is not between 1 and 12"
+      },
+      {
+        "code": "MSG003",
+        "type": "error",
+        "message": "Invalid start date day",
+        "context": "Start date day is not between 1 and 31"
+      },
+      {
+        "code": "MSG004",
+        "type": "error",
+        "message": "Invalid start date year",
+        "context": "Start date year is not numeric or invalid"
+      },
+      {
+        "code": "MSG005",
+        "type": "error",
+        "message": "Invalid end date month",
+        "context": "End date month is not between 1 and 12"
+      },
+      {
+        "code": "MSG006",
+        "type": "error",
+        "message": "Invalid end date day",
+        "context": "End date day is not between 1 and 31"
+      },
+      {
+        "code": "MSG007",
+        "type": "error",
+        "message": "Invalid end date year",
+        "context": "End date year is not numeric or invalid"
+      },
+      {
+        "code": "MSG008",
+        "type": "error",
+        "message": "Invalid start date",
+        "context": "Start date failed CSUTLDTC validation"
+      },
+      {
+        "code": "MSG009",
+        "type": "error",
+        "message": "Invalid end date",
+        "context": "End date failed CSUTLDTC validation"
+      },
+      {
+        "code": "MSG010",
+        "type": "error",
+        "message": "Please confirm to print report (Y/N)",
+        "context": "Confirmation field is empty"
+      },
+      {
+        "code": "MSG011",
+        "type": "error",
+        "message": "Invalid confirmation value. Enter Y or N",
+        "context": "Confirmation field contains value other than Y, y, N, or n"
+      },
+      {
+        "code": "MSG012",
+        "type": "error",
+        "message": "Unable to Write TDQ (JOBS)...",
+        "context": "TDQ write operation failed"
+      },
+      {
+        "code": "MSG013",
+        "type": "error",
+        "message": "All date fields are required for custom report",
+        "context": "One or more custom date fields are empty"
+      },
+      {
+        "code": "MSG014",
+        "type": "success",
+        "message": "Monthly report submitted for printing ...",
+        "context": "Monthly report successfully submitted"
+      },
+      {
+        "code": "MSG015",
+        "type": "success",
+        "message": "Yearly report submitted for printing ...",
+        "context": "Yearly report successfully submitted"
+      },
+      {
+        "code": "MSG016",
+        "type": "success",
+        "message": "Custom report submitted for printing ...",
+        "context": "Custom report successfully submitted"
+      },
+      {
+        "code": "MSG017",
+        "type": "error",
+        "message": "Invalid key",
+        "context": "User pressed unsupported function key"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Monthly Report Data Flow",
+      "description": "Flow of data from user selection to batch job submission for monthly report",
+      "source": "User input on CORPT0A screen",
+      "destination": "JOBS TDQ for batch processing",
+      "data_elements": [
+        "Report type (Monthly)",
+        "Calculated start date (first day of current month)",
+        "Calculated end date (last day of current month)",
+        "User confirmation"
+      ],
+      "transformations": [
+        "Get current date from system",
+        "Calculate first day of month",
+        "Calculate last day of month",
+        "Format dates as YYYY-MM-DD",
+        "Generate JCL with date parameters",
+        "Write JCL records to TDQ"
+      ]
+    },
+    {
+      "name": "Yearly Report Data Flow",
+      "description": "Flow of data from user selection to batch job submission for yearly report",
+      "source": "User input on CORPT0A screen",
+      "destination": "JOBS TDQ for batch processing",
+      "data_elements": [
+        "Report type (Yearly)",
+        "Calculated start date (January 1st of current year)",
+        "Calculated end date (December 31st of current year)",
+        "User confirmation"
+      ],
+      "transformations": [
+        "Get current year from system",
+        "Set start date to January 1st",
+        "Set end date to December 31st",
+        "Format dates as YYYY-MM-DD",
+        "Generate JCL with date parameters",
+        "Write JCL records to TDQ"
+      ]
+    },
+    {
+      "name": "Custom Report Data Flow",
+      "description": "Flow of data from user input to batch job submission for custom date range report",
+      "source": "User input on CORPT0A screen",
+      "destination": "JOBS TDQ for batch processing",
+      "data_elements": [
+        "Report type (Custom)",
+        "User-entered start date components (month, day, year)",
+        "User-entered end date components (month, day, year)",
+        "User confirmation"
+      ],
+      "transformations": [
+        "Validate all date fields are not empty",
+        "Convert date components to numeric",
+        "Validate month range (1-12)",
+        "Validate day range (1-31)",
+        "Validate year is numeric",
+        "Construct dates in YYYY-MM-DD format",
+        "Call CSUTLDTC to validate start date",
+        "Call CSUTLDTC to validate end date",
+        "Generate JCL with validated date parameters",
+        "Write JCL records to TDQ"
+      ]
+    },
+    {
+      "name": "Screen Header Data Flow",
+      "description": "Flow of header information to screen display",
+      "source": "System and CARDDEMO-COMMAREA",
+      "destination": "CORPT0A screen header",
+      "data_elements": [
+        "Application titles (TITLE01, TITLE02)",
+        "Transaction ID (CR00)",
+        "Program name (CORPT00C)",
+        "Current date",
+        "Current time"
+      ],
+      "transformations": [
+        "Get current date and time from system",
+        "Format date as MM/DD/YY",
+        "Format time as HH:MM:SS",
+        "Move titles from COMMAREA",
+        "Populate header fields on screen"
+      ]
+    },
+    {
+      "name": "Error Message Data Flow",
+      "description": "Flow of error and status messages to user",
+      "source": "Validation and processing logic",
+      "destination": "ERRMSGO field on CORPT0A screen",
+      "data_elements": [
+        "Error messages",
+        "Success messages",
+        "Message color attributes"
+      ],
+      "transformations": [
+        "Set appropriate message text based on error condition",
+        "Set message color (red for errors, green for success)",
+        "Position cursor at relevant field",
+        "Display message on screen"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Date Range",
+      "description": "Monthly reports are limited to current month only, from first day to last day",
+      "impact": "Users cannot generate monthly reports for past or future months using the Monthly option"
+    },
+    {
+      "type": "Date Range",
+      "description": "Yearly reports are limited to current year only, from January 1st to December 31st",
+      "impact": "Users cannot generate yearly reports for past or future years using the Yearly option"
+    },
+    {
+      "type": "Date Validation",
+      "description": "Custom date ranges must be valid calendar dates as validated by CSUTLDTC utility",
+      "impact": "Invalid dates (e.g., February 30th) will be rejected and report cannot be generated"
+    },
+    {
+      "type": "User Confirmation",
+      "description": "All report submissions require explicit user confirmation before job submission",
+      "impact": "Reports cannot be automatically generated without user interaction"
+    },
+    {
+      "type": "Single Report Selection",
+      "description": "User must select exactly one report type (Monthly, Yearly, or Custom) per submission",
+      "impact": "Multiple reports cannot be submitted in a single transaction"
+    },
+    {
+      "type": "Batch Processing",
+      "description": "Reports are generated via batch jobs, not online processing",
+      "impact": "Reports are not immediately available; users must wait for batch job completion"
+    },
+    {
+      "type": "Date Format",
+      "description": "All dates must conform to YYYY-MM-DD format for job submission",
+      "impact": "Date format standardization required across all report types"
+    },
+    {
+      "type": "TDQ Availability",
+      "description": "JOBS Transient Data Queue must be available for job submission",
+      "impact": "If TDQ is unavailable, reports cannot be submitted and error is displayed"
+    },
+    {
+      "type": "Transaction File Access",
+      "description": "TRANSACT file must be accessible to batch job for report generation",
+      "impact": "Report generation depends on availability and accessibility of transaction data"
+    }
+  ]
+}

@@ -1,0 +1,1289 @@
+{
+  "application_metadata": {
+    "name": "CardDemo Transaction Management",
+    "description": "CICS COBOL program for adding new transactions to the TRANSACT file with validation, account/card lookup, and transaction ID generation",
+    "domain": "Financial Services - Credit Card Transaction Processing"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "Transaction",
+        "description": "Core transaction record representing a credit card transaction",
+        "attributes": [
+          {
+            "name": "TRAN-ID",
+            "type": "Numeric",
+            "length": 16,
+            "required": true,
+            "description": "Unique identifier for the transaction, automatically generated"
+          },
+          {
+            "name": "TRAN-TYPE-CD",
+            "type": "Alphanumeric",
+            "length": 2,
+            "required": true,
+            "description": "Code indicating the type of transaction"
+          },
+          {
+            "name": "TRAN-CAT-CD",
+            "type": "Numeric",
+            "length": 4,
+            "required": true,
+            "description": "Code for transaction category"
+          },
+          {
+            "name": "TRAN-SOURCE",
+            "type": "Alphanumeric",
+            "length": 10,
+            "required": true,
+            "description": "Source of the transaction"
+          },
+          {
+            "name": "TRAN-DESC",
+            "type": "Alphanumeric",
+            "length": 100,
+            "required": true,
+            "description": "Detailed description of the transaction"
+          },
+          {
+            "name": "TRAN-AMT",
+            "type": "Numeric",
+            "length": 11,
+            "required": true,
+            "description": "Monetary value of the transaction with format +/-99999999.99"
+          },
+          {
+            "name": "TRAN-MERCHANT-ID",
+            "type": "Numeric",
+            "length": 9,
+            "required": true,
+            "description": "Unique identifier for the merchant"
+          },
+          {
+            "name": "TRAN-MERCHANT-NAME",
+            "type": "Alphanumeric",
+            "length": 50,
+            "required": true,
+            "description": "Name of the merchant"
+          },
+          {
+            "name": "TRAN-MERCHANT-CITY",
+            "type": "Alphanumeric",
+            "length": 50,
+            "required": true,
+            "description": "City of the merchant"
+          },
+          {
+            "name": "TRAN-MERCHANT-ZIP",
+            "type": "Alphanumeric",
+            "length": 10,
+            "required": true,
+            "description": "ZIP code of the merchant"
+          },
+          {
+            "name": "TRAN-CARD-NUM",
+            "type": "Alphanumeric",
+            "length": 16,
+            "required": true,
+            "description": "Credit card number associated with the transaction"
+          },
+          {
+            "name": "TRAN-ORIG-TS",
+            "type": "Alphanumeric",
+            "length": 26,
+            "required": true,
+            "description": "Timestamp of when the transaction originated in format YYYY-MM-DD"
+          },
+          {
+            "name": "TRAN-PROC-TS",
+            "type": "Alphanumeric",
+            "length": 26,
+            "required": true,
+            "description": "Timestamp of when the transaction was processed in format YYYY-MM-DD"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          },
+          {
+            "related_entity": "Card",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          },
+          {
+            "related_entity": "Merchant",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          }
+        ]
+      },
+      {
+        "name": "Account",
+        "description": "Customer account entity",
+        "attributes": [
+          {
+            "name": "XREF-ACCT-ID",
+            "type": "Numeric",
+            "length": 11,
+            "required": true,
+            "description": "Unique identifier for the account"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Card",
+            "relationship_type": "has_many",
+            "cardinality": "one-to-many"
+          },
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "has_many",
+            "cardinality": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "Card",
+        "description": "Credit card entity",
+        "attributes": [
+          {
+            "name": "XREF-CARD-NUM",
+            "type": "Alphanumeric",
+            "length": 16,
+            "required": true,
+            "description": "Credit card number"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          },
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "has_many",
+            "cardinality": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "Merchant",
+        "description": "Merchant entity representing transaction merchants",
+        "attributes": [
+          {
+            "name": "MERCHANT-ID",
+            "type": "Numeric",
+            "length": 9,
+            "required": true,
+            "description": "Unique identifier for the merchant"
+          },
+          {
+            "name": "MERCHANT-NAME",
+            "type": "Alphanumeric",
+            "length": 50,
+            "required": true,
+            "description": "Name of the merchant"
+          },
+          {
+            "name": "MERCHANT-CITY",
+            "type": "Alphanumeric",
+            "length": 50,
+            "required": true,
+            "description": "City of the merchant"
+          },
+          {
+            "name": "MERCHANT-ZIP",
+            "type": "Alphanumeric",
+            "length": 10,
+            "required": true,
+            "description": "ZIP code of the merchant"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "has_many",
+            "cardinality": "one-to-many"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Transaction Addition Authorization",
+        "description": "Users can add new transactions to the TRANSACT file after successful validation",
+        "category": "Transaction Management",
+        "logic": "Allow users to create new transaction records with complete and validated information",
+        "conditions": [
+          "All required fields must be provided",
+          "All validations must pass",
+          "User must confirm the transaction addition"
+        ],
+        "actions": [
+          "Generate unique Transaction ID",
+          "Write transaction record to TRANSACT file",
+          "Display success message with new Transaction ID"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Account or Card Identification Required",
+        "description": "Either Account ID or Card Number must be provided to identify the transaction owner",
+        "category": "Data Validation",
+        "logic": "At least one key identifier (Account ID or Card Number) must be entered and validated",
+        "conditions": [
+          "Account ID is provided and valid, OR",
+          "Card Number is provided and valid"
+        ],
+        "actions": [
+          "If Account ID provided: lookup corresponding Card Number in CXACAIX file",
+          "If Card Number provided: lookup corresponding Account ID in CCXREF file",
+          "Populate both Account ID and Card Number fields"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Transaction ID Generation",
+        "description": "System automatically generates unique sequential Transaction IDs",
+        "category": "Data Management",
+        "logic": "Read last transaction record, increment ID by 1 to generate new unique identifier",
+        "conditions": [
+          "Transaction addition is confirmed",
+          "All validations passed"
+        ],
+        "actions": [
+          "Read last transaction from TRANSACT file",
+          "Extract last Transaction ID",
+          "Add 1 to generate new Transaction ID",
+          "Assign to new transaction record"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Copy Last Transaction Feature",
+        "description": "Users can copy data from the last transaction to facilitate entry of similar transactions",
+        "category": "User Convenience",
+        "logic": "Retrieve most recent transaction for the account/card and populate input fields",
+        "conditions": [
+          "Valid Account ID or Card Number is provided",
+          "Last transaction exists for the account/card"
+        ],
+        "actions": [
+          "Read last transaction record",
+          "Copy all transaction fields to input screen",
+          "Allow user to modify copied data",
+          "Validate modified data before saving"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Transaction Confirmation Required",
+        "description": "User must explicitly confirm transaction addition before it is saved",
+        "category": "Data Integrity",
+        "logic": "Confirmation field must be set to 'Y' to proceed with transaction addition",
+        "conditions": [
+          "All validations passed",
+          "Confirmation field value is 'Y'"
+        ],
+        "actions": [
+          "Proceed with transaction addition",
+          "Write record to TRANSACT file"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Duplicate Transaction ID Prevention",
+        "description": "System prevents duplicate Transaction IDs from being created",
+        "category": "Data Integrity",
+        "logic": "Check for duplicate key errors during transaction write operation",
+        "conditions": [
+          "Transaction ID already exists in TRANSACT file"
+        ],
+        "actions": [
+          "Display error message 'Tran ID already exist...'",
+          "Prevent transaction from being saved",
+          "Allow user to retry"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Account-Card Cross-Reference Validation",
+        "description": "System validates that Account ID and Card Number are properly linked",
+        "category": "Data Validation",
+        "logic": "Use cross-reference files to validate and retrieve linked account and card information",
+        "conditions": [
+          "Account ID or Card Number is provided"
+        ],
+        "actions": [
+          "Lookup in CXACAIX file if Account ID provided",
+          "Lookup in CCXREF file if Card Number provided",
+          "Validate that cross-reference exists",
+          "Display error if not found"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "Account ID",
+        "rule": "Must be numeric and exist in CXACAIX file",
+        "error_message": "Account ID must be Numeric... / Account ID NOT found...",
+        "severity": "Error"
+      },
+      {
+        "field": "Card Number",
+        "rule": "Must be numeric and exist in CCXREF file",
+        "error_message": "Card Number must be Numeric... / Card Number NOT found...",
+        "severity": "Error"
+      },
+      {
+        "field": "Transaction Type Code",
+        "rule": "Must not be empty and must be numeric",
+        "error_message": "Transaction Type Code is required and must be numeric",
+        "severity": "Error"
+      },
+      {
+        "field": "Transaction Category Code",
+        "rule": "Must not be empty and must be numeric",
+        "error_message": "Transaction Category Code is required and must be numeric",
+        "severity": "Error"
+      },
+      {
+        "field": "Transaction Source",
+        "rule": "Must not be empty",
+        "error_message": "Transaction Source is required",
+        "severity": "Error"
+      },
+      {
+        "field": "Transaction Description",
+        "rule": "Must not be empty",
+        "error_message": "Transaction Description is required",
+        "severity": "Error"
+      },
+      {
+        "field": "Transaction Amount",
+        "rule": "Must match format +/-99999999.99 (sign, 8 digits, decimal point, 2 decimal places)",
+        "error_message": "Transaction Amount must be in format +/-99999999.99",
+        "severity": "Error"
+      },
+      {
+        "field": "Transaction Original Date",
+        "rule": "Must match format YYYY-MM-DD and be a valid date",
+        "error_message": "Transaction Original Date must be in format YYYY-MM-DD and be valid",
+        "severity": "Error"
+      },
+      {
+        "field": "Transaction Process Date",
+        "rule": "Must match format YYYY-MM-DD and be a valid date",
+        "error_message": "Transaction Process Date must be in format YYYY-MM-DD and be valid",
+        "severity": "Error"
+      },
+      {
+        "field": "Merchant ID",
+        "rule": "Must not be empty and must be numeric",
+        "error_message": "Merchant ID is required and must be numeric",
+        "severity": "Error"
+      },
+      {
+        "field": "Merchant Name",
+        "rule": "Must not be empty",
+        "error_message": "Merchant Name is required",
+        "severity": "Error"
+      },
+      {
+        "field": "Merchant City",
+        "rule": "Must not be empty",
+        "error_message": "Merchant City is required",
+        "severity": "Error"
+      },
+      {
+        "field": "Merchant ZIP",
+        "rule": "Must not be empty",
+        "error_message": "Merchant ZIP is required",
+        "severity": "Error"
+      },
+      {
+        "field": "Confirmation",
+        "rule": "Must be 'Y' or 'N' to proceed",
+        "error_message": "Invalid value. Valid values are (Y/N)... / Confirm to add this transaction...",
+        "severity": "Error"
+      },
+      {
+        "field": "Account or Card",
+        "rule": "At least one must be entered",
+        "error_message": "Account or Card Number must be entered...",
+        "severity": "Error"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Transaction Amount Conversion",
+        "description": "Convert transaction amount from display format to internal numeric format",
+        "formula": "FUNCTION NUMVAL-C(TRNAMTI)",
+        "input_fields": [
+          "TRNAMTI"
+        ],
+        "output_field": "TRAN-AMT"
+      },
+      {
+        "name": "New Transaction ID Generation",
+        "description": "Generate new unique Transaction ID by incrementing last ID",
+        "formula": "Last Transaction ID + 1",
+        "input_fields": [
+          "Last TRAN-ID"
+        ],
+        "output_field": "New TRAN-ID"
+      },
+      {
+        "name": "Account ID Numeric Conversion",
+        "description": "Convert Account ID from display format to numeric",
+        "formula": "FUNCTION NUMVAL(ACTIDINI)",
+        "input_fields": [
+          "ACTIDINI"
+        ],
+        "output_field": "WS-ACCT-ID-N"
+      },
+      {
+        "name": "Card Number Numeric Conversion",
+        "description": "Convert Card Number from display format to numeric",
+        "formula": "FUNCTION NUMVAL(CARDNINI)",
+        "input_fields": [
+          "CARDNINI"
+        ],
+        "output_field": "WS-CARD-NUM-N"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Add New Transaction",
+        "description": "Complete workflow for adding a new transaction to the system",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Validate Input Key Fields",
+            "conditions": [
+              "Account ID or Card Number provided"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Lookup Account-Card Cross-Reference",
+            "conditions": [
+              "Key field is valid"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Validate All Input Data Fields",
+            "conditions": [
+              "All required fields provided",
+              "All formats correct"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Validate Dates Using CSUTLDTC Utility",
+            "conditions": [
+              "Dates are in correct format"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Check Confirmation",
+            "conditions": [
+              "Confirmation is 'Y'"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Generate New Transaction ID",
+            "conditions": [
+              "Last transaction retrieved successfully"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Populate Transaction Record",
+            "conditions": [
+              "All data validated"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Write Transaction to TRANSACT File",
+            "conditions": [
+              "No duplicate Transaction ID"
+            ],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "Display Success Message",
+            "conditions": [
+              "Write successful"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Copy Last Transaction",
+        "description": "Workflow for copying data from the last transaction",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Validate Input Key Fields",
+            "conditions": [
+              "Account ID or Card Number provided"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Read Last Transaction Record",
+            "conditions": [
+              "Valid account/card identified"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Copy Transaction Data to Input Fields",
+            "conditions": [
+              "Last transaction found"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Display Screen with Copied Data",
+            "conditions": [
+              "Data copied successfully"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Clear Screen",
+        "description": "Workflow for clearing all input fields",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize All Fields to Default Values",
+            "conditions": [
+              "User requests clear"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Display Empty Screen",
+            "conditions": [
+              "Fields cleared"
+            ],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "CXACAIX File Lookup",
+        "type": "Data Retrieval",
+        "purpose": "Retrieve Card Number for a given Account ID",
+        "data_exchanged": [
+          "Account ID",
+          "Card Number"
+        ],
+        "trigger_conditions": [
+          "Account ID is provided and validated"
+        ]
+      },
+      {
+        "name": "CCXREF File Lookup",
+        "type": "Data Retrieval",
+        "purpose": "Retrieve Account ID for a given Card Number",
+        "data_exchanged": [
+          "Card Number",
+          "Account ID"
+        ],
+        "trigger_conditions": [
+          "Card Number is provided and validated"
+        ]
+      },
+      {
+        "name": "TRANSACT File Write",
+        "type": "Data Persistence",
+        "purpose": "Add new transaction record to main transaction file",
+        "data_exchanged": [
+          "Complete Transaction Record"
+        ],
+        "trigger_conditions": [
+          "All validations passed",
+          "Confirmation received"
+        ]
+      },
+      {
+        "name": "TRANSACT File Read",
+        "type": "Data Retrieval",
+        "purpose": "Retrieve last transaction for ID generation or copy function",
+        "data_exchanged": [
+          "Transaction Record"
+        ],
+        "trigger_conditions": [
+          "New transaction addition",
+          "Copy last transaction request"
+        ]
+      },
+      {
+        "name": "CSUTLDTC Date Validation",
+        "type": "External Utility",
+        "purpose": "Validate date format and correctness",
+        "data_exchanged": [
+          "Date string",
+          "Date format",
+          "Validation result"
+        ],
+        "trigger_conditions": [
+          "Date fields need validation"
+        ]
+      },
+      {
+        "name": "ACCTDAT File Access",
+        "type": "Data Retrieval",
+        "purpose": "Access account data information",
+        "data_exchanged": [
+          "Account information"
+        ],
+        "trigger_conditions": [
+          "Account validation required"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Transaction Entry User",
+        "System Administrator"
+      ],
+      "permissions": [
+        {
+          "role": "Transaction Entry User",
+          "resource": "Transaction Addition Screen",
+          "actions": [
+            "view",
+            "create",
+            "validate"
+          ]
+        },
+        {
+          "role": "Transaction Entry User",
+          "resource": "TRANSACT File",
+          "actions": [
+            "write"
+          ]
+        },
+        {
+          "role": "Transaction Entry User",
+          "resource": "Cross-Reference Files",
+          "actions": [
+            "read"
+          ]
+        },
+        {
+          "role": "System Administrator",
+          "resource": "All Resources",
+          "actions": [
+            "full_access"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "CICS user authentication",
+        "Valid transaction session"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "NOTFND_ACCT",
+        "condition": "Account ID not found in CXACAIX file",
+        "business_impact": "Cannot proceed with transaction addition",
+        "suggested_action": "Verify Account ID and re-enter"
+      },
+      {
+        "error_code": "NOTFND_CARD",
+        "condition": "Card Number not found in CCXREF file",
+        "business_impact": "Cannot proceed with transaction addition",
+        "suggested_action": "Verify Card Number and re-enter"
+      },
+      {
+        "error_code": "DUPKEY",
+        "condition": "Transaction ID already exists in TRANSACT file",
+        "business_impact": "Transaction cannot be saved with duplicate ID",
+        "suggested_action": "System should regenerate Transaction ID"
+      },
+      {
+        "error_code": "INVALID_FORMAT_AMT",
+        "condition": "Transaction Amount not in format +/-99999999.99",
+        "business_impact": "Cannot save transaction with invalid amount",
+        "suggested_action": "Re-enter amount in correct format"
+      },
+      {
+        "error_code": "INVALID_DATE",
+        "condition": "Date not in format YYYY-MM-DD or invalid date",
+        "business_impact": "Cannot save transaction with invalid date",
+        "suggested_action": "Re-enter date in correct format"
+      },
+      {
+        "error_code": "MISSING_REQUIRED",
+        "condition": "Required field is empty",
+        "business_impact": "Cannot save incomplete transaction",
+        "suggested_action": "Fill in all required fields"
+      },
+      {
+        "error_code": "INVALID_CONFIRM",
+        "condition": "Confirmation value is not Y or N",
+        "business_impact": "Cannot proceed without valid confirmation",
+        "suggested_action": "Enter Y to confirm or N to cancel"
+      },
+      {
+        "error_code": "NO_KEY_FIELD",
+        "condition": "Neither Account ID nor Card Number provided",
+        "business_impact": "Cannot identify transaction owner",
+        "suggested_action": "Enter either Account ID or Card Number"
+      },
+      {
+        "error_code": "WRITE_FAILED",
+        "condition": "Unable to write transaction to TRANSACT file",
+        "business_impact": "Transaction not saved",
+        "suggested_action": "Check system status and retry"
+      },
+      {
+        "error_code": "XREF_LOOKUP_FAILED",
+        "condition": "Unable to lookup in cross-reference files",
+        "business_impact": "Cannot validate account-card relationship",
+        "suggested_action": "Check system status and retry"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "COTRN02",
+        "name": "Add Transaction Screen",
+        "purpose": "Allow users to add new transactions to the TRANSACT file",
+        "screen_type": "Data Entry Form",
+        "navigation_from": [
+          "Main Menu",
+          "Transaction List"
+        ],
+        "navigation_to": [
+          "Main Menu",
+          "Transaction List",
+          "Previous Screen"
+        ],
+        "sections": [
+          {
+            "name": "Key Identification",
+            "type": "Input Section",
+            "fields": [
+              {
+                "name": "ACTIDINI",
+                "label": "Account ID",
+                "type": "Numeric",
+                "input_output": "Input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be numeric if provided; must exist in CXACAIX file",
+                "help_text": "Enter Account ID or Card Number (at least one required)"
+              },
+              {
+                "name": "CARDNINI",
+                "label": "Card Number",
+                "type": "Numeric",
+                "input_output": "Input",
+                "required": false,
+                "default_value": "",
+                "validation": "Must be numeric if provided; must exist in CCXREF file",
+                "help_text": "Enter Card Number or Account ID (at least one required)"
+              }
+            ]
+          },
+          {
+            "name": "Transaction Details",
+            "type": "Input Section",
+            "fields": [
+              {
+                "name": "TTYPCDI",
+                "label": "Transaction Type Code",
+                "type": "Alphanumeric",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must not be empty; must be numeric",
+                "help_text": "Enter transaction type code"
+              },
+              {
+                "name": "TCATCDI",
+                "label": "Transaction Category Code",
+                "type": "Numeric",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must not be empty; must be numeric",
+                "help_text": "Enter transaction category code"
+              },
+              {
+                "name": "TRNSRCI",
+                "label": "Transaction Source",
+                "type": "Alphanumeric",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must not be empty",
+                "help_text": "Enter transaction source"
+              },
+              {
+                "name": "TDESCI",
+                "label": "Transaction Description",
+                "type": "Alphanumeric",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must not be empty",
+                "help_text": "Enter detailed transaction description"
+              },
+              {
+                "name": "TRNAMTI",
+                "label": "Transaction Amount",
+                "type": "Numeric",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must match format +/-99999999.99",
+                "help_text": "Enter amount in format +/-99999999.99"
+              },
+              {
+                "name": "TORIGDTI",
+                "label": "Transaction Original Date",
+                "type": "Date",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be in format YYYY-MM-DD and be a valid date",
+                "help_text": "Enter original transaction date (YYYY-MM-DD)"
+              },
+              {
+                "name": "TPROCDTI",
+                "label": "Transaction Process Date",
+                "type": "Date",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be in format YYYY-MM-DD and be a valid date",
+                "help_text": "Enter process date (YYYY-MM-DD)"
+              }
+            ]
+          },
+          {
+            "name": "Merchant Information",
+            "type": "Input Section",
+            "fields": [
+              {
+                "name": "MIDI",
+                "label": "Merchant ID",
+                "type": "Numeric",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must not be empty; must be numeric",
+                "help_text": "Enter merchant ID"
+              },
+              {
+                "name": "MNAMEI",
+                "label": "Merchant Name",
+                "type": "Alphanumeric",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must not be empty",
+                "help_text": "Enter merchant name"
+              },
+              {
+                "name": "MCITYI",
+                "label": "Merchant City",
+                "type": "Alphanumeric",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must not be empty",
+                "help_text": "Enter merchant city"
+              },
+              {
+                "name": "MZIPI",
+                "label": "Merchant ZIP",
+                "type": "Alphanumeric",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must not be empty",
+                "help_text": "Enter merchant ZIP code"
+              }
+            ]
+          },
+          {
+            "name": "Confirmation",
+            "type": "Input Section",
+            "fields": [
+              {
+                "name": "CONFIRMI",
+                "label": "Confirm",
+                "type": "Alphanumeric",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be Y or N",
+                "help_text": "Enter Y to confirm transaction addition, N to cancel"
+              }
+            ]
+          },
+          {
+            "name": "Messages",
+            "type": "Output Section",
+            "fields": [
+              {
+                "name": "ERRMSGO",
+                "label": "Error/Success Message",
+                "type": "Alphanumeric",
+                "input_output": "Output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays error or success messages"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Add Transaction",
+            "trigger": "ENTER key",
+            "description": "Validates input and adds new transaction to TRANSACT file",
+            "backend_process": "Validate Input Key Fields, Validate Input Data Fields, Generate Transaction ID, Write Transaction",
+            "success_navigation": "Same screen with success message",
+            "error_handling": "Display error message and set cursor to invalid field"
+          },
+          {
+            "name": "Return to Previous Screen",
+            "trigger": "PF3",
+            "description": "Returns to the previous screen without saving",
+            "backend_process": "None",
+            "success_navigation": "Previous screen (CDEMO-TO-PROGRAM)",
+            "error_handling": "None"
+          },
+          {
+            "name": "Clear Screen",
+            "trigger": "PF4",
+            "description": "Clears all input fields and resets the screen",
+            "backend_process": "Initialize All Fields",
+            "success_navigation": "Same screen with cleared fields",
+            "error_handling": "None"
+          },
+          {
+            "name": "Copy Last Transaction",
+            "trigger": "PF5",
+            "description": "Copies data from the last transaction for the account/card",
+            "backend_process": "Validate Input Key Fields, Read Last Transaction, Copy Data to Input Fields",
+            "success_navigation": "Same screen with copied data",
+            "error_handling": "Display error message if last transaction not found"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "Error occurs during validation",
+            "affected_fields": [
+              "ERRMSGO",
+              "Invalid field"
+            ],
+            "behavior": "Display error message and position cursor at invalid field"
+          },
+          {
+            "condition": "Transaction added successfully",
+            "affected_fields": [
+              "ERRMSGO",
+              "All input fields"
+            ],
+            "behavior": "Display success message with new Transaction ID and clear all input fields"
+          },
+          {
+            "condition": "Account ID entered",
+            "affected_fields": [
+              "CARDNINI"
+            ],
+            "behavior": "Auto-populate Card Number from cross-reference lookup"
+          },
+          {
+            "condition": "Card Number entered",
+            "affected_fields": [
+              "ACTIDINI"
+            ],
+            "behavior": "Auto-populate Account ID from cross-reference lookup"
+          },
+          {
+            "condition": "Copy Last Transaction triggered",
+            "affected_fields": [
+              "All transaction detail fields"
+            ],
+            "behavior": "Populate all fields with data from last transaction"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "COTRN02",
+        "to_screen": "Previous Screen",
+        "trigger": "PF3",
+        "conditions": [
+          "User presses PF3"
+        ]
+      },
+      {
+        "from_screen": "COTRN02",
+        "to_screen": "COTRN02",
+        "trigger": "ENTER",
+        "conditions": [
+          "User submits transaction"
+        ]
+      },
+      {
+        "from_screen": "COTRN02",
+        "to_screen": "COTRN02",
+        "trigger": "PF4",
+        "conditions": [
+          "User clears screen"
+        ]
+      },
+      {
+        "from_screen": "COTRN02",
+        "to_screen": "COTRN02",
+        "trigger": "PF5",
+        "conditions": [
+          "User copies last transaction"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "SUCCESS_ADD",
+        "type": "Success",
+        "message": "Transaction added successfully with ID: [Transaction ID]",
+        "context": "After successful transaction addition"
+      },
+      {
+        "code": "ERR_ACCT_NUMERIC",
+        "type": "Error",
+        "message": "Account ID must be Numeric...",
+        "context": "Account ID validation failure"
+      },
+      {
+        "code": "ERR_ACCT_NOTFOUND",
+        "type": "Error",
+        "message": "Account ID NOT found...",
+        "context": "Account ID not found in CXACAIX file"
+      },
+      {
+        "code": "ERR_CARD_NUMERIC",
+        "type": "Error",
+        "message": "Card Number must be Numeric...",
+        "context": "Card Number validation failure"
+      },
+      {
+        "code": "ERR_CARD_NOTFOUND",
+        "type": "Error",
+        "message": "Card Number NOT found...",
+        "context": "Card Number not found in CCXREF file"
+      },
+      {
+        "code": "ERR_ACCT_CARD_REQUIRED",
+        "type": "Error",
+        "message": "Account or Card Number must be entered...",
+        "context": "Neither Account ID nor Card Number provided"
+      },
+      {
+        "code": "ERR_XREF_AIX_LOOKUP",
+        "type": "Error",
+        "message": "Unable to lookup Acct in XREF AIX file...",
+        "context": "Error reading CXACAIX file"
+      },
+      {
+        "code": "ERR_XREF_LOOKUP",
+        "type": "Error",
+        "message": "Unable to lookup Card # in XREF file...",
+        "context": "Error reading CCXREF file"
+      },
+      {
+        "code": "ERR_FIELD_REQUIRED",
+        "type": "Error",
+        "message": "[Field name] is required",
+        "context": "Required field is empty"
+      },
+      {
+        "code": "ERR_AMOUNT_FORMAT",
+        "type": "Error",
+        "message": "Transaction Amount must be in format +/-99999999.99",
+        "context": "Amount format validation failure"
+      },
+      {
+        "code": "ERR_DATE_FORMAT",
+        "type": "Error",
+        "message": "Date must be in format YYYY-MM-DD and be valid",
+        "context": "Date format or validity validation failure"
+      },
+      {
+        "code": "ERR_DUPKEY",
+        "type": "Error",
+        "message": "Tran ID already exist...",
+        "context": "Duplicate Transaction ID detected"
+      },
+      {
+        "code": "ERR_WRITE_FAILED",
+        "type": "Error",
+        "message": "Unable to Add Transaction...",
+        "context": "Error writing to TRANSACT file"
+      },
+      {
+        "code": "ERR_CONFIRM_REQUIRED",
+        "type": "Error",
+        "message": "Confirm to add this transaction...",
+        "context": "Confirmation not provided"
+      },
+      {
+        "code": "ERR_CONFIRM_INVALID",
+        "type": "Error",
+        "message": "Invalid value. Valid values are (Y/N)...",
+        "context": "Invalid confirmation value"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Account to Card Lookup",
+      "description": "Retrieve Card Number based on Account ID",
+      "source": "User Input (Account ID)",
+      "destination": "CXACAIX File",
+      "data_elements": [
+        "Account ID",
+        "Card Number"
+      ],
+      "transformations": [
+        "Convert Account ID to numeric",
+        "Lookup in CXACAIX",
+        "Populate Card Number field"
+      ]
+    },
+    {
+      "name": "Card to Account Lookup",
+      "description": "Retrieve Account ID based on Card Number",
+      "source": "User Input (Card Number)",
+      "destination": "CCXREF File",
+      "data_elements": [
+        "Card Number",
+        "Account ID"
+      ],
+      "transformations": [
+        "Convert Card Number to numeric",
+        "Lookup in CCXREF",
+        "Populate Account ID field"
+      ]
+    },
+    {
+      "name": "Transaction Addition",
+      "description": "Add new transaction record to TRANSACT file",
+      "source": "User Input (All transaction fields)",
+      "destination": "TRANSACT File",
+      "data_elements": [
+        "All transaction fields"
+      ],
+      "transformations": [
+        "Validate all fields",
+        "Generate Transaction ID",
+        "Convert amount to numeric",
+        "Write to TRANSACT file"
+      ]
+    },
+    {
+      "name": "Last Transaction Retrieval",
+      "description": "Retrieve last transaction for ID generation or copy function",
+      "source": "TRANSACT File",
+      "destination": "Screen Display",
+      "data_elements": [
+        "Transaction Record"
+      ],
+      "transformations": [
+        "Read last record",
+        "Extract Transaction ID or all fields",
+        "Display or use for ID generation"
+      ]
+    },
+    {
+      "name": "Date Validation",
+      "description": "Validate date fields using external utility",
+      "source": "User Input (Date fields)",
+      "destination": "CSUTLDTC Utility",
+      "data_elements": [
+        "Date string",
+        "Date format"
+      ],
+      "transformations": [
+        "Call CSUTLDTC",
+        "Receive validation result",
+        "Display error if invalid"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Data Integrity",
+      "description": "Transaction ID must be unique across all transactions",
+      "impact": "Prevents duplicate transactions and ensures data integrity"
+    },
+    {
+      "type": "Referential Integrity",
+      "description": "Account ID and Card Number must exist in cross-reference files",
+      "impact": "Ensures transactions are linked to valid accounts and cards"
+    },
+    {
+      "type": "Data Completeness",
+      "description": "All required fields must be provided before transaction can be saved",
+      "impact": "Ensures complete transaction records for reporting and processing"
+    },
+    {
+      "type": "Data Format",
+      "description": "Dates must be in YYYY-MM-DD format and amounts in +/-99999999.99 format",
+      "impact": "Ensures consistent data format for processing and reporting"
+    },
+    {
+      "type": "User Confirmation",
+      "description": "User must explicitly confirm transaction addition",
+      "impact": "Prevents accidental transaction creation and ensures user intent"
+    },
+    {
+      "type": "Sequential ID Generation",
+      "description": "Transaction IDs are generated sequentially based on last transaction",
+      "impact": "Ensures ordered transaction processing and unique identification"
+    }
+  ]
+}

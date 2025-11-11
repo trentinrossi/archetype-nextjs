@@ -1,0 +1,547 @@
+{
+  "application_metadata": {
+    "name": "CSUTLDTC - Date Validation Utility",
+    "description": "A utility module designed to validate dates using the CEEDAYS API, providing standardized date validation to maintain data integrity across various business processes in the credit card management system",
+    "domain": "Credit Card Management System - Data Validation"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "DateValidationRequest",
+        "description": "Input structure for date validation containing the date to validate and its format",
+        "attributes": [
+          {
+            "name": "date",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "The date string to be validated"
+          },
+          {
+            "name": "dateFormat",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "The format specification for the date to be validated"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "DateValidationResponse",
+            "relationship_type": "produces",
+            "cardinality": "1:1"
+          }
+        ]
+      },
+      {
+        "name": "DateValidationResponse",
+        "description": "Output structure containing the validation result and detailed feedback",
+        "attributes": [
+          {
+            "name": "severity",
+            "type": "numeric",
+            "length": 4,
+            "required": true,
+            "description": "Severity level of the validation result"
+          },
+          {
+            "name": "messageCode",
+            "type": "numeric",
+            "length": 4,
+            "required": true,
+            "description": "Message code identifying the specific validation outcome"
+          },
+          {
+            "name": "result",
+            "type": "string",
+            "length": 15,
+            "required": true,
+            "description": "Descriptive text of the validation result"
+          },
+          {
+            "name": "testDate",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "The date that was validated"
+          },
+          {
+            "name": "maskUsed",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "The format mask used for validation"
+          },
+          {
+            "name": "fullMessage",
+            "type": "string",
+            "length": 80,
+            "required": true,
+            "description": "Complete formatted message containing all validation details"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "DateValidationRequest",
+            "relationship_type": "result_of",
+            "cardinality": "1:1"
+          }
+        ]
+      },
+      {
+        "name": "LilianDate",
+        "description": "Internal representation of date as days since 14 October 1582",
+        "attributes": [
+          {
+            "name": "daysSinceEpoch",
+            "type": "binary",
+            "length": 4,
+            "required": false,
+            "description": "Number of days since 14 October 1582"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "DateValidationRequest",
+            "relationship_type": "converted_from",
+            "cardinality": "1:1"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR-001",
+        "name": "Date Validation Rule",
+        "description": "Validates a given date string against a specified format using the CEEDAYS API to ensure dates used in the system are valid and conform to expected format",
+        "category": "Data Validation",
+        "logic": "Accept date and format as input, convert to Lilian date using CEEDAYS API, interpret feedback code to determine validity, return detailed validation result",
+        "conditions": [
+          "Input date must be a 10-character string",
+          "Input date format must be a 10-character string",
+          "Date must conform to the specified format",
+          "Date must be within supported range"
+        ],
+        "actions": [
+          "Initialize working storage variables",
+          "Prepare input date for CEEDAYS API",
+          "Prepare date format for CEEDAYS API",
+          "Call CEEDAYS API with date and format",
+          "Process feedback code from API",
+          "Determine validation result based on feedback",
+          "Construct detailed output message",
+          "Return validation result and severity"
+        ]
+      },
+      {
+        "id": "BR-002",
+        "name": "Date Format Flexibility Rule",
+        "description": "Allows different date formats to be specified, making the utility versatile for various date representations used in the system",
+        "category": "Configuration",
+        "logic": "Accept any valid date format specification and use it to validate the corresponding date",
+        "conditions": [
+          "Date format must be a valid format string",
+          "Format must be supported by CEEDAYS API"
+        ],
+        "actions": [
+          "Accept format specification from calling program",
+          "Pass format to CEEDAYS for validation",
+          "Return format in output message for reference"
+        ]
+      },
+      {
+        "id": "BR-003",
+        "name": "Standardized Date Validation Rule",
+        "description": "Provides a centralized and standardized method for date validation across the entire application",
+        "category": "Integration",
+        "logic": "Serve as a single point of date validation for all programs in the system requiring date validation",
+        "conditions": [
+          "Must be callable by other programs",
+          "Must accept standard input parameters",
+          "Must return standard output format"
+        ],
+        "actions": [
+          "Accept date and format from calling program",
+          "Perform validation",
+          "Return standardized result message",
+          "Set return code based on severity"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "date",
+        "rule": "Date must be valid according to specified format",
+        "error_message": "Date is invalid",
+        "severity": "Error"
+      },
+      {
+        "field": "date",
+        "rule": "Date must have sufficient data",
+        "error_message": "Insufficient",
+        "severity": "Error"
+      },
+      {
+        "field": "date",
+        "rule": "Date value must be valid",
+        "error_message": "Datevalue error",
+        "severity": "Error"
+      },
+      {
+        "field": "date",
+        "rule": "Era must be valid",
+        "error_message": "Invalid Era",
+        "severity": "Error"
+      },
+      {
+        "field": "date",
+        "rule": "Date must be within supported range",
+        "error_message": "Unsupp. Range",
+        "severity": "Error"
+      },
+      {
+        "field": "date",
+        "rule": "Month must be valid",
+        "error_message": "Invalid month",
+        "severity": "Error"
+      },
+      {
+        "field": "dateFormat",
+        "rule": "Picture string must be valid",
+        "error_message": "Bad Pic String",
+        "severity": "Error"
+      },
+      {
+        "field": "date",
+        "rule": "Date must contain numeric data where expected",
+        "error_message": "Nonnumeric data",
+        "severity": "Error"
+      },
+      {
+        "field": "date",
+        "rule": "Year in era cannot be zero",
+        "error_message": "YearInEra is 0",
+        "severity": "Error"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Lilian Date Conversion",
+        "description": "Converts input date to Lilian date format (days since 14 October 1582) for validation purposes",
+        "formula": "CEEDAYS API converts date string to number of days since 14 October 1582",
+        "input_fields": [
+          "date",
+          "dateFormat"
+        ],
+        "output_field": "lilianDate"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Date Validation Workflow",
+        "description": "Complete workflow for validating a date against a specified format",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize working storage variables to spaces and zeros",
+            "conditions": [],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Prepare input date structure with length and text",
+            "conditions": [
+              "Input date is provided"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Prepare date format structure with length and text",
+            "conditions": [
+              "Input format is provided"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Call CEEDAYS API with prepared structures",
+            "conditions": [
+              "Input structures are properly formatted"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Process feedback code from CEEDAYS API",
+            "conditions": [
+              "CEEDAYS API returns feedback"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Evaluate feedback code and determine validation result",
+            "conditions": [
+              "Feedback code is recognized"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Set appropriate result message based on feedback",
+            "conditions": [],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Construct complete output message with all details",
+            "conditions": [],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "Return result message and set return code",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "CEEDAYS API Integration",
+        "type": "External API",
+        "purpose": "Validate dates and convert to Lilian date format",
+        "data_exchanged": [
+          "Input date string",
+          "Date format specification",
+          "Lilian date output",
+          "Feedback code with severity and message number"
+        ],
+        "trigger_conditions": [
+          "Date validation is requested by calling program"
+        ]
+      },
+      {
+        "name": "Calling Program Interface",
+        "type": "Internal Program Call",
+        "purpose": "Provide date validation service to other programs in the system",
+        "data_exchanged": [
+          "Input date (10 characters)",
+          "Input date format (10 characters)",
+          "Output validation result (80 characters)",
+          "Return code (severity)"
+        ],
+        "trigger_conditions": [
+          "Another program requires date validation"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [],
+      "permissions": [],
+      "authentication_requirements": []
+    },
+    "error_handling": [
+      {
+        "error_code": "FC-INVALID-DATE",
+        "condition": "Date is valid (no error)",
+        "business_impact": "Date can be used in business processes",
+        "suggested_action": "Proceed with date usage"
+      },
+      {
+        "error_code": "FC-INSUFFICIENT-DATA",
+        "condition": "Insufficient data provided for validation",
+        "business_impact": "Date cannot be validated, may cause data integrity issues",
+        "suggested_action": "Request complete date information from user or source"
+      },
+      {
+        "error_code": "FC-BAD-DATE-VALUE",
+        "condition": "Date value is invalid",
+        "business_impact": "Invalid date could cause calculation errors or data corruption",
+        "suggested_action": "Reject the date and request valid input"
+      },
+      {
+        "error_code": "FC-INVALID-ERA",
+        "condition": "Era specification in date is invalid",
+        "business_impact": "Date cannot be properly interpreted",
+        "suggested_action": "Verify era specification and correct if needed"
+      },
+      {
+        "error_code": "FC-UNSUPP-RANGE",
+        "condition": "Date is outside supported range",
+        "business_impact": "Date cannot be processed by system",
+        "suggested_action": "Ensure date is within valid range for system"
+      },
+      {
+        "error_code": "FC-INVALID-MONTH",
+        "condition": "Month value is invalid",
+        "business_impact": "Date is invalid and cannot be used",
+        "suggested_action": "Correct month value to valid range (1-12)"
+      },
+      {
+        "error_code": "FC-BAD-PIC-STRING",
+        "condition": "Date format picture string is invalid",
+        "business_impact": "Cannot validate date due to format specification error",
+        "suggested_action": "Correct the date format specification"
+      },
+      {
+        "error_code": "FC-NON-NUMERIC-DATA",
+        "condition": "Non-numeric data found where numeric expected",
+        "business_impact": "Date cannot be parsed correctly",
+        "suggested_action": "Ensure date contains only valid characters for format"
+      },
+      {
+        "error_code": "FC-YEAR-IN-ERA-ZERO",
+        "condition": "Year in era is zero which is invalid",
+        "business_impact": "Date is invalid",
+        "suggested_action": "Correct year value to non-zero"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [],
+    "reports": [],
+    "navigation_flow": [],
+    "user_messages": [
+      {
+        "code": "MSG-001",
+        "type": "Success",
+        "message": "Date is valid",
+        "context": "Date validation successful"
+      },
+      {
+        "code": "MSG-002",
+        "type": "Error",
+        "message": "Insufficient",
+        "context": "Insufficient data provided for date validation"
+      },
+      {
+        "code": "MSG-003",
+        "type": "Error",
+        "message": "Datevalue error",
+        "context": "Date value is invalid"
+      },
+      {
+        "code": "MSG-004",
+        "type": "Error",
+        "message": "Invalid Era",
+        "context": "Era specification in date is invalid"
+      },
+      {
+        "code": "MSG-005",
+        "type": "Error",
+        "message": "Unsupp. Range",
+        "context": "Date is outside supported range"
+      },
+      {
+        "code": "MSG-006",
+        "type": "Error",
+        "message": "Invalid month",
+        "context": "Month value in date is invalid"
+      },
+      {
+        "code": "MSG-007",
+        "type": "Error",
+        "message": "Bad Pic String",
+        "context": "Date format picture string is invalid"
+      },
+      {
+        "code": "MSG-008",
+        "type": "Error",
+        "message": "Nonnumeric data",
+        "context": "Non-numeric data found where numeric expected"
+      },
+      {
+        "code": "MSG-009",
+        "type": "Error",
+        "message": "YearInEra is 0",
+        "context": "Year in era cannot be zero"
+      },
+      {
+        "code": "MSG-010",
+        "type": "Error",
+        "message": "Date is invalid",
+        "context": "Date validation failed for unspecified reason"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Date Validation Input Flow",
+      "description": "Flow of date and format data from calling program to validation utility",
+      "source": "Calling Program",
+      "destination": "CSUTLDTC Date Validation Utility",
+      "data_elements": [
+        "Input date (10 characters)",
+        "Input date format (10 characters)"
+      ],
+      "transformations": [
+        "Copy date to working storage",
+        "Copy format to working storage",
+        "Set length fields for variable-length structures",
+        "Prepare structures for CEEDAYS API"
+      ]
+    },
+    {
+      "name": "CEEDAYS API Data Flow",
+      "description": "Flow of data to and from CEEDAYS API for date validation",
+      "source": "CSUTLDTC Date Validation Utility",
+      "destination": "CEEDAYS API",
+      "data_elements": [
+        "Variable-length date structure",
+        "Variable-length format structure",
+        "Lilian date output",
+        "Feedback code structure"
+      ],
+      "transformations": [
+        "Convert date string to Lilian date",
+        "Generate feedback code with severity and message number"
+      ]
+    },
+    {
+      "name": "Date Validation Output Flow",
+      "description": "Flow of validation result from utility back to calling program",
+      "source": "CSUTLDTC Date Validation Utility",
+      "destination": "Calling Program",
+      "data_elements": [
+        "Validation result message (80 characters)",
+        "Return code (severity)"
+      ],
+      "transformations": [
+        "Interpret feedback code",
+        "Set result message based on feedback",
+        "Construct formatted output message",
+        "Set return code from severity"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Data Quality",
+      "description": "All dates used in the system must be validated through this utility to ensure data integrity",
+      "impact": "Prevents data inconsistencies and potential errors in downstream processes including financial calculations and reporting"
+    },
+    {
+      "type": "Format Standardization",
+      "description": "Date formats must be specified and validated to ensure consistent date representation across the system",
+      "impact": "Ensures all date-dependent processes use consistent date formats"
+    },
+    {
+      "type": "API Dependency",
+      "description": "Date validation depends on CEEDAYS API from IBM Language Environment",
+      "impact": "System requires IBM Language Environment for date validation functionality"
+    },
+    {
+      "type": "Date Range",
+      "description": "Dates must be within the supported range of the CEEDAYS API (post 14 October 1582)",
+      "impact": "Historical dates before 1582 cannot be validated or used in the system"
+    },
+    {
+      "type": "Input Length",
+      "description": "Date and format inputs are limited to 10 characters each",
+      "impact": "Date representations and format specifications must fit within 10-character constraint"
+    }
+  ]
+}

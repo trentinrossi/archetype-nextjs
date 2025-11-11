@@ -1,0 +1,955 @@
+{
+  "application_metadata": {
+    "name": "CBTRN01C - Daily Transaction Processing Program",
+    "description": "Batch program designed to process daily transaction records, verify card numbers against a cross-reference file, and update corresponding account information. Ensures all transactions are properly recorded and associated with the correct customer accounts.",
+    "domain": "Financial Services - Card Transaction Processing"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "DailyTransaction",
+        "description": "Represents a daily transaction record from the daily transaction file",
+        "attributes": [
+          {
+            "name": "transaction_id",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Unique identifier for each transaction"
+          },
+          {
+            "name": "transaction_type_code",
+            "type": "string",
+            "length": 2,
+            "required": true,
+            "description": "Indicates the type of transaction"
+          },
+          {
+            "name": "transaction_category_code",
+            "type": "numeric",
+            "length": 4,
+            "required": true,
+            "description": "Categorizes the transaction"
+          },
+          {
+            "name": "transaction_source",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "Indicates where the transaction originated"
+          },
+          {
+            "name": "transaction_description",
+            "type": "string",
+            "length": 100,
+            "required": true,
+            "description": "Detailed description of the transaction"
+          },
+          {
+            "name": "transaction_amount",
+            "type": "decimal",
+            "length": 11,
+            "required": true,
+            "description": "Amount of the transaction with 2 decimal places"
+          },
+          {
+            "name": "merchant_id",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Identifier for the merchant"
+          },
+          {
+            "name": "merchant_name",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Name of the merchant"
+          },
+          {
+            "name": "merchant_city",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "City where the merchant is located"
+          },
+          {
+            "name": "merchant_zip",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "ZIP code of the merchant"
+          },
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Number of the card used in the transaction"
+          },
+          {
+            "name": "original_timestamp",
+            "type": "string",
+            "length": 26,
+            "required": true,
+            "description": "Timestamp when the transaction occurred"
+          },
+          {
+            "name": "processing_timestamp",
+            "type": "string",
+            "length": 26,
+            "required": true,
+            "description": "Timestamp when the transaction was processed"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Card",
+            "relationship_type": "uses",
+            "cardinality": "many-to-one"
+          },
+          {
+            "related_entity": "Merchant",
+            "relationship_type": "processed_at",
+            "cardinality": "many-to-one"
+          }
+        ]
+      },
+      {
+        "name": "Customer",
+        "description": "Represents customer information in the system",
+        "attributes": [
+          {
+            "name": "customer_id",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Unique identifier for each customer"
+          },
+          {
+            "name": "first_name",
+            "type": "string",
+            "length": 25,
+            "required": true,
+            "description": "First name of the customer"
+          },
+          {
+            "name": "middle_name",
+            "type": "string",
+            "length": 25,
+            "required": false,
+            "description": "Middle name of the customer"
+          },
+          {
+            "name": "last_name",
+            "type": "string",
+            "length": 25,
+            "required": true,
+            "description": "Last name of the customer"
+          },
+          {
+            "name": "ssn",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Social Security Number of the customer"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "owns",
+            "cardinality": "one-to-many"
+          },
+          {
+            "related_entity": "Card",
+            "relationship_type": "holds",
+            "cardinality": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "CardCrossReference",
+        "description": "Cross-reference entity linking card numbers to accounts and customers",
+        "attributes": [
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Card number used for cross-referencing"
+          },
+          {
+            "name": "customer_id",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Customer ID linked to the card"
+          },
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Account ID linked to the card"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Card",
+            "relationship_type": "references",
+            "cardinality": "one-to-one"
+          },
+          {
+            "related_entity": "Customer",
+            "relationship_type": "references",
+            "cardinality": "many-to-one"
+          },
+          {
+            "related_entity": "Account",
+            "relationship_type": "references",
+            "cardinality": "many-to-one"
+          }
+        ]
+      },
+      {
+        "name": "Card",
+        "description": "Represents card information in the system",
+        "attributes": [
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Unique identifier for each card"
+          },
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Account associated with the card"
+          },
+          {
+            "name": "cvv_code",
+            "type": "numeric",
+            "length": 3,
+            "required": true,
+            "description": "Security code for the card"
+          },
+          {
+            "name": "expiration_date",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "Date when the card expires"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "linked_to",
+            "cardinality": "many-to-one"
+          },
+          {
+            "related_entity": "DailyTransaction",
+            "relationship_type": "used_in",
+            "cardinality": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "Account",
+        "description": "Represents account information in the system",
+        "attributes": [
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Unique identifier for each account"
+          },
+          {
+            "name": "active_status",
+            "type": "string",
+            "length": 1,
+            "required": true,
+            "description": "Indicates if the account is active"
+          },
+          {
+            "name": "current_balance",
+            "type": "decimal",
+            "length": 12,
+            "required": true,
+            "description": "Current balance of the account with 2 decimal places"
+          },
+          {
+            "name": "credit_limit",
+            "type": "decimal",
+            "length": 12,
+            "required": true,
+            "description": "Credit limit of the account with 2 decimal places"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Customer",
+            "relationship_type": "owned_by",
+            "cardinality": "many-to-one"
+          },
+          {
+            "related_entity": "Card",
+            "relationship_type": "has",
+            "cardinality": "one-to-many"
+          },
+          {
+            "related_entity": "Transaction",
+            "relationship_type": "contains",
+            "cardinality": "one-to-many"
+          }
+        ]
+      },
+      {
+        "name": "Transaction",
+        "description": "Represents processed transaction records stored in the system",
+        "attributes": [
+          {
+            "name": "transaction_id",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Unique identifier for each transaction"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "belongs_to",
+            "cardinality": "many-to-one"
+          }
+        ]
+      },
+      {
+        "name": "Merchant",
+        "description": "Represents merchant information extracted from transactions",
+        "attributes": [
+          {
+            "name": "merchant_id",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Unique identifier for the merchant"
+          },
+          {
+            "name": "merchant_name",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "Name of the merchant"
+          },
+          {
+            "name": "merchant_city",
+            "type": "string",
+            "length": 50,
+            "required": true,
+            "description": "City location of the merchant"
+          },
+          {
+            "name": "merchant_zip",
+            "type": "string",
+            "length": 10,
+            "required": true,
+            "description": "ZIP code of the merchant"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "DailyTransaction",
+            "relationship_type": "processes",
+            "cardinality": "one-to-many"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Daily Transaction Processing",
+        "description": "Main process for reading daily transactions, verifying card numbers, and updating account information",
+        "category": "Transaction Processing",
+        "logic": "Process each transaction in the daily transaction file sequentially, ensuring each transaction is associated with a valid card and account before updating account information",
+        "conditions": [
+          "Daily transaction file must be available and readable",
+          "All required reference files (Customer, Cross-Reference, Card, Account, Transaction) must be accessible",
+          "Transaction record must contain a valid card number"
+        ],
+        "actions": [
+          "Read transaction record from daily transaction file",
+          "Verify card number using cross-reference file",
+          "Retrieve associated account information",
+          "Display transaction details including card number, account ID, and customer ID",
+          "Continue processing until end of daily transaction file is reached"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Card Number Verification",
+        "description": "Verify card number validity using cross-reference file and retrieve associated account and customer information",
+        "category": "Validation",
+        "logic": "For each transaction, lookup the card number in the cross-reference file to validate it and retrieve the linked account and customer identifiers",
+        "conditions": [
+          "Card number must exist in the transaction record",
+          "Cross-reference file must be accessible"
+        ],
+        "actions": [
+          "Extract card number from transaction record",
+          "Lookup card number in cross-reference file",
+          "If found, retrieve account ID and customer ID",
+          "If not found, mark transaction as invalid and skip processing",
+          "Display verification result"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Account Information Retrieval",
+        "description": "Retrieve account information for validated transactions",
+        "category": "Data Retrieval",
+        "logic": "After successful card verification, retrieve the complete account record using the account ID from the cross-reference",
+        "conditions": [
+          "Card number verification must be successful",
+          "Account ID must be available from cross-reference",
+          "Account file must be accessible"
+        ],
+        "actions": [
+          "Use account ID from cross-reference lookup",
+          "Retrieve account record from account file",
+          "If account found, display success message",
+          "If account not found, display error and skip transaction",
+          "Make account information available for transaction processing"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Transaction Skipping on Verification Failure",
+        "description": "Skip transaction processing when card verification or account lookup fails",
+        "category": "Error Handling",
+        "logic": "When a card number cannot be verified or an account cannot be found, the transaction is skipped and an error message is displayed",
+        "conditions": [
+          "Card verification fails (card not found in cross-reference)",
+          "OR account lookup fails (account not found in account file)"
+        ],
+        "actions": [
+          "Display error message indicating the failure reason",
+          "Display transaction ID and card number for tracking",
+          "Skip the current transaction without updating any records",
+          "Continue processing next transaction in the file"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Sequential Transaction Processing",
+        "description": "Process transactions sequentially from the daily transaction file until end of file",
+        "category": "Processing Flow",
+        "logic": "Read and process transactions one at a time in sequential order until all transactions in the daily file have been processed",
+        "conditions": [
+          "Daily transaction file is open and readable",
+          "End of file has not been reached"
+        ],
+        "actions": [
+          "Read next transaction record",
+          "Process transaction through verification and account lookup",
+          "Continue to next record",
+          "Stop processing when end of file is reached",
+          "Close all files after processing completes"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "card_number",
+        "rule": "Must exist in cross-reference file",
+        "error_message": "INVALID CARD NUMBER FOR XREF - CARD NUMBER [card_number] COULD NOT BE VERIFIED. SKIPPING TRANSACTION ID-[transaction_id]",
+        "severity": "error"
+      },
+      {
+        "field": "account_id",
+        "rule": "Must exist in account file",
+        "error_message": "INVALID ACCOUNT NUMBER FOUND - ACCOUNT [account_id] NOT FOUND",
+        "severity": "error"
+      },
+      {
+        "field": "daily_transaction_file",
+        "rule": "Must be readable and accessible",
+        "error_message": "ERROR READING DAILY TRANSACTION FILE",
+        "severity": "critical"
+      },
+      {
+        "field": "cross_reference_file",
+        "rule": "Must be accessible for card verification",
+        "error_message": "ERROR OPENING XREF FILE",
+        "severity": "critical"
+      },
+      {
+        "field": "account_file",
+        "rule": "Must be accessible for account retrieval",
+        "error_message": "ERROR OPENING ACCOUNT FILE",
+        "severity": "critical"
+      }
+    ],
+    "calculations": [],
+    "workflows": [
+      {
+        "name": "Daily Transaction Processing Workflow",
+        "description": "Complete workflow for processing daily transactions from file input through verification and account updates",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize processing environment and open all required files",
+            "conditions": [
+              "All files must be available"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Read next transaction record from daily transaction file",
+            "conditions": [
+              "Daily transaction file is open",
+              "End of file not reached"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Display transaction record details",
+            "conditions": [
+              "Transaction record successfully read"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Verify card number using cross-reference file",
+            "conditions": [
+              "Card number exists in transaction record"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Check card verification result",
+            "conditions": [
+              "If verification successful, proceed to step 6",
+              "If verification failed, proceed to step 9"
+            ],
+            "next_step": "6 or 9"
+          },
+          {
+            "step_number": 6,
+            "action": "Retrieve account information using account ID from cross-reference",
+            "conditions": [
+              "Account ID available from cross-reference"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Check account retrieval result",
+            "conditions": [
+              "If account found, proceed to step 8",
+              "If account not found, display error and proceed to step 2"
+            ],
+            "next_step": "8 or 2"
+          },
+          {
+            "step_number": 8,
+            "action": "Display successful processing message with account details",
+            "conditions": [
+              "Account successfully retrieved"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 9,
+            "action": "Display card verification error and skip transaction",
+            "conditions": [
+              "Card verification failed"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 10,
+            "action": "Close all files and terminate processing",
+            "conditions": [
+              "End of daily transaction file reached"
+            ],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "Daily Transaction File Integration",
+        "type": "Batch File Input",
+        "purpose": "Receive daily transaction records for processing",
+        "data_exchanged": [
+          "Transaction ID",
+          "Transaction type and category codes",
+          "Transaction source and description",
+          "Transaction amount",
+          "Merchant information (ID, name, city, ZIP)",
+          "Card number",
+          "Original and processing timestamps"
+        ],
+        "trigger_conditions": [
+          "Daily batch processing schedule",
+          "Daily transaction file available for processing"
+        ]
+      },
+      {
+        "name": "Customer Information Integration",
+        "type": "Data Reference",
+        "purpose": "Access customer information for transaction processing",
+        "data_exchanged": [
+          "Customer ID",
+          "Customer name (first, middle, last)",
+          "Customer SSN"
+        ],
+        "trigger_conditions": [
+          "Customer information needed during transaction processing"
+        ]
+      },
+      {
+        "name": "Card Cross-Reference Integration",
+        "type": "Data Lookup",
+        "purpose": "Verify card numbers and retrieve associated account and customer identifiers",
+        "data_exchanged": [
+          "Card number",
+          "Account ID",
+          "Customer ID"
+        ],
+        "trigger_conditions": [
+          "Card number verification required for each transaction"
+        ]
+      },
+      {
+        "name": "Account Information Integration",
+        "type": "Data Retrieval and Update",
+        "purpose": "Retrieve and update account information based on processed transactions",
+        "data_exchanged": [
+          "Account ID",
+          "Account active status",
+          "Current balance",
+          "Credit limit"
+        ],
+        "trigger_conditions": [
+          "Valid transaction requires account information",
+          "Account updates needed after transaction processing"
+        ]
+      },
+      {
+        "name": "Transaction Storage Integration",
+        "type": "Data Storage",
+        "purpose": "Store processed transaction records",
+        "data_exchanged": [
+          "Transaction ID",
+          "Processed transaction details"
+        ],
+        "trigger_conditions": [
+          "Transaction successfully processed and validated"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [],
+      "permissions": [],
+      "authentication_requirements": []
+    },
+    "error_handling": [
+      {
+        "error_code": "XREF_READ_STATUS_4",
+        "condition": "Card number not found in cross-reference file",
+        "business_impact": "Transaction cannot be processed and is skipped",
+        "suggested_action": "Display error message with card number and transaction ID, skip transaction, continue processing next transaction"
+      },
+      {
+        "error_code": "ACCT_READ_STATUS_4",
+        "condition": "Account ID not found in account file",
+        "business_impact": "Transaction cannot be associated with an account and is skipped",
+        "suggested_action": "Display error message with account ID, skip transaction, continue processing next transaction"
+      },
+      {
+        "error_code": "FILE_STATUS_NOT_00",
+        "condition": "File operation fails during open, read, or close",
+        "business_impact": "Critical error that prevents processing from continuing",
+        "suggested_action": "Display detailed file status information, abort program with code 999"
+      },
+      {
+        "error_code": "FILE_STATUS_10",
+        "condition": "End of file reached on daily transaction file",
+        "business_impact": "Normal completion of processing",
+        "suggested_action": "Set end-of-file flag, proceed to file closure and program termination"
+      },
+      {
+        "error_code": "FILE_OPEN_ERROR",
+        "condition": "Unable to open required file at program start",
+        "business_impact": "Program cannot proceed with processing",
+        "suggested_action": "Display error message with file name and status, abort program"
+      },
+      {
+        "error_code": "FILE_CLOSE_ERROR",
+        "condition": "Unable to close file at program end",
+        "business_impact": "Potential data integrity issues",
+        "suggested_action": "Display error message with file name and detailed status, abort program"
+      },
+      {
+        "error_code": "INVALID_KEY",
+        "condition": "Record key not found during indexed file read",
+        "business_impact": "Specific record cannot be retrieved",
+        "suggested_action": "Set appropriate status flag, display error message, skip current transaction"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [],
+    "reports": [
+      {
+        "name": "Transaction Processing Log",
+        "description": "Console output displaying the results of daily transaction processing",
+        "type": "Console Log",
+        "data_sources": [
+          "Daily Transaction File",
+          "Cross-Reference File",
+          "Account File"
+        ],
+        "filters": [],
+        "columns": [
+          {
+            "name": "Transaction Record",
+            "data_field": "DALYTRAN-RECORD",
+            "format": "text",
+            "aggregation": "none"
+          },
+          {
+            "name": "Card Number",
+            "data_field": "XREF-CARD-NUM",
+            "format": "text",
+            "aggregation": "none"
+          },
+          {
+            "name": "Account ID",
+            "data_field": "XREF-ACCT-ID",
+            "format": "numeric",
+            "aggregation": "none"
+          },
+          {
+            "name": "Customer ID",
+            "data_field": "XREF-CUST-ID",
+            "format": "numeric",
+            "aggregation": "none"
+          },
+          {
+            "name": "Processing Status",
+            "data_field": "Processing messages",
+            "format": "text",
+            "aggregation": "none"
+          }
+        ],
+        "sorting": [
+          "Sequential order from daily transaction file"
+        ],
+        "grouping": []
+      }
+    ],
+    "navigation_flow": [],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "success",
+        "message": "SUCCESSFUL READ OF XREF",
+        "context": "Card number successfully verified in cross-reference file"
+      },
+      {
+        "code": "MSG002",
+        "type": "error",
+        "message": "INVALID CARD NUMBER FOR XREF",
+        "context": "Card number not found in cross-reference file"
+      },
+      {
+        "code": "MSG003",
+        "type": "success",
+        "message": "SUCCESSFUL READ OF ACCOUNT FILE",
+        "context": "Account information successfully retrieved"
+      },
+      {
+        "code": "MSG004",
+        "type": "error",
+        "message": "INVALID ACCOUNT NUMBER FOUND",
+        "context": "Account ID not found in account file"
+      },
+      {
+        "code": "MSG005",
+        "type": "error",
+        "message": "ACCOUNT [ACCT-ID] NOT FOUND",
+        "context": "Specific account could not be located"
+      },
+      {
+        "code": "MSG006",
+        "type": "error",
+        "message": "CARD NUMBER [DALYTRAN-CARD-NUM] COULD NOT BE VERIFIED. SKIPPING TRANSACTION ID-[DALYTRAN-ID]",
+        "context": "Transaction skipped due to card verification failure"
+      },
+      {
+        "code": "MSG007",
+        "type": "error",
+        "message": "ERROR READING DAILY TRANSACTION FILE",
+        "context": "Critical error reading from daily transaction file"
+      },
+      {
+        "code": "MSG008",
+        "type": "error",
+        "message": "ERROR OPENING [FILE NAME] FILE",
+        "context": "Unable to open required file at program start"
+      },
+      {
+        "code": "MSG009",
+        "type": "error",
+        "message": "ERROR CLOSING [FILE NAME] FILE",
+        "context": "Unable to close file at program end"
+      },
+      {
+        "code": "MSG010",
+        "type": "info",
+        "message": "FILE STATUS IS: NNNN [status code]",
+        "context": "Detailed file status information for debugging"
+      },
+      {
+        "code": "MSG011",
+        "type": "critical",
+        "message": "ABENDING PROGRAM",
+        "context": "Program terminating abnormally due to critical error"
+      },
+      {
+        "code": "MSG012",
+        "type": "info",
+        "message": "END OF EXECUTION OF PROGRAM CBTRN01C",
+        "context": "Normal program completion"
+      },
+      {
+        "code": "MSG013",
+        "type": "info",
+        "message": "CARD NUMBER: [card number]",
+        "context": "Display card number from cross-reference"
+      },
+      {
+        "code": "MSG014",
+        "type": "info",
+        "message": "ACCOUNT ID : [account id]",
+        "context": "Display account ID from cross-reference"
+      },
+      {
+        "code": "MSG015",
+        "type": "info",
+        "message": "CUSTOMER ID: [customer id]",
+        "context": "Display customer ID from cross-reference"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Daily Transaction to Account Update Flow",
+      "description": "Flow of transaction data from daily file through verification to account update",
+      "source": "Daily Transaction File",
+      "destination": "Account File",
+      "data_elements": [
+        "Transaction ID",
+        "Card Number",
+        "Transaction Amount",
+        "Transaction Type",
+        "Merchant Information",
+        "Timestamps"
+      ],
+      "transformations": [
+        "Card number verification through cross-reference",
+        "Account ID lookup from cross-reference",
+        "Account information retrieval",
+        "Transaction validation"
+      ]
+    },
+    {
+      "name": "Card Verification Flow",
+      "description": "Flow of card number from transaction through cross-reference to validation",
+      "source": "Daily Transaction Record",
+      "destination": "Cross-Reference File",
+      "data_elements": [
+        "Card Number"
+      ],
+      "transformations": [
+        "Extract card number from transaction",
+        "Lookup in cross-reference file",
+        "Retrieve associated account and customer IDs"
+      ]
+    },
+    {
+      "name": "Account Retrieval Flow",
+      "description": "Flow of account ID from cross-reference to account information retrieval",
+      "source": "Cross-Reference File",
+      "destination": "Account File",
+      "data_elements": [
+        "Account ID"
+      ],
+      "transformations": [
+        "Extract account ID from cross-reference",
+        "Retrieve complete account record",
+        "Make account information available for processing"
+      ]
+    },
+    {
+      "name": "Transaction Storage Flow",
+      "description": "Flow of processed transaction data to transaction storage",
+      "source": "Processed Transaction Data",
+      "destination": "Transaction File",
+      "data_elements": [
+        "Transaction ID",
+        "Validated transaction details"
+      ],
+      "transformations": [
+        "Transaction validation complete",
+        "Store processed transaction record"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Data Integrity",
+      "description": "All transactions must be associated with valid card numbers that exist in the cross-reference file",
+      "impact": "Transactions with invalid card numbers are skipped and not processed"
+    },
+    {
+      "type": "Data Integrity",
+      "description": "All verified card numbers must be associated with existing accounts",
+      "impact": "Transactions linked to non-existent accounts are skipped and not processed"
+    },
+    {
+      "type": "Processing Order",
+      "description": "Transactions must be processed sequentially in the order they appear in the daily transaction file",
+      "impact": "Processing order is deterministic and cannot be parallelized"
+    },
+    {
+      "type": "Error Recovery",
+      "description": "Individual transaction errors do not stop overall processing; only critical file errors cause program termination",
+      "impact": "System continues processing remaining transactions even when individual transactions fail validation"
+    },
+    {
+      "type": "File Availability",
+      "description": "All required files (Daily Transaction, Customer, Cross-Reference, Card, Account, Transaction) must be available at program start",
+      "impact": "Program cannot proceed if any required file is unavailable"
+    },
+    {
+      "type": "Batch Processing",
+      "description": "Program operates in batch mode processing all transactions in a single execution",
+      "impact": "No real-time or interactive processing capability"
+    }
+  ]
+}
