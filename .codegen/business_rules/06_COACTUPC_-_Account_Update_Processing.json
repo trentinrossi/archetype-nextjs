@@ -1,0 +1,1763 @@
+{
+  "application_metadata": {
+    "name": "COACTUPC - Account Update Processing",
+    "description": "Credit card management system program responsible for handling account updates. Provides functionality to view and modify account and customer details with comprehensive validation and transaction management.",
+    "domain": "Credit Card Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "Account",
+        "description": "Credit card account information including balances, limits, and status",
+        "attributes": [
+          {
+            "name": "account_id",
+            "type": "Numeric",
+            "length": 11,
+            "required": true,
+            "description": "Primary key for account identification"
+          },
+          {
+            "name": "active_status",
+            "type": "Character",
+            "length": 1,
+            "required": true,
+            "description": "Account active status - Y for active, N for inactive"
+          },
+          {
+            "name": "current_balance",
+            "type": "Decimal",
+            "length": 12,
+            "required": true,
+            "description": "Current account balance with 2 decimal places, signed amount"
+          },
+          {
+            "name": "credit_limit",
+            "type": "Decimal",
+            "length": 12,
+            "required": true,
+            "description": "Credit limit with 2 decimal places, signed amount"
+          },
+          {
+            "name": "cash_credit_limit",
+            "type": "Decimal",
+            "length": 12,
+            "required": true,
+            "description": "Cash credit limit with 2 decimal places, signed amount"
+          },
+          {
+            "name": "open_date",
+            "type": "Date",
+            "length": 8,
+            "required": true,
+            "description": "Account opening date in YYYYMMDD format"
+          },
+          {
+            "name": "expiration_date",
+            "type": "Date",
+            "length": 8,
+            "required": true,
+            "description": "Account expiration date in YYYYMMDD format"
+          },
+          {
+            "name": "reissue_date",
+            "type": "Date",
+            "length": 8,
+            "required": true,
+            "description": "Card reissue date in YYYYMMDD format"
+          },
+          {
+            "name": "current_cycle_credit",
+            "type": "Decimal",
+            "length": 12,
+            "required": true,
+            "description": "Current cycle credit amount with 2 decimal places, signed amount"
+          },
+          {
+            "name": "current_cycle_debit",
+            "type": "Decimal",
+            "length": 12,
+            "required": true,
+            "description": "Current cycle debit amount with 2 decimal places, signed amount"
+          },
+          {
+            "name": "group_id",
+            "type": "Character",
+            "length": 10,
+            "required": false,
+            "description": "Account grouping identifier"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Customer",
+            "relationship_type": "belongs_to",
+            "cardinality": "many_to_one"
+          },
+          {
+            "related_entity": "Card",
+            "relationship_type": "has_many",
+            "cardinality": "one_to_many"
+          }
+        ]
+      },
+      {
+        "name": "Customer",
+        "description": "Customer personal and contact information",
+        "attributes": [
+          {
+            "name": "customer_id",
+            "type": "Numeric",
+            "length": 9,
+            "required": true,
+            "description": "Primary key for customer identification"
+          },
+          {
+            "name": "ssn",
+            "type": "Numeric",
+            "length": 9,
+            "required": true,
+            "description": "Social Security Number in XXXXXXXXX format"
+          },
+          {
+            "name": "first_name",
+            "type": "Character",
+            "length": 25,
+            "required": true,
+            "description": "Customer first name, alphabetic characters only"
+          },
+          {
+            "name": "middle_name",
+            "type": "Character",
+            "length": 25,
+            "required": false,
+            "description": "Customer middle name, alphabetic characters only"
+          },
+          {
+            "name": "last_name",
+            "type": "Character",
+            "length": 25,
+            "required": true,
+            "description": "Customer last name, alphabetic characters only"
+          },
+          {
+            "name": "address_line_1",
+            "type": "Character",
+            "length": 50,
+            "required": true,
+            "description": "Street address"
+          },
+          {
+            "name": "address_line_2",
+            "type": "Character",
+            "length": 50,
+            "required": false,
+            "description": "Additional address information"
+          },
+          {
+            "name": "address_line_3",
+            "type": "Character",
+            "length": 50,
+            "required": true,
+            "description": "City name"
+          },
+          {
+            "name": "state_code",
+            "type": "Character",
+            "length": 2,
+            "required": true,
+            "description": "US state code"
+          },
+          {
+            "name": "country_code",
+            "type": "Character",
+            "length": 3,
+            "required": true,
+            "description": "ISO country code"
+          },
+          {
+            "name": "zip_code",
+            "type": "Character",
+            "length": 10,
+            "required": true,
+            "description": "US ZIP code"
+          },
+          {
+            "name": "phone_number_1",
+            "type": "Character",
+            "length": 15,
+            "required": true,
+            "description": "Primary phone number in (XXX)XXX-XXXX format"
+          },
+          {
+            "name": "phone_number_2",
+            "type": "Character",
+            "length": 15,
+            "required": false,
+            "description": "Secondary phone number in (XXX)XXX-XXXX format"
+          },
+          {
+            "name": "date_of_birth",
+            "type": "Date",
+            "length": 8,
+            "required": true,
+            "description": "Date of birth in YYYYMMDD format"
+          },
+          {
+            "name": "government_issued_id",
+            "type": "Character",
+            "length": 20,
+            "required": false,
+            "description": "Government issued ID number"
+          },
+          {
+            "name": "eft_account_id",
+            "type": "Character",
+            "length": 10,
+            "required": false,
+            "description": "Electronic Funds Transfer account ID"
+          },
+          {
+            "name": "primary_holder_indicator",
+            "type": "Character",
+            "length": 1,
+            "required": true,
+            "description": "Primary card holder indicator - Y for primary, N for secondary"
+          },
+          {
+            "name": "fico_score",
+            "type": "Numeric",
+            "length": 3,
+            "required": true,
+            "description": "FICO credit score, range 300-850"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "has_many",
+            "cardinality": "one_to_many"
+          }
+        ]
+      },
+      {
+        "name": "Card",
+        "description": "Card cross-reference information linking cards to accounts",
+        "attributes": [
+          {
+            "name": "card_number",
+            "type": "Character",
+            "length": 16,
+            "required": true,
+            "description": "Credit card number"
+          },
+          {
+            "name": "account_id",
+            "type": "Numeric",
+            "length": 11,
+            "required": true,
+            "description": "Associated account identifier"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "belongs_to",
+            "cardinality": "many_to_one"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Account and Customer Update Transaction",
+        "description": "Account and customer data must be updated together in a single transaction to maintain data integrity",
+        "category": "Transaction Management",
+        "logic": "When updating account information, both account and customer records must be locked, validated, and updated atomically. If either update fails, both must be rolled back.",
+        "conditions": [
+          "User has made changes to account or customer data",
+          "All validations have passed",
+          "User has confirmed the changes"
+        ],
+        "actions": [
+          "Lock account record for update",
+          "Lock customer record for update",
+          "Verify records have not been modified by another user",
+          "Update account record",
+          "Update customer record",
+          "Commit transaction if both updates succeed",
+          "Rollback transaction if any update fails"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Concurrent Update Detection",
+        "description": "System must detect if records have been modified by another user before committing updates",
+        "category": "Data Integrity",
+        "logic": "Before updating, compare current database values with original values read at the start of the transaction. If any field has changed, reject the update and notify the user.",
+        "conditions": [
+          "Records are locked for update",
+          "User is attempting to save changes"
+        ],
+        "actions": [
+          "Compare each field in database with original values",
+          "If changes detected, rollback transaction",
+          "Display message that data has been changed by another user",
+          "Refresh screen with latest data"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "User Type Based Access",
+        "description": "System supports different user types (admin and regular users) with different access levels",
+        "category": "Security",
+        "logic": "User permissions determine which fields can be modified and which screens are accessible",
+        "conditions": [
+          "User is authenticated",
+          "User type is determined from session"
+        ],
+        "actions": [
+          "Apply field-level security based on user type",
+          "Control navigation options based on user permissions",
+          "Display appropriate error messages for unauthorized actions"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Change Detection Before Save",
+        "description": "System must detect if any changes were actually made before allowing save operation",
+        "category": "Data Validation",
+        "logic": "Compare all new field values with original values. If no changes detected, inform user and prevent unnecessary database operations.",
+        "conditions": [
+          "User attempts to save",
+          "All validations have passed"
+        ],
+        "actions": [
+          "Compare new values with old values in ACUP-OLD-DETAILS",
+          "If changes detected, set CHANGE-HAS-OCCURRED flag",
+          "If no changes detected, set NO-CHANGES-FOUND flag and display message",
+          "Only proceed with update if changes exist"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Account Status Management",
+        "description": "Account status must be either active (Y) or inactive (N)",
+        "category": "Account Management",
+        "logic": "Account status controls whether the account can be used for transactions",
+        "conditions": [
+          "User modifies account status field"
+        ],
+        "actions": [
+          "Validate status is Y or N",
+          "Reject any other values",
+          "Update account status in database if valid"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Primary Card Holder Designation",
+        "description": "Each customer must be designated as either primary or secondary card holder",
+        "category": "Customer Management",
+        "logic": "Primary holder indicator determines customer's relationship to the account",
+        "conditions": [
+          "Customer record is being created or updated"
+        ],
+        "actions": [
+          "Validate indicator is Y or N",
+          "Y indicates primary card holder",
+          "N indicates secondary card holder"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "account_id",
+        "rule": "Must be a non-zero 11-digit numeric value",
+        "error_message": "Invalid account number. Must be 11 digits and not zero.",
+        "severity": "error"
+      },
+      {
+        "field": "active_status",
+        "rule": "Must be Y or N",
+        "error_message": "Account status must be Y (active) or N (inactive)",
+        "severity": "error"
+      },
+      {
+        "field": "current_balance",
+        "rule": "Must be a valid signed numeric value with 2 decimal places",
+        "error_message": "Invalid current balance format",
+        "severity": "error"
+      },
+      {
+        "field": "credit_limit",
+        "rule": "Must be a valid signed numeric value with 2 decimal places, not negative",
+        "error_message": "Credit limit must be a valid positive amount",
+        "severity": "error"
+      },
+      {
+        "field": "cash_credit_limit",
+        "rule": "Must be a valid signed numeric value with 2 decimal places, not negative",
+        "error_message": "Cash credit limit must be a valid positive amount",
+        "severity": "error"
+      },
+      {
+        "field": "current_cycle_credit",
+        "rule": "Must be a valid signed numeric value with 2 decimal places",
+        "error_message": "Invalid current cycle credit format",
+        "severity": "error"
+      },
+      {
+        "field": "current_cycle_debit",
+        "rule": "Must be a valid signed numeric value with 2 decimal places",
+        "error_message": "Invalid current cycle debit format",
+        "severity": "error"
+      },
+      {
+        "field": "open_date",
+        "rule": "Must be a valid date in YYYYMMDD format, not in the future",
+        "error_message": "Invalid account open date",
+        "severity": "error"
+      },
+      {
+        "field": "expiration_date",
+        "rule": "Must be a valid date in YYYYMMDD format with valid year (4 digits), month (01-12), and day",
+        "error_message": "Invalid expiration date",
+        "severity": "error"
+      },
+      {
+        "field": "reissue_date",
+        "rule": "Must be a valid date in YYYYMMDD format with valid year (4 digits), month (01-12), and day",
+        "error_message": "Invalid reissue date",
+        "severity": "error"
+      },
+      {
+        "field": "ssn",
+        "rule": "Must be a valid 9-digit number. Cannot start with 000, 666, or 900-999. Middle two digits cannot be 00. Last four digits cannot be 0000.",
+        "error_message": "Invalid Social Security Number",
+        "severity": "error"
+      },
+      {
+        "field": "first_name",
+        "rule": "Required field, must contain only alphabetic characters and spaces",
+        "error_message": "First name is required and must contain only letters",
+        "severity": "error"
+      },
+      {
+        "field": "middle_name",
+        "rule": "If provided, must contain only alphabetic characters and spaces",
+        "error_message": "Middle name must contain only letters",
+        "severity": "warning"
+      },
+      {
+        "field": "last_name",
+        "rule": "Required field, must contain only alphabetic characters and spaces",
+        "error_message": "Last name is required and must contain only letters",
+        "severity": "error"
+      },
+      {
+        "field": "address_line_1",
+        "rule": "Required field for street address",
+        "error_message": "Street address is required",
+        "severity": "error"
+      },
+      {
+        "field": "address_line_3",
+        "rule": "Required field for city name",
+        "error_message": "City is required",
+        "severity": "error"
+      },
+      {
+        "field": "state_code",
+        "rule": "Must be a valid US state code from the lookup table",
+        "error_message": "Invalid state code",
+        "severity": "error"
+      },
+      {
+        "field": "zip_code",
+        "rule": "Must be a valid 5-digit US ZIP code, valid for the given state",
+        "error_message": "Invalid ZIP code or ZIP code does not match state",
+        "severity": "error"
+      },
+      {
+        "field": "phone_number_1",
+        "rule": "Required field. Area code must be valid 3-digit code (not 000 or 911). Prefix must be valid 3-digit number (not 000). Line number must be valid 4-digit number (not 0000).",
+        "error_message": "Invalid primary phone number format",
+        "severity": "error"
+      },
+      {
+        "field": "phone_number_2",
+        "rule": "If provided, area code must be valid 3-digit code (not 000 or 911). Prefix must be valid 3-digit number (not 000). Line number must be valid 4-digit number (not 0000).",
+        "error_message": "Invalid secondary phone number format",
+        "severity": "warning"
+      },
+      {
+        "field": "date_of_birth",
+        "rule": "Must be a valid date in YYYYMMDD format, must be in the past, customer must be at least 18 years old",
+        "error_message": "Invalid date of birth or customer is under 18 years old",
+        "severity": "error"
+      },
+      {
+        "field": "eft_account_id",
+        "rule": "If provided, must be a valid 10-digit number",
+        "error_message": "Invalid EFT account ID format",
+        "severity": "warning"
+      },
+      {
+        "field": "primary_holder_indicator",
+        "rule": "Must be Y or N",
+        "error_message": "Primary holder indicator must be Y or N",
+        "severity": "error"
+      },
+      {
+        "field": "fico_score",
+        "rule": "Must be a valid number between 300 and 850",
+        "error_message": "FICO score must be between 300 and 850",
+        "severity": "error"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Age Calculation",
+        "description": "Calculate customer age from date of birth to verify minimum age requirement",
+        "formula": "Current Year - Birth Year, adjusted for month and day",
+        "input_fields": [
+          "date_of_birth",
+          "current_date"
+        ],
+        "output_field": "customer_age"
+      },
+      {
+        "name": "Date Component Extraction",
+        "description": "Split date fields into year, month, and day components for validation",
+        "formula": "Extract YYYY, MM, DD from YYYYMMDD format",
+        "input_fields": [
+          "date_field"
+        ],
+        "output_field": "year, month, day components"
+      },
+      {
+        "name": "Phone Number Component Extraction",
+        "description": "Split phone number into area code, prefix, and line number for validation",
+        "formula": "Extract components from (XXX)XXX-XXXX format",
+        "input_fields": [
+          "phone_number"
+        ],
+        "output_field": "area_code, prefix, line_number"
+      },
+      {
+        "name": "SSN Component Extraction",
+        "description": "Split SSN into three parts for validation",
+        "formula": "Extract XXX-XX-XXXX components",
+        "input_fields": [
+          "ssn"
+        ],
+        "output_field": "ssn_part1, ssn_part2, ssn_part3"
+      },
+      {
+        "name": "Numeric Field Conversion",
+        "description": "Convert display format numeric fields to computational format",
+        "formula": "FUNCTION NUMVAL-C to convert edited numeric strings to numeric values",
+        "input_fields": [
+          "display_numeric_field"
+        ],
+        "output_field": "computational_numeric_field"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Account Update Process",
+        "description": "Complete workflow for updating account and customer information",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Display initial search screen",
+            "conditions": [
+              "User enters the account update function"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Receive account number from user",
+            "conditions": [
+              "User enters account number"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Validate account number format",
+            "conditions": [
+              "Account number is 11 digits and non-zero"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Retrieve account data from ACCTDAT",
+            "conditions": [
+              "Account exists in database"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Retrieve customer data from CUSTDAT",
+            "conditions": [
+              "Customer ID from account record exists"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Store original values for change detection",
+            "conditions": [
+              "Data successfully retrieved"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Display account and customer details on screen",
+            "conditions": [
+              "All data loaded successfully"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Allow user to modify fields",
+            "conditions": [
+              "User makes changes to editable fields"
+            ],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "User initiates save operation",
+            "conditions": [
+              "User presses save function key"
+            ],
+            "next_step": "10"
+          },
+          {
+            "step_number": 10,
+            "action": "Validate all input fields",
+            "conditions": [
+              "All validations pass"
+            ],
+            "next_step": "11"
+          },
+          {
+            "step_number": 11,
+            "action": "Check if any changes were made",
+            "conditions": [
+              "At least one field value has changed"
+            ],
+            "next_step": "12"
+          },
+          {
+            "step_number": 12,
+            "action": "Prompt user for confirmation",
+            "conditions": [
+              "User confirms changes"
+            ],
+            "next_step": "13"
+          },
+          {
+            "step_number": 13,
+            "action": "Lock account record for update",
+            "conditions": [
+              "Record is available for locking"
+            ],
+            "next_step": "14"
+          },
+          {
+            "step_number": 14,
+            "action": "Lock customer record for update",
+            "conditions": [
+              "Record is available for locking"
+            ],
+            "next_step": "15"
+          },
+          {
+            "step_number": 15,
+            "action": "Verify records have not been modified by another user",
+            "conditions": [
+              "No concurrent modifications detected"
+            ],
+            "next_step": "16"
+          },
+          {
+            "step_number": 16,
+            "action": "Update account record in ACCTDAT",
+            "conditions": [
+              "Update operation succeeds"
+            ],
+            "next_step": "17"
+          },
+          {
+            "step_number": 17,
+            "action": "Update customer record in CUSTDAT",
+            "conditions": [
+              "Update operation succeeds"
+            ],
+            "next_step": "18"
+          },
+          {
+            "step_number": 18,
+            "action": "Commit transaction",
+            "conditions": [
+              "Both updates successful"
+            ],
+            "next_step": "19"
+          },
+          {
+            "step_number": 19,
+            "action": "Display success message to user",
+            "conditions": [
+              "Transaction committed"
+            ],
+            "next_step": "20"
+          },
+          {
+            "step_number": 20,
+            "action": "Release record locks and return to menu or search",
+            "conditions": [
+              "Process complete"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Error Handling Workflow",
+        "description": "Workflow for handling errors during update process",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Detect error condition",
+            "conditions": [
+              "Validation failure, lock failure, or update failure occurs"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Rollback any pending transaction",
+            "conditions": [
+              "Transaction is in progress"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Release any held locks",
+            "conditions": [
+              "Records are locked"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Display appropriate error message",
+            "conditions": [
+              "Error type is identified"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Redisplay screen with original or corrected data",
+            "conditions": [
+              "User can retry operation"
+            ],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "Account Data File Integration",
+        "type": "Database File",
+        "purpose": "Store and retrieve account information",
+        "data_exchanged": [
+          "account_id",
+          "active_status",
+          "current_balance",
+          "credit_limit",
+          "cash_credit_limit",
+          "open_date",
+          "expiration_date",
+          "reissue_date",
+          "current_cycle_credit",
+          "current_cycle_debit",
+          "group_id"
+        ],
+        "trigger_conditions": [
+          "User searches for account by account ID",
+          "User saves changes to account information"
+        ]
+      },
+      {
+        "name": "Customer Data File Integration",
+        "type": "Database File",
+        "purpose": "Store and retrieve customer information",
+        "data_exchanged": [
+          "customer_id",
+          "ssn",
+          "first_name",
+          "middle_name",
+          "last_name",
+          "address_line_1",
+          "address_line_2",
+          "address_line_3",
+          "state_code",
+          "country_code",
+          "zip_code",
+          "phone_number_1",
+          "phone_number_2",
+          "date_of_birth",
+          "government_issued_id",
+          "eft_account_id",
+          "primary_holder_indicator",
+          "fico_score"
+        ],
+        "trigger_conditions": [
+          "Account data is retrieved and contains customer ID",
+          "User saves changes to customer information"
+        ]
+      },
+      {
+        "name": "Card Cross-Reference File Integration",
+        "type": "Database File",
+        "purpose": "Link cards to accounts",
+        "data_exchanged": [
+          "card_number",
+          "account_id"
+        ],
+        "trigger_conditions": [
+          "System needs to verify card-account relationships"
+        ]
+      },
+      {
+        "name": "Lookup Code Repository Integration",
+        "type": "Reference Data",
+        "purpose": "Validate codes such as state codes and country codes",
+        "data_exchanged": [
+          "state_codes",
+          "country_codes",
+          "validation_rules"
+        ],
+        "trigger_conditions": [
+          "User enters state code or country code",
+          "System validates address information"
+        ]
+      },
+      {
+        "name": "Date Utility Integration",
+        "type": "Common Service",
+        "purpose": "Perform date validations and calculations",
+        "data_exchanged": [
+          "date_values",
+          "validation_results",
+          "age_calculations"
+        ],
+        "trigger_conditions": [
+          "Date fields are entered or modified",
+          "Age verification is required"
+        ]
+      },
+      {
+        "name": "User Session Integration",
+        "type": "Session Management",
+        "purpose": "Maintain user authentication and authorization context",
+        "data_exchanged": [
+          "user_id",
+          "user_type",
+          "permissions",
+          "session_data"
+        ],
+        "trigger_conditions": [
+          "User accesses the account update function",
+          "System checks user permissions"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Admin User",
+        "Regular User"
+      ],
+      "permissions": [
+        {
+          "role": "Admin User",
+          "resource": "Account Information",
+          "actions": [
+            "view",
+            "update",
+            "modify_all_fields"
+          ]
+        },
+        {
+          "role": "Admin User",
+          "resource": "Customer Information",
+          "actions": [
+            "view",
+            "update",
+            "modify_all_fields"
+          ]
+        },
+        {
+          "role": "Regular User",
+          "resource": "Account Information",
+          "actions": [
+            "view",
+            "update_limited_fields"
+          ]
+        },
+        {
+          "role": "Regular User",
+          "resource": "Customer Information",
+          "actions": [
+            "view",
+            "update_limited_fields"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be authenticated via CICS session",
+        "User credentials must be validated before accessing account update function",
+        "User type determines available operations and field-level access"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "NOTFND",
+        "condition": "Account or customer record not found in database",
+        "business_impact": "User cannot view or update non-existent records",
+        "suggested_action": "Display error message indicating record not found, allow user to search for different account"
+      },
+      {
+        "error_code": "LOCKED",
+        "condition": "Record is locked by another user during update attempt",
+        "business_impact": "Prevents concurrent updates that could cause data corruption",
+        "suggested_action": "Display message that record is being updated by another user, suggest user retry later"
+      },
+      {
+        "error_code": "CONCURRENT_CHANGE",
+        "condition": "Record was modified by another user between read and update",
+        "business_impact": "Prevents overwriting changes made by other users",
+        "suggested_action": "Rollback transaction, refresh screen with latest data, inform user of concurrent modification"
+      },
+      {
+        "error_code": "VALIDATION_ERROR",
+        "condition": "One or more input fields fail validation rules",
+        "business_impact": "Prevents invalid data from being saved to database",
+        "suggested_action": "Display specific validation error messages for each invalid field, allow user to correct and retry"
+      },
+      {
+        "error_code": "NO_CHANGES",
+        "condition": "User attempts to save without making any changes",
+        "business_impact": "Prevents unnecessary database operations",
+        "suggested_action": "Display message that no changes were detected, return to view mode"
+      },
+      {
+        "error_code": "UPDATE_FAILED",
+        "condition": "Database update operation fails",
+        "business_impact": "Changes are not persisted, data integrity maintained",
+        "suggested_action": "Rollback transaction, display error message, log error for investigation, allow user to retry"
+      },
+      {
+        "error_code": "INVALID_ACCOUNT_ID",
+        "condition": "Account ID is not 11 digits or is zero",
+        "business_impact": "Prevents searching for invalid accounts",
+        "suggested_action": "Display error message about invalid account ID format, prompt for correct input"
+      },
+      {
+        "error_code": "DUPREC",
+        "condition": "Duplicate record detected during update",
+        "business_impact": "Prevents creation of duplicate records",
+        "suggested_action": "Display error message about duplicate record, prevent update operation"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "ACUP001",
+        "name": "Account Search Screen",
+        "purpose": "Allow user to search for an account by account ID",
+        "screen_type": "Search",
+        "navigation_from": [
+          "Main Menu",
+          "Account Management Menu"
+        ],
+        "navigation_to": [
+          "Account Details Screen",
+          "Main Menu"
+        ],
+        "sections": [
+          {
+            "name": "Search Criteria",
+            "type": "Input",
+            "fields": [
+              {
+                "name": "account_id",
+                "label": "Account ID",
+                "type": "Numeric",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be 11-digit non-zero number",
+                "help_text": "Enter the 11-digit account number to search"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Search",
+            "trigger": "Enter key or Search button",
+            "description": "Search for account by ID and display details",
+            "backend_process": "Retrieve account and customer data",
+            "success_navigation": "Account Details Screen",
+            "error_handling": "Display error if account not found"
+          },
+          {
+            "name": "Exit",
+            "trigger": "PF3 function key",
+            "description": "Return to previous menu",
+            "backend_process": "None",
+            "success_navigation": "Main Menu",
+            "error_handling": "None"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "Account ID is empty",
+            "affected_fields": [
+              "account_id"
+            ],
+            "behavior": "Display error message requiring account ID"
+          },
+          {
+            "condition": "Account not found",
+            "affected_fields": [
+              "account_id"
+            ],
+            "behavior": "Display error message and clear field"
+          }
+        ]
+      },
+      {
+        "id": "ACUP002",
+        "name": "Account Details Screen",
+        "purpose": "Display and allow editing of account and customer information",
+        "screen_type": "Detail/Edit",
+        "navigation_from": [
+          "Account Search Screen"
+        ],
+        "navigation_to": [
+          "Account Search Screen",
+          "Main Menu"
+        ],
+        "sections": [
+          {
+            "name": "Account Information",
+            "type": "Input/Output",
+            "fields": [
+              {
+                "name": "account_id",
+                "label": "Account ID",
+                "type": "Numeric",
+                "input_output": "Output",
+                "required": true,
+                "default_value": "",
+                "validation": "Display only",
+                "help_text": "Account identification number"
+              },
+              {
+                "name": "active_status",
+                "label": "Account Status",
+                "type": "Character",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be Y or N",
+                "help_text": "Y for Active, N for Inactive"
+              },
+              {
+                "name": "current_balance",
+                "label": "Current Balance",
+                "type": "Decimal",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "0.00",
+                "validation": "Valid signed amount with 2 decimals",
+                "help_text": "Current account balance"
+              },
+              {
+                "name": "credit_limit",
+                "label": "Credit Limit",
+                "type": "Decimal",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "0.00",
+                "validation": "Valid positive amount with 2 decimals",
+                "help_text": "Maximum credit limit"
+              },
+              {
+                "name": "cash_credit_limit",
+                "label": "Cash Credit Limit",
+                "type": "Decimal",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "0.00",
+                "validation": "Valid positive amount with 2 decimals",
+                "help_text": "Maximum cash advance limit"
+              },
+              {
+                "name": "open_date",
+                "label": "Open Date",
+                "type": "Date",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Valid date in YYYY-MM-DD format, not future",
+                "help_text": "Account opening date"
+              },
+              {
+                "name": "expiration_date",
+                "label": "Expiration Date",
+                "type": "Date",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Valid date in YYYY-MM-DD format",
+                "help_text": "Account expiration date"
+              },
+              {
+                "name": "reissue_date",
+                "label": "Reissue Date",
+                "type": "Date",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Valid date in YYYY-MM-DD format",
+                "help_text": "Card reissue date"
+              },
+              {
+                "name": "current_cycle_credit",
+                "label": "Current Cycle Credit",
+                "type": "Decimal",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "0.00",
+                "validation": "Valid signed amount with 2 decimals",
+                "help_text": "Credits in current billing cycle"
+              },
+              {
+                "name": "current_cycle_debit",
+                "label": "Current Cycle Debit",
+                "type": "Decimal",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "0.00",
+                "validation": "Valid signed amount with 2 decimals",
+                "help_text": "Debits in current billing cycle"
+              },
+              {
+                "name": "group_id",
+                "label": "Group ID",
+                "type": "Character",
+                "input_output": "Input",
+                "required": false,
+                "default_value": "",
+                "validation": "Optional grouping identifier",
+                "help_text": "Account group identifier"
+              }
+            ]
+          },
+          {
+            "name": "Customer Information",
+            "type": "Input/Output",
+            "fields": [
+              {
+                "name": "customer_id",
+                "label": "Customer ID",
+                "type": "Numeric",
+                "input_output": "Output",
+                "required": true,
+                "default_value": "",
+                "validation": "Display only",
+                "help_text": "Customer identification number"
+              },
+              {
+                "name": "ssn",
+                "label": "Social Security Number",
+                "type": "Numeric",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Valid 9-digit SSN with format rules",
+                "help_text": "Format: XXX-XX-XXXX"
+              },
+              {
+                "name": "first_name",
+                "label": "First Name",
+                "type": "Character",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Alphabetic characters only",
+                "help_text": "Customer first name"
+              },
+              {
+                "name": "middle_name",
+                "label": "Middle Name",
+                "type": "Character",
+                "input_output": "Input",
+                "required": false,
+                "default_value": "",
+                "validation": "Alphabetic characters only",
+                "help_text": "Customer middle name"
+              },
+              {
+                "name": "last_name",
+                "label": "Last Name",
+                "type": "Character",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Alphabetic characters only",
+                "help_text": "Customer last name"
+              },
+              {
+                "name": "address_line_1",
+                "label": "Address Line 1",
+                "type": "Character",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Required street address",
+                "help_text": "Street address"
+              },
+              {
+                "name": "address_line_2",
+                "label": "Address Line 2",
+                "type": "Character",
+                "input_output": "Input",
+                "required": false,
+                "default_value": "",
+                "validation": "Optional additional address",
+                "help_text": "Apartment, suite, etc."
+              },
+              {
+                "name": "address_line_3",
+                "label": "City",
+                "type": "Character",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Required city name",
+                "help_text": "City name"
+              },
+              {
+                "name": "state_code",
+                "label": "State",
+                "type": "Character",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Valid US state code",
+                "help_text": "Two-letter state code"
+              },
+              {
+                "name": "country_code",
+                "label": "Country",
+                "type": "Character",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Valid ISO country code",
+                "help_text": "Three-letter country code"
+              },
+              {
+                "name": "zip_code",
+                "label": "ZIP Code",
+                "type": "Character",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Valid 5-digit ZIP, matches state",
+                "help_text": "Five-digit ZIP code"
+              },
+              {
+                "name": "phone_number_1",
+                "label": "Primary Phone",
+                "type": "Character",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Valid US phone number format",
+                "help_text": "Format: (XXX)XXX-XXXX"
+              },
+              {
+                "name": "phone_number_2",
+                "label": "Secondary Phone",
+                "type": "Character",
+                "input_output": "Input",
+                "required": false,
+                "default_value": "",
+                "validation": "Valid US phone number format",
+                "help_text": "Format: (XXX)XXX-XXXX"
+              },
+              {
+                "name": "date_of_birth",
+                "label": "Date of Birth",
+                "type": "Date",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Valid date, customer must be 18+",
+                "help_text": "Format: YYYY-MM-DD"
+              },
+              {
+                "name": "government_issued_id",
+                "label": "Government ID",
+                "type": "Character",
+                "input_output": "Input",
+                "required": false,
+                "default_value": "",
+                "validation": "Optional ID number",
+                "help_text": "Driver's license or other ID"
+              },
+              {
+                "name": "eft_account_id",
+                "label": "EFT Account ID",
+                "type": "Character",
+                "input_output": "Input",
+                "required": false,
+                "default_value": "",
+                "validation": "Valid 10-digit number if provided",
+                "help_text": "Electronic funds transfer account"
+              },
+              {
+                "name": "primary_holder_indicator",
+                "label": "Primary Holder",
+                "type": "Character",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "N",
+                "validation": "Must be Y or N",
+                "help_text": "Y for primary, N for secondary"
+              },
+              {
+                "name": "fico_score",
+                "label": "FICO Score",
+                "type": "Numeric",
+                "input_output": "Input",
+                "required": true,
+                "default_value": "",
+                "validation": "Number between 300 and 850",
+                "help_text": "Credit score (300-850)"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Save",
+            "trigger": "PF5 function key",
+            "description": "Validate and save changes to account and customer records",
+            "backend_process": "Validate inputs, update account and customer records",
+            "success_navigation": "Display success message, remain on screen",
+            "error_handling": "Display validation errors or update failures"
+          },
+          {
+            "name": "Cancel",
+            "trigger": "PF12 function key",
+            "description": "Discard changes and redisplay original data",
+            "backend_process": "Reload original data",
+            "success_navigation": "Redisplay screen with original values",
+            "error_handling": "None"
+          },
+          {
+            "name": "Exit",
+            "trigger": "PF3 function key",
+            "description": "Return to search screen or main menu",
+            "backend_process": "None",
+            "success_navigation": "Account Search Screen or Main Menu",
+            "error_handling": "None"
+          },
+          {
+            "name": "Help",
+            "trigger": "PF1 function key",
+            "description": "Display help information",
+            "backend_process": "None",
+            "success_navigation": "Help Screen",
+            "error_handling": "None"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "Field is empty or contains asterisk",
+            "affected_fields": [
+              "All input fields"
+            ],
+            "behavior": "Set field to LOW-VALUES for processing"
+          },
+          {
+            "condition": "Validation error occurs",
+            "affected_fields": [
+              "Invalid fields"
+            ],
+            "behavior": "Highlight field and display error message"
+          },
+          {
+            "condition": "No changes detected",
+            "affected_fields": [
+              "All fields"
+            ],
+            "behavior": "Display message that no changes were made"
+          },
+          {
+            "condition": "Record locked by another user",
+            "affected_fields": [
+              "All fields"
+            ],
+            "behavior": "Display error message, prevent save"
+          },
+          {
+            "condition": "Concurrent modification detected",
+            "affected_fields": [
+              "All fields"
+            ],
+            "behavior": "Refresh with latest data, display warning message"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "Main Menu",
+        "to_screen": "Account Search Screen",
+        "trigger": "User selects Account Update function",
+        "conditions": [
+          "User is authenticated"
+        ]
+      },
+      {
+        "from_screen": "Account Search Screen",
+        "to_screen": "Account Details Screen",
+        "trigger": "User enters valid account ID and presses Enter",
+        "conditions": [
+          "Account exists in database"
+        ]
+      },
+      {
+        "from_screen": "Account Details Screen",
+        "to_screen": "Account Search Screen",
+        "trigger": "User presses PF3 or completes update",
+        "conditions": [
+          "No unsaved changes or changes are saved/cancelled"
+        ]
+      },
+      {
+        "from_screen": "Account Details Screen",
+        "to_screen": "Main Menu",
+        "trigger": "User presses PF3",
+        "conditions": [
+          "Configured to return to main menu"
+        ]
+      },
+      {
+        "from_screen": "Any Screen",
+        "to_screen": "Help Screen",
+        "trigger": "User presses PF1",
+        "conditions": [
+          "Help is available for current screen"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "Error",
+        "message": "Invalid account number. Must be 11 digits and not zero.",
+        "context": "Account search validation"
+      },
+      {
+        "code": "MSG002",
+        "type": "Error",
+        "message": "Account not found.",
+        "context": "Account retrieval"
+      },
+      {
+        "code": "MSG003",
+        "type": "Error",
+        "message": "Account status must be Y (active) or N (inactive).",
+        "context": "Account status validation"
+      },
+      {
+        "code": "MSG004",
+        "type": "Error",
+        "message": "Invalid credit limit format. Must be a valid positive amount.",
+        "context": "Credit limit validation"
+      },
+      {
+        "code": "MSG005",
+        "type": "Error",
+        "message": "Invalid date format or value.",
+        "context": "Date field validation"
+      },
+      {
+        "code": "MSG006",
+        "type": "Error",
+        "message": "Invalid Social Security Number.",
+        "context": "SSN validation"
+      },
+      {
+        "code": "MSG007",
+        "type": "Error",
+        "message": "Name fields must contain only alphabetic characters.",
+        "context": "Name validation"
+      },
+      {
+        "code": "MSG008",
+        "type": "Error",
+        "message": "Invalid state code.",
+        "context": "State code validation"
+      },
+      {
+        "code": "MSG009",
+        "type": "Error",
+        "message": "Invalid ZIP code or ZIP code does not match state.",
+        "context": "ZIP code validation"
+      },
+      {
+        "code": "MSG010",
+        "type": "Error",
+        "message": "Invalid phone number format.",
+        "context": "Phone number validation"
+      },
+      {
+        "code": "MSG011",
+        "type": "Error",
+        "message": "Invalid date of birth or customer is under 18 years old.",
+        "context": "Date of birth validation"
+      },
+      {
+        "code": "MSG012",
+        "type": "Error",
+        "message": "FICO score must be between 300 and 850.",
+        "context": "FICO score validation"
+      },
+      {
+        "code": "MSG013",
+        "type": "Error",
+        "message": "Record is being updated by another user. Please try again later.",
+        "context": "Record locking"
+      },
+      {
+        "code": "MSG014",
+        "type": "Warning",
+        "message": "Data has been changed by another user. Screen refreshed with latest data.",
+        "context": "Concurrent modification detection"
+      },
+      {
+        "code": "MSG015",
+        "type": "Information",
+        "message": "No changes detected.",
+        "context": "Save attempt with no changes"
+      },
+      {
+        "code": "MSG016",
+        "type": "Success",
+        "message": "Account and customer information updated successfully.",
+        "context": "Successful update"
+      },
+      {
+        "code": "MSG017",
+        "type": "Error",
+        "message": "Update failed. Please try again or contact support.",
+        "context": "Update operation failure"
+      },
+      {
+        "code": "MSG018",
+        "type": "Error",
+        "message": "Required field cannot be empty.",
+        "context": "Required field validation"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Account Search and Retrieval",
+      "description": "Flow of data from user input through database retrieval to screen display",
+      "source": "User Input - Account Search Screen",
+      "destination": "Account Details Screen",
+      "data_elements": [
+        "account_id",
+        "account_data",
+        "customer_data"
+      ],
+      "transformations": [
+        "Validate account ID format",
+        "Retrieve account record from ACCTDAT",
+        "Extract customer ID from account record",
+        "Retrieve customer record from CUSTDAT",
+        "Format data for screen display",
+        "Store original values for change detection"
+      ]
+    },
+    {
+      "name": "Account and Customer Update",
+      "description": "Flow of modified data from screen through validation to database update",
+      "source": "Account Details Screen",
+      "destination": "ACCTDAT and CUSTDAT files",
+      "data_elements": [
+        "modified_account_fields",
+        "modified_customer_fields"
+      ],
+      "transformations": [
+        "Capture user input from screen",
+        "Split composite fields (dates, phone numbers, SSN)",
+        "Convert display format to computational format",
+        "Validate all fields",
+        "Compare with original values for change detection",
+        "Lock records for update",
+        "Verify no concurrent modifications",
+        "Update account record",
+        "Update customer record",
+        "Commit transaction"
+      ]
+    },
+    {
+      "name": "Validation Data Flow",
+      "description": "Flow of data through validation rules and lookup tables",
+      "source": "User Input Fields",
+      "destination": "Validation Results",
+      "data_elements": [
+        "field_values",
+        "validation_rules",
+        "lookup_codes",
+        "error_messages"
+      ],
+      "transformations": [
+        "Check required fields",
+        "Validate data types and formats",
+        "Validate against lookup tables (state codes, country codes)",
+        "Perform business rule validations",
+        "Calculate derived values (age from DOB)",
+        "Compile validation error messages"
+      ]
+    },
+    {
+      "name": "Error Handling Data Flow",
+      "description": "Flow of error information from detection to user notification",
+      "source": "Validation or Database Operations",
+      "destination": "User Messages on Screen",
+      "data_elements": [
+        "error_codes",
+        "error_conditions",
+        "error_messages",
+        "affected_fields"
+      ],
+      "transformations": [
+        "Detect error condition",
+        "Map error to appropriate message",
+        "Identify affected fields",
+        "Format error message for display",
+        "Set field attributes for highlighting",
+        "Display error on screen"
+      ]
+    },
+    {
+      "name": "Session Context Data Flow",
+      "description": "Flow of user session and authorization data",
+      "source": "User Session Management",
+      "destination": "Program Working Storage",
+      "data_elements": [
+        "user_id",
+        "user_type",
+        "permissions",
+        "session_state"
+      ],
+      "transformations": [
+        "Retrieve user session data",
+        "Determine user permissions",
+        "Set field-level access controls",
+        "Control navigation options",
+        "Maintain transaction state"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Data Integrity",
+      "description": "Account and customer updates must be performed atomically in a single transaction",
+      "impact": "If either update fails, both must be rolled back to maintain data consistency"
+    },
+    {
+      "type": "Concurrency Control",
+      "description": "System must prevent concurrent modifications to the same account or customer record",
+      "impact": "Records must be locked during update operations, and concurrent changes must be detected and rejected"
+    },
+    {
+      "type": "Age Requirement",
+      "description": "Customers must be at least 18 years old",
+      "impact": "Date of birth must be validated to ensure customer meets minimum age requirement"
+    },
+    {
+      "type": "Credit Limit",
+      "description": "Credit limits must be non-negative values",
+      "impact": "System must validate that credit limit and cash credit limit are positive amounts"
+    },
+    {
+      "type": "Date Validity",
+      "description": "All date fields must contain valid calendar dates",
+      "impact": "System must validate year, month, and day components, including leap year considerations"
+    },
+    {
+      "type": "SSN Validity",
+      "description": "Social Security Numbers must follow SSA formatting rules",
+      "impact": "SSN cannot start with 000, 666, or 900-999; middle digits cannot be 00; last digits cannot be 0000"
+    },
+    {
+      "type": "Phone Number Format",
+      "description": "Phone numbers must be valid US format",
+      "impact": "Area code cannot be 000 or 911, prefix cannot be 000, line number cannot be 0000"
+    },
+    {
+      "type": "Address Validation",
+      "description": "State codes and ZIP codes must be valid and consistent",
+      "impact": "ZIP code must be valid for the specified state"
+    },
+    {
+      "type": "FICO Score Range",
+      "description": "FICO credit scores must be between 300 and 850",
+      "impact": "System must validate FICO score is within acceptable range"
+    },
+    {
+      "type": "Required Fields",
+      "description": "Certain fields are mandatory and cannot be empty",
+      "impact": "System must validate that all required fields contain valid data before allowing save"
+    },
+    {
+      "type": "Change Detection",
+      "description": "System must detect if any changes were made before allowing save",
+      "impact": "Prevents unnecessary database operations when no changes have been made"
+    },
+    {
+      "type": "User Authorization",
+      "description": "User permissions determine which fields can be modified",
+      "impact": "Field-level access control based on user type (admin vs regular user)"
+    }
+  ]
+}

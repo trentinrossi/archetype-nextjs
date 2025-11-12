@@ -1,0 +1,1385 @@
+{
+  "application_metadata": {
+    "name": "COACTVWC - Account View Request Processing",
+    "description": "Handles and processes account view requests in a credit card management system, serving as the business logic layer for displaying account details to users",
+    "domain": "Credit Card Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "Account",
+        "description": "Credit card account information",
+        "attributes": [
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Unique account identifier"
+          },
+          {
+            "name": "account_status",
+            "type": "alphanumeric",
+            "length": 1,
+            "required": true,
+            "description": "Account active status indicator"
+          },
+          {
+            "name": "current_balance",
+            "type": "decimal",
+            "length": 15,
+            "required": true,
+            "description": "Current account balance with 2 decimal places"
+          },
+          {
+            "name": "credit_limit",
+            "type": "decimal",
+            "length": 15,
+            "required": true,
+            "description": "Account credit limit with 2 decimal places"
+          },
+          {
+            "name": "cash_credit_limit",
+            "type": "decimal",
+            "length": 15,
+            "required": true,
+            "description": "Cash credit limit with 2 decimal places"
+          },
+          {
+            "name": "current_cycle_credit",
+            "type": "decimal",
+            "length": 15,
+            "required": true,
+            "description": "Current cycle credit amount with 2 decimal places"
+          },
+          {
+            "name": "current_cycle_debit",
+            "type": "decimal",
+            "length": 15,
+            "required": true,
+            "description": "Current cycle debit amount with 2 decimal places"
+          },
+          {
+            "name": "open_date",
+            "type": "date",
+            "length": 10,
+            "required": true,
+            "description": "Account opening date"
+          },
+          {
+            "name": "expiration_date",
+            "type": "date",
+            "length": 10,
+            "required": true,
+            "description": "Account expiration date"
+          },
+          {
+            "name": "reissue_date",
+            "type": "date",
+            "length": 10,
+            "required": true,
+            "description": "Account reissue date"
+          },
+          {
+            "name": "group_id",
+            "type": "alphanumeric",
+            "length": 10,
+            "required": false,
+            "description": "Account group identifier"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Customer",
+            "relationship_type": "belongs_to",
+            "cardinality": "many_to_one"
+          },
+          {
+            "related_entity": "Card",
+            "relationship_type": "has_many",
+            "cardinality": "one_to_many"
+          }
+        ]
+      },
+      {
+        "name": "Customer",
+        "description": "Customer information associated with credit card accounts",
+        "attributes": [
+          {
+            "name": "customer_number",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Unique customer identifier"
+          },
+          {
+            "name": "ssn",
+            "type": "alphanumeric",
+            "length": 11,
+            "required": true,
+            "description": "Customer Social Security Number formatted as XXX-XX-XXXX"
+          },
+          {
+            "name": "fico_score",
+            "type": "numeric",
+            "length": 3,
+            "required": false,
+            "description": "Customer FICO credit score"
+          },
+          {
+            "name": "date_of_birth",
+            "type": "date",
+            "length": 10,
+            "required": true,
+            "description": "Customer date of birth"
+          },
+          {
+            "name": "first_name",
+            "type": "alphanumeric",
+            "length": 25,
+            "required": true,
+            "description": "Customer first name"
+          },
+          {
+            "name": "middle_name",
+            "type": "alphanumeric",
+            "length": 25,
+            "required": false,
+            "description": "Customer middle name"
+          },
+          {
+            "name": "last_name",
+            "type": "alphanumeric",
+            "length": 25,
+            "required": true,
+            "description": "Customer last name"
+          },
+          {
+            "name": "address_line_1",
+            "type": "alphanumeric",
+            "length": 50,
+            "required": true,
+            "description": "First line of customer address"
+          },
+          {
+            "name": "address_line_2",
+            "type": "alphanumeric",
+            "length": 50,
+            "required": false,
+            "description": "Second line of customer address"
+          },
+          {
+            "name": "city",
+            "type": "alphanumeric",
+            "length": 50,
+            "required": true,
+            "description": "Customer city"
+          },
+          {
+            "name": "state_code",
+            "type": "alphanumeric",
+            "length": 2,
+            "required": true,
+            "description": "Customer state code"
+          },
+          {
+            "name": "zip_code",
+            "type": "alphanumeric",
+            "length": 5,
+            "required": true,
+            "description": "Customer ZIP code"
+          },
+          {
+            "name": "country_code",
+            "type": "alphanumeric",
+            "length": 3,
+            "required": true,
+            "description": "Customer country code"
+          },
+          {
+            "name": "phone_number_1",
+            "type": "alphanumeric",
+            "length": 13,
+            "required": true,
+            "description": "Customer primary phone number"
+          },
+          {
+            "name": "phone_number_2",
+            "type": "alphanumeric",
+            "length": 13,
+            "required": false,
+            "description": "Customer secondary phone number"
+          },
+          {
+            "name": "government_id",
+            "type": "alphanumeric",
+            "length": 20,
+            "required": false,
+            "description": "Customer government-issued ID"
+          },
+          {
+            "name": "eft_account_id",
+            "type": "alphanumeric",
+            "length": 10,
+            "required": false,
+            "description": "Customer EFT account ID"
+          },
+          {
+            "name": "primary_card_holder_indicator",
+            "type": "alphanumeric",
+            "length": 1,
+            "required": true,
+            "description": "Indicates if customer is primary card holder"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "has_many",
+            "cardinality": "one_to_many"
+          }
+        ]
+      },
+      {
+        "name": "CardCrossReference",
+        "description": "Cross-reference linking cards to accounts and customers",
+        "attributes": [
+          {
+            "name": "account_id",
+            "type": "numeric",
+            "length": 11,
+            "required": true,
+            "description": "Account identifier"
+          },
+          {
+            "name": "customer_id",
+            "type": "numeric",
+            "length": 9,
+            "required": true,
+            "description": "Customer identifier"
+          },
+          {
+            "name": "card_number",
+            "type": "alphanumeric",
+            "length": 16,
+            "required": true,
+            "description": "Card number"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "Account",
+            "relationship_type": "references",
+            "cardinality": "many_to_one"
+          },
+          {
+            "related_entity": "Customer",
+            "relationship_type": "references",
+            "cardinality": "many_to_one"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Account Number Input Required",
+        "description": "The system requires a valid account number as input to retrieve and display account information",
+        "category": "Input Validation",
+        "logic": "Account number must be provided by user before any account information can be retrieved",
+        "conditions": [
+          "User must enter an account number",
+          "Account number cannot be blank or spaces"
+        ],
+        "actions": [
+          "Prompt user for account number if not provided",
+          "Display error message if account number is blank"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Account Number Format Validation",
+        "description": "Account number must be a non-zero 11-digit numeric value",
+        "category": "Input Validation",
+        "logic": "Validate that account number is numeric, 11 digits long, and not equal to zero",
+        "conditions": [
+          "Account number must be numeric",
+          "Account number must be 11 digits",
+          "Account number cannot be zero"
+        ],
+        "actions": [
+          "Display error message: 'Account Filter must be a non-zero 11 digit number'",
+          "Highlight account number field in red",
+          "Position cursor on account number field for correction"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Account Existence Verification",
+        "description": "Account number must exist in the account master file and card cross-reference file",
+        "category": "Data Validation",
+        "logic": "Verify account exists in both card cross-reference and account master files before displaying information",
+        "conditions": [
+          "Account must exist in card cross-reference file",
+          "Account must exist in account master file"
+        ],
+        "actions": [
+          "Display error message if account not found in cross-reference file",
+          "Display error message if account not found in account master file",
+          "Retrieve associated customer ID and card number from cross-reference"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Customer Data Retrieval",
+        "description": "Customer information must be retrieved and displayed along with account information",
+        "category": "Data Retrieval",
+        "logic": "After retrieving account information, fetch associated customer details using customer ID from cross-reference",
+        "conditions": [
+          "Valid customer ID obtained from card cross-reference",
+          "Customer record exists in customer master file"
+        ],
+        "actions": [
+          "Retrieve customer record using customer ID",
+          "Display customer information on screen",
+          "Display error message if customer not found"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "SSN Formatting",
+        "description": "Customer SSN must be formatted with dashes for display",
+        "category": "Data Formatting",
+        "logic": "Format SSN as XXX-XX-XXXX before displaying to user",
+        "conditions": [
+          "Customer SSN is available"
+        ],
+        "actions": [
+          "Format SSN by inserting dashes at positions 3 and 5",
+          "Display formatted SSN on screen"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Date and Time Display",
+        "description": "Current date and time must be displayed on screen in formatted manner",
+        "category": "Display",
+        "logic": "Retrieve current date and time and format for display as MM/DD/YY and HH:MM:SS",
+        "conditions": [
+          "Screen is being initialized or refreshed"
+        ],
+        "actions": [
+          "Get current date and time",
+          "Format date as MM/DD/YY",
+          "Format time as HH:MM:SS",
+          "Display on screen header"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Data Security",
+        "description": "Only display information for valid account numbers to ensure data security",
+        "category": "Security",
+        "logic": "Information is only displayed after successful validation and retrieval of account data",
+        "conditions": [
+          "Account number is valid",
+          "Account exists in system",
+          "User has access to view account information"
+        ],
+        "actions": [
+          "Display account and customer information only after validation",
+          "Do not display partial or cached information for invalid accounts"
+        ]
+      },
+      {
+        "id": "BR008",
+        "name": "Error Message Display",
+        "description": "Appropriate error messages must be displayed for various error conditions",
+        "category": "Error Handling",
+        "logic": "Display specific error messages based on the type of error encountered",
+        "conditions": [
+          "Error occurs during input validation",
+          "Error occurs during data retrieval",
+          "Account or customer not found"
+        ],
+        "actions": [
+          "Display validation error messages for invalid input",
+          "Display not found messages for missing records",
+          "Display file error messages for system errors",
+          "Include response and reason codes in error messages"
+        ]
+      },
+      {
+        "id": "BR009",
+        "name": "Screen Navigation",
+        "description": "Support navigation to and from the account view screen",
+        "category": "Navigation",
+        "logic": "Allow users to navigate using function keys and maintain program flow",
+        "conditions": [
+          "User initiates navigation action",
+          "Valid navigation target exists"
+        ],
+        "actions": [
+          "Return to main menu when requested",
+          "Maintain transaction context during navigation",
+          "Preserve user input during re-entry"
+        ]
+      },
+      {
+        "id": "BR010",
+        "name": "Initial Entry vs Re-entry Handling",
+        "description": "Handle both initial entry and re-entry scenarios appropriately",
+        "category": "Process Flow",
+        "logic": "Determine if this is initial entry or re-entry and process accordingly",
+        "conditions": [
+          "Check if communication area length is zero for initial entry",
+          "Check for existing account filter data for re-entry"
+        ],
+        "actions": [
+          "Prompt for input on initial entry",
+          "Display previous account ID on re-entry",
+          "Process retrieved data if available"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "account_id",
+        "rule": "Must be non-blank",
+        "error_message": "Account number is required",
+        "severity": "error"
+      },
+      {
+        "field": "account_id",
+        "rule": "Must be numeric",
+        "error_message": "Account Filter must be a non-zero 11 digit number",
+        "severity": "error"
+      },
+      {
+        "field": "account_id",
+        "rule": "Must be 11 digits",
+        "error_message": "Account Filter must be a non-zero 11 digit number",
+        "severity": "error"
+      },
+      {
+        "field": "account_id",
+        "rule": "Cannot be zero",
+        "error_message": "Account Filter must be a non-zero 11 digit number",
+        "severity": "error"
+      },
+      {
+        "field": "account_id",
+        "rule": "Must exist in card cross-reference file",
+        "error_message": "Account: [account number] not found in Cross ref file. Resp: [response] Reas: [reason]",
+        "severity": "error"
+      },
+      {
+        "field": "account_id",
+        "rule": "Must exist in account master file",
+        "error_message": "Account: [account number] not found in Acct Master file. Resp: [response] Reas: [reason]",
+        "severity": "error"
+      },
+      {
+        "field": "customer_id",
+        "rule": "Must exist in customer master file",
+        "error_message": "CustId: [customer ID] not found in customer master. Resp: [response] REAS: [reason]",
+        "severity": "error"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Format SSN",
+        "description": "Format Social Security Number with dashes",
+        "formula": "SSN(1:3) + '-' + SSN(4:2) + '-' + SSN(6:4)",
+        "input_fields": [
+          "customer_ssn"
+        ],
+        "output_field": "formatted_ssn"
+      },
+      {
+        "name": "Format Date",
+        "description": "Format date as MM/DD/YY",
+        "formula": "Extract month, day, and year components and concatenate with slashes",
+        "input_fields": [
+          "current_date"
+        ],
+        "output_field": "formatted_date"
+      },
+      {
+        "name": "Format Time",
+        "description": "Format time as HH:MM:SS",
+        "formula": "Extract hours, minutes, and seconds and concatenate with colons",
+        "input_fields": [
+          "current_time"
+        ],
+        "output_field": "formatted_time"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Account View Request Processing",
+        "description": "Main workflow for processing account view requests",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize screen with standard information (titles, transaction name, program name, date, time)",
+            "conditions": [
+              "Screen display is requested"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Check if initial entry or re-entry",
+            "conditions": [
+              "Communication area length is checked"
+            ],
+            "next_step": "3 or 4"
+          },
+          {
+            "step_number": 3,
+            "action": "Prompt for account number input (initial entry)",
+            "conditions": [
+              "Communication area length is zero"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 4,
+            "action": "Display previous account ID (re-entry)",
+            "conditions": [
+              "Communication area contains data"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Receive and validate user input",
+            "conditions": [
+              "User has entered data"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Validate account number format",
+            "conditions": [
+              "Account number is provided"
+            ],
+            "next_step": "7 or error"
+          },
+          {
+            "step_number": 7,
+            "action": "Retrieve card cross-reference data",
+            "conditions": [
+              "Account number is valid"
+            ],
+            "next_step": "8 or error"
+          },
+          {
+            "step_number": 8,
+            "action": "Retrieve account data from account master file",
+            "conditions": [
+              "Card cross-reference found"
+            ],
+            "next_step": "9 or error"
+          },
+          {
+            "step_number": 9,
+            "action": "Retrieve customer data from customer master file",
+            "conditions": [
+              "Account data found"
+            ],
+            "next_step": "10 or error"
+          },
+          {
+            "step_number": 10,
+            "action": "Format and display account and customer information",
+            "conditions": [
+              "All data successfully retrieved"
+            ],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "Account Master File Access",
+        "type": "data_file",
+        "purpose": "Retrieve account information for display",
+        "data_exchanged": [
+          "account_id",
+          "account_status",
+          "current_balance",
+          "credit_limit",
+          "cash_credit_limit",
+          "current_cycle_credit",
+          "current_cycle_debit",
+          "open_date",
+          "expiration_date",
+          "reissue_date",
+          "group_id"
+        ],
+        "trigger_conditions": [
+          "Valid account number provided",
+          "Card cross-reference lookup successful"
+        ]
+      },
+      {
+        "name": "Customer Master File Access",
+        "type": "data_file",
+        "purpose": "Retrieve customer information associated with account",
+        "data_exchanged": [
+          "customer_number",
+          "ssn",
+          "fico_score",
+          "date_of_birth",
+          "first_name",
+          "middle_name",
+          "last_name",
+          "address_line_1",
+          "address_line_2",
+          "city",
+          "state_code",
+          "zip_code",
+          "country_code",
+          "phone_number_1",
+          "phone_number_2",
+          "government_id",
+          "eft_account_id",
+          "primary_card_holder_indicator"
+        ],
+        "trigger_conditions": [
+          "Valid customer ID obtained from cross-reference",
+          "Account data successfully retrieved"
+        ]
+      },
+      {
+        "name": "Card Cross-Reference File Access",
+        "type": "data_file",
+        "purpose": "Link account to customer and card information",
+        "data_exchanged": [
+          "account_id",
+          "customer_id",
+          "card_number"
+        ],
+        "trigger_conditions": [
+          "Valid account number provided by user"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Account Viewer",
+        "Customer Service Representative",
+        "System Administrator"
+      ],
+      "permissions": [
+        {
+          "role": "Account Viewer",
+          "resource": "Account Information",
+          "actions": [
+            "view"
+          ]
+        },
+        {
+          "role": "Account Viewer",
+          "resource": "Customer Information",
+          "actions": [
+            "view"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be signed on to system",
+        "User credentials validated before access",
+        "Only valid account numbers can be viewed"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "ACCT_NOT_FOUND_XREF",
+        "condition": "Account number not found in card cross-reference file",
+        "business_impact": "Cannot retrieve account information",
+        "suggested_action": "Verify account number and try again"
+      },
+      {
+        "error_code": "ACCT_NOT_FOUND_MASTER",
+        "condition": "Account number not found in account master file",
+        "business_impact": "Cannot display account details",
+        "suggested_action": "Contact system administrator"
+      },
+      {
+        "error_code": "CUST_NOT_FOUND",
+        "condition": "Customer ID not found in customer master file",
+        "business_impact": "Cannot display customer information",
+        "suggested_action": "Contact system administrator"
+      },
+      {
+        "error_code": "INVALID_ACCT_FORMAT",
+        "condition": "Account number is not numeric, not 11 digits, or is zero",
+        "business_impact": "Cannot process request",
+        "suggested_action": "Enter valid 11-digit non-zero account number"
+      },
+      {
+        "error_code": "ACCT_REQUIRED",
+        "condition": "Account number is blank or spaces",
+        "business_impact": "Cannot process request",
+        "suggested_action": "Enter account number"
+      },
+      {
+        "error_code": "FILE_ERROR",
+        "condition": "Unexpected error during file access",
+        "business_impact": "Cannot complete operation",
+        "suggested_action": "Contact system administrator with error details"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "COACTVW",
+        "name": "Account View Screen",
+        "purpose": "Display detailed account and customer information for a specified account number",
+        "screen_type": "inquiry",
+        "navigation_from": [
+          "Main Menu"
+        ],
+        "navigation_to": [
+          "Main Menu"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "display",
+            "fields": [
+              {
+                "name": "title01",
+                "label": "Title Line 1",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "System title from configuration",
+                "validation": "none",
+                "help_text": "System title"
+              },
+              {
+                "name": "title02",
+                "label": "Title Line 2",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "Screen title from configuration",
+                "validation": "none",
+                "help_text": "Screen title"
+              },
+              {
+                "name": "transaction_name",
+                "label": "Transaction",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "CAVW",
+                "validation": "none",
+                "help_text": "Transaction identifier"
+              },
+              {
+                "name": "program_name",
+                "label": "Program",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "COACTVWC",
+                "validation": "none",
+                "help_text": "Program name"
+              },
+              {
+                "name": "current_date",
+                "label": "Date",
+                "type": "date",
+                "input_output": "output",
+                "required": true,
+                "default_value": "Current system date",
+                "validation": "none",
+                "help_text": "Current date in MM/DD/YY format"
+              },
+              {
+                "name": "current_time",
+                "label": "Time",
+                "type": "time",
+                "input_output": "output",
+                "required": true,
+                "default_value": "Current system time",
+                "validation": "none",
+                "help_text": "Current time in HH:MM:SS format"
+              }
+            ]
+          },
+          {
+            "name": "Account Search",
+            "type": "input",
+            "fields": [
+              {
+                "name": "account_id",
+                "label": "Account ID",
+                "type": "numeric",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be 11-digit non-zero numeric value",
+                "help_text": "Enter account number to view details"
+              }
+            ]
+          },
+          {
+            "name": "Account Information",
+            "type": "display",
+            "fields": [
+              {
+                "name": "account_status",
+                "label": "Account Status",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Account active status"
+              },
+              {
+                "name": "current_balance",
+                "label": "Current Balance",
+                "type": "currency",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Current account balance"
+              },
+              {
+                "name": "credit_limit",
+                "label": "Credit Limit",
+                "type": "currency",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Account credit limit"
+              },
+              {
+                "name": "cash_credit_limit",
+                "label": "Cash Credit Limit",
+                "type": "currency",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Cash credit limit"
+              },
+              {
+                "name": "current_cycle_credit",
+                "label": "Current Cycle Credit",
+                "type": "currency",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Current cycle credit amount"
+              },
+              {
+                "name": "current_cycle_debit",
+                "label": "Current Cycle Debit",
+                "type": "currency",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Current cycle debit amount"
+              },
+              {
+                "name": "open_date",
+                "label": "Account Open Date",
+                "type": "date",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Date account was opened"
+              },
+              {
+                "name": "expiration_date",
+                "label": "Expiration Date",
+                "type": "date",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Account expiration date"
+              },
+              {
+                "name": "reissue_date",
+                "label": "Reissue Date",
+                "type": "date",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Account reissue date"
+              },
+              {
+                "name": "group_id",
+                "label": "Account Group ID",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Account group identifier"
+              }
+            ]
+          },
+          {
+            "name": "Customer Information",
+            "type": "display",
+            "fields": [
+              {
+                "name": "customer_number",
+                "label": "Customer Number",
+                "type": "numeric",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer identifier"
+              },
+              {
+                "name": "ssn",
+                "label": "SSN",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer Social Security Number (XXX-XX-XXXX)"
+              },
+              {
+                "name": "fico_score",
+                "label": "FICO Score",
+                "type": "numeric",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer FICO credit score"
+              },
+              {
+                "name": "date_of_birth",
+                "label": "Date of Birth",
+                "type": "date",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer date of birth"
+              },
+              {
+                "name": "first_name",
+                "label": "First Name",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer first name"
+              },
+              {
+                "name": "middle_name",
+                "label": "Middle Name",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer middle name"
+              },
+              {
+                "name": "last_name",
+                "label": "Last Name",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer last name"
+              },
+              {
+                "name": "address_line_1",
+                "label": "Address Line 1",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "First line of customer address"
+              },
+              {
+                "name": "address_line_2",
+                "label": "Address Line 2",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Second line of customer address"
+              },
+              {
+                "name": "city",
+                "label": "City",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer city"
+              },
+              {
+                "name": "state_code",
+                "label": "State",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer state code"
+              },
+              {
+                "name": "zip_code",
+                "label": "ZIP Code",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer ZIP code"
+              },
+              {
+                "name": "country_code",
+                "label": "Country",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer country code"
+              },
+              {
+                "name": "phone_number_1",
+                "label": "Phone 1",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer primary phone number"
+              },
+              {
+                "name": "phone_number_2",
+                "label": "Phone 2",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer secondary phone number"
+              },
+              {
+                "name": "government_id",
+                "label": "Government ID",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer government-issued ID"
+              },
+              {
+                "name": "eft_account_id",
+                "label": "EFT Account ID",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Customer EFT account identifier"
+              },
+              {
+                "name": "primary_card_holder",
+                "label": "Primary Card Holder",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Indicates if customer is primary card holder"
+              }
+            ]
+          },
+          {
+            "name": "Messages",
+            "type": "display",
+            "fields": [
+              {
+                "name": "error_message",
+                "label": "Error Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Error messages displayed to user"
+              },
+              {
+                "name": "info_message",
+                "label": "Information Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "none",
+                "help_text": "Informational messages displayed to user"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "View Account",
+            "trigger": "Enter key or submit action",
+            "description": "Retrieve and display account and customer information for entered account number",
+            "backend_process": "Process Inputs workflow",
+            "success_navigation": "Same screen with data populated",
+            "error_handling": "Display error message on screen"
+          },
+          {
+            "name": "Return to Menu",
+            "trigger": "Function key",
+            "description": "Return to main menu",
+            "backend_process": "Navigation logic",
+            "success_navigation": "Main Menu",
+            "error_handling": "Display error if navigation fails"
+          },
+          {
+            "name": "Clear",
+            "trigger": "Clear function key",
+            "description": "Clear input and displayed data",
+            "backend_process": "Screen initialization",
+            "success_navigation": "Same screen cleared",
+            "error_handling": "None"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "Account number is invalid",
+            "affected_fields": [
+              "account_id"
+            ],
+            "behavior": "Highlight field in red and position cursor"
+          },
+          {
+            "condition": "Account number is blank on re-entry",
+            "affected_fields": [
+              "account_id"
+            ],
+            "behavior": "Display asterisk and highlight in red"
+          },
+          {
+            "condition": "No information message",
+            "affected_fields": [
+              "info_message"
+            ],
+            "behavior": "Display in dark color"
+          },
+          {
+            "condition": "Information message present",
+            "affected_fields": [
+              "info_message"
+            ],
+            "behavior": "Display in neutral color"
+          },
+          {
+            "condition": "Account data not found",
+            "affected_fields": [
+              "all account and customer fields"
+            ],
+            "behavior": "Leave fields empty"
+          },
+          {
+            "condition": "Account data found",
+            "affected_fields": [
+              "all account and customer fields"
+            ],
+            "behavior": "Populate with retrieved data"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "Main Menu",
+        "to_screen": "Account View Screen",
+        "trigger": "User selects account view option",
+        "conditions": [
+          "User is authenticated"
+        ]
+      },
+      {
+        "from_screen": "Account View Screen",
+        "to_screen": "Main Menu",
+        "trigger": "User presses return function key",
+        "conditions": [
+          "Navigation action initiated"
+        ]
+      },
+      {
+        "from_screen": "Account View Screen",
+        "to_screen": "Account View Screen",
+        "trigger": "User enters new account number",
+        "conditions": [
+          "User submits new search"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "PROMPT_ACCT",
+        "type": "prompt",
+        "message": "Please enter account number",
+        "context": "Initial entry or blank account number"
+      },
+      {
+        "code": "INVALID_ACCT_FORMAT",
+        "type": "error",
+        "message": "Account Filter must be a non-zero 11 digit number",
+        "context": "Account number validation failure"
+      },
+      {
+        "code": "ACCT_NOT_FOUND_XREF",
+        "type": "error",
+        "message": "Account: [account number] not found in Cross ref file. Resp: [response] Reas: [reason]",
+        "context": "Account not found in card cross-reference file"
+      },
+      {
+        "code": "ACCT_NOT_FOUND_MASTER",
+        "type": "error",
+        "message": "Account: [account number] not found in Acct Master file. Resp: [response] Reas: [reason]",
+        "context": "Account not found in account master file"
+      },
+      {
+        "code": "CUST_NOT_FOUND",
+        "type": "error",
+        "message": "CustId: [customer ID] not found in customer master. Resp: [response] REAS: [reason]",
+        "context": "Customer not found in customer master file"
+      },
+      {
+        "code": "FILE_ERROR",
+        "type": "error",
+        "message": "File error during [operation] on [file name]. Response: [response] Reason: [reason]",
+        "context": "Unexpected file access error"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Account Lookup Flow",
+      "description": "Flow of data from user input through file lookups to screen display",
+      "source": "User Input",
+      "destination": "Account View Screen",
+      "data_elements": [
+        "account_id",
+        "customer_id",
+        "card_number",
+        "account_details",
+        "customer_details"
+      ],
+      "transformations": [
+        "Validate account number format",
+        "Lookup account in card cross-reference",
+        "Retrieve account data from account master",
+        "Retrieve customer data from customer master",
+        "Format SSN with dashes",
+        "Format dates for display",
+        "Format currency amounts"
+      ]
+    },
+    {
+      "name": "Error Message Flow",
+      "description": "Flow of error information from validation or file access to user display",
+      "source": "Validation or File Access Logic",
+      "destination": "Error Message Field",
+      "data_elements": [
+        "error_type",
+        "error_details",
+        "response_codes",
+        "reason_codes"
+      ],
+      "transformations": [
+        "Format error message with context",
+        "Include response and reason codes",
+        "Set message severity"
+      ]
+    },
+    {
+      "name": "Screen Initialization Flow",
+      "description": "Flow of standard screen information during initialization",
+      "source": "System Configuration and Current Date/Time",
+      "destination": "Screen Header",
+      "data_elements": [
+        "title_line_1",
+        "title_line_2",
+        "transaction_name",
+        "program_name",
+        "current_date",
+        "current_time"
+      ],
+      "transformations": [
+        "Retrieve system titles from configuration",
+        "Get current date and time",
+        "Format date as MM/DD/YY",
+        "Format time as HH:MM:SS"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Data Integrity",
+      "description": "Account must exist in both card cross-reference and account master files",
+      "impact": "Cannot display account information if data is inconsistent across files"
+    },
+    {
+      "type": "Data Security",
+      "description": "Only authenticated users can view account and customer information",
+      "impact": "Access control must be enforced at system level"
+    },
+    {
+      "type": "Data Format",
+      "description": "Account numbers must be exactly 11 digits and non-zero",
+      "impact": "System cannot process account numbers that do not meet format requirements"
+    },
+    {
+      "type": "Referential Integrity",
+      "description": "Customer ID from card cross-reference must exist in customer master file",
+      "impact": "Cannot display complete information if customer record is missing"
+    },
+    {
+      "type": "Display Format",
+      "description": "SSN must be formatted with dashes for display",
+      "impact": "User interface must consistently format sensitive data"
+    },
+    {
+      "type": "User Experience",
+      "description": "Cursor must be positioned on error field for correction",
+      "impact": "System must provide clear indication of where user action is needed"
+    }
+  ]
+}

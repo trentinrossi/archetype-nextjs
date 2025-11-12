@@ -1,0 +1,75 @@
+import { Card, CreateCardRequest, UpdateCardRequest } from '@/types/card';
+
+const API_BASE_URL = '/api';
+
+class CardService {
+  private getAuthHeaders(): Record<string, string> {
+    const token = localStorage.getItem('access_token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+  }
+
+  async getCards(params?: Record<string, string>): Promise<Card[]> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
+    const response = await fetch(`${API_BASE_URL}/cards${queryString}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch cards');
+    }
+    return response.json();
+  }
+
+  async getCardByNumber(cardNumber: string): Promise<Card> {
+    const response = await fetch(`${API_BASE_URL}/cards/${cardNumber}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Card not found');
+      }
+      throw new Error('Failed to fetch card');
+    }
+    return response.json();
+  }
+
+  async createCard(data: CreateCardRequest): Promise<Card> {
+    const response = await fetch(`${API_BASE_URL}/cards`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to create card');
+    }
+    return response.json();
+  }
+
+  async updateCard(cardNumber: string, data: UpdateCardRequest): Promise<Card> {
+    const response = await fetch(`${API_BASE_URL}/cards/${cardNumber}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to update card');
+    }
+    return response.json();
+  }
+
+  async deleteCard(cardNumber: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/cards/${cardNumber}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to delete card');
+    }
+  }
+}
+
+export const cardService = new CardService();

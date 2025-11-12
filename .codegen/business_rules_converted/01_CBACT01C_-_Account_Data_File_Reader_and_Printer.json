@@ -1,0 +1,528 @@
+{
+  "application_metadata": {
+    "name": "CBACT01C - Account Data File Reader and Printer",
+    "description": "Batch program designed to read and print account data from a VSAM KSDS file. Serves as a utility for displaying account information, providing a comprehensive view of account data stored in the system for data verification, auditing, or troubleshooting purposes.",
+    "domain": "CardDemo Application - Account Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "Account",
+        "description": "Represents a customer account with financial and status information",
+        "attributes": [
+          {
+            "name": "ACCT-ID",
+            "type": "Numeric",
+            "length": 11,
+            "required": true,
+            "description": "Unique account identifier used as the record key"
+          },
+          {
+            "name": "ACCT-ACTIVE-STATUS",
+            "type": "Alphanumeric",
+            "length": 0,
+            "required": true,
+            "description": "Indicates if the account is active. Possible values might be 'A' for active, 'I' for inactive"
+          },
+          {
+            "name": "ACCT-CURR-BAL",
+            "type": "Numeric",
+            "length": 0,
+            "required": true,
+            "description": "Current balance of the account, includes decimal places for cents"
+          },
+          {
+            "name": "ACCT-CREDIT-LIMIT",
+            "type": "Numeric",
+            "length": 0,
+            "required": true,
+            "description": "Maximum credit limit for the account, includes decimal places for cents"
+          },
+          {
+            "name": "ACCT-CASH-CREDIT-LIMIT",
+            "type": "Numeric",
+            "length": 0,
+            "required": true,
+            "description": "Maximum cash credit limit for the account, includes decimal places for cents"
+          },
+          {
+            "name": "ACCT-OPEN-DATE",
+            "type": "Date",
+            "length": 0,
+            "required": true,
+            "description": "Date when the account was opened, format likely YYYYMMDD or CCYYMMDD"
+          },
+          {
+            "name": "ACCT-EXPIRAION-DATE",
+            "type": "Date",
+            "length": 0,
+            "required": true,
+            "description": "Date when the account expires, format likely YYYYMMDD or CCYYMMDD"
+          },
+          {
+            "name": "ACCT-REISSUE-DATE",
+            "type": "Date",
+            "length": 0,
+            "required": false,
+            "description": "Date when the account was reissued, format likely YYYYMMDD or CCYYMMDD"
+          },
+          {
+            "name": "ACCT-CURR-CYC-CREDIT",
+            "type": "Numeric",
+            "length": 0,
+            "required": true,
+            "description": "Current cycle credit amount, includes decimal places for cents"
+          },
+          {
+            "name": "ACCT-CURR-CYC-DEBIT",
+            "type": "Numeric",
+            "length": 0,
+            "required": true,
+            "description": "Current cycle debit amount, includes decimal places for cents"
+          },
+          {
+            "name": "ACCT-GROUP-ID",
+            "type": "Alphanumeric",
+            "length": 0,
+            "required": false,
+            "description": "Identifier for the account group, may be used for categorizing accounts"
+          }
+        ],
+        "relationships": []
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR-001",
+        "name": "Sequential Account Record Processing",
+        "description": "Account records must be processed sequentially from the account file until end-of-file is reached",
+        "category": "Data Processing",
+        "logic": "Read records from the account file one by one in sequential order. For each record read, display the complete account information. Continue processing until the end of file is reached.",
+        "conditions": [
+          "Account file must be successfully opened",
+          "Records are read sequentially using the account ID as the key"
+        ],
+        "actions": [
+          "Read next account record",
+          "Display all account fields",
+          "Continue until end-of-file"
+        ]
+      },
+      {
+        "id": "BR-002",
+        "name": "Account Data Display Requirements",
+        "description": "All account information fields must be displayed for each record processed",
+        "category": "Data Display",
+        "logic": "For each account record, display all fields including Account ID, Active Status, Current Balance, Credit Limit, Cash Credit Limit, Open Date, Expiration Date, Reissue Date, Current Cycle Credit, Current Cycle Debit, and Group ID",
+        "conditions": [
+          "Account record has been successfully read"
+        ],
+        "actions": [
+          "Display ACCT-ID",
+          "Display ACCT-ACTIVE-STATUS",
+          "Display ACCT-CURR-BAL",
+          "Display ACCT-CREDIT-LIMIT",
+          "Display ACCT-CASH-CREDIT-LIMIT",
+          "Display ACCT-OPEN-DATE",
+          "Display ACCT-EXPIRAION-DATE",
+          "Display ACCT-REISSUE-DATE",
+          "Display ACCT-CURR-CYC-CREDIT",
+          "Display ACCT-CURR-CYC-DEBIT",
+          "Display ACCT-GROUP-ID",
+          "Display separator line"
+        ]
+      },
+      {
+        "id": "BR-003",
+        "name": "Account File Access Control",
+        "description": "Account file must be opened for input operations before any record can be read",
+        "category": "Data Access",
+        "logic": "Open the account file in input mode. Verify successful open operation before proceeding with record reading. File status must be '00' for successful operation.",
+        "conditions": [
+          "Account file exists and is accessible",
+          "File status returns '00' after open operation"
+        ],
+        "actions": [
+          "Open account file for input",
+          "Check file status",
+          "Set application result to success (0) if status is '00'",
+          "Set application result to error (12) if status is not '00'"
+        ]
+      },
+      {
+        "id": "BR-004",
+        "name": "End of File Detection",
+        "description": "Processing must stop when end-of-file condition is detected",
+        "category": "Data Processing",
+        "logic": "When reading account records, detect end-of-file condition (file status '10'). Set end-of-file flag and stop processing.",
+        "conditions": [
+          "File status returns '10' during read operation"
+        ],
+        "actions": [
+          "Set application result to 16 (EOF)",
+          "Set END-OF-FILE flag to 'Y'",
+          "Stop record processing"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "ACCTFILE-STATUS",
+        "rule": "Must be '00' for successful file open operation",
+        "error_message": "ERROR OPENING ACCTFILE",
+        "severity": "Critical"
+      },
+      {
+        "field": "ACCTFILE-STATUS",
+        "rule": "Must be '00' for successful record read or '10' for end-of-file",
+        "error_message": "ERROR READING ACCOUNT FILE",
+        "severity": "Critical"
+      },
+      {
+        "field": "ACCTFILE-STATUS",
+        "rule": "Must be '00' for successful file close operation",
+        "error_message": "ERROR CLOSING ACCOUNT FILE",
+        "severity": "Critical"
+      },
+      {
+        "field": "ACCT-ID",
+        "rule": "Must be an 11-digit numeric value",
+        "error_message": "Invalid Account ID format",
+        "severity": "Critical"
+      }
+    ],
+    "calculations": [],
+    "workflows": [
+      {
+        "name": "Account Data Display Workflow",
+        "description": "Main workflow for reading and displaying account data from the account file",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Open account file for input",
+            "conditions": [
+              "Account file exists and is accessible"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Check file open status",
+            "conditions": [
+              "File status is '00'"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Read next account record",
+            "conditions": [
+              "File is open",
+              "End-of-file not reached"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Check read status",
+            "conditions": [
+              "File status is '00' or '10'"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Display account record if read successful",
+            "conditions": [
+              "File status is '00'"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 6,
+            "action": "Close account file when end-of-file reached",
+            "conditions": [
+              "File status is '10' or all records processed"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "End program",
+            "conditions": [
+              "File successfully closed"
+            ],
+            "next_step": "END"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "ACCTFILE",
+        "type": "Data File",
+        "purpose": "Source of account data for reading and display",
+        "data_exchanged": [
+          "Account records containing all account attributes"
+        ],
+        "trigger_conditions": [
+          "Program execution initiated"
+        ]
+      },
+      {
+        "name": "CVACT01Y Copybook",
+        "type": "Data Structure Definition",
+        "purpose": "Defines the structure of account records",
+        "data_exchanged": [
+          "Account record layout definition"
+        ],
+        "trigger_conditions": [
+          "Program compilation"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [],
+      "permissions": [],
+      "authentication_requirements": []
+    },
+    "error_handling": [
+      {
+        "error_code": "APPL-RESULT-8",
+        "condition": "Initial error state before file operation",
+        "business_impact": "File operation not yet attempted",
+        "suggested_action": "Proceed with file operation"
+      },
+      {
+        "error_code": "APPL-RESULT-0",
+        "condition": "Successful file operation (open, read, or close)",
+        "business_impact": "Operation completed successfully",
+        "suggested_action": "Continue with next operation"
+      },
+      {
+        "error_code": "APPL-RESULT-12",
+        "condition": "Error during file operation",
+        "business_impact": "File operation failed, program cannot continue",
+        "suggested_action": "Display error message, show file status, and abend program with code 999"
+      },
+      {
+        "error_code": "APPL-RESULT-16",
+        "condition": "End-of-file reached during read operation",
+        "business_impact": "All records have been processed",
+        "suggested_action": "Set end-of-file flag and proceed to close file"
+      },
+      {
+        "error_code": "FILE-STATUS-00",
+        "condition": "Successful file operation",
+        "business_impact": "Operation completed without errors",
+        "suggested_action": "Continue processing"
+      },
+      {
+        "error_code": "FILE-STATUS-10",
+        "condition": "End-of-file condition",
+        "business_impact": "No more records to read",
+        "suggested_action": "Close file and end program"
+      },
+      {
+        "error_code": "FILE-STATUS-9X",
+        "condition": "Extended file status error (first digit is 9)",
+        "business_impact": "System-level file error occurred",
+        "suggested_action": "Format and display extended status code, abend program"
+      },
+      {
+        "error_code": "ABEND-999",
+        "condition": "Critical error requiring program termination",
+        "business_impact": "Program cannot continue execution",
+        "suggested_action": "Call CEE3ABD to abnormally terminate program with code 999"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [],
+    "reports": [
+      {
+        "name": "Account Data Display Report",
+        "description": "Console output displaying all account records from the account file",
+        "type": "Console Output",
+        "data_sources": [
+          "ACCTFILE"
+        ],
+        "filters": [],
+        "columns": [
+          {
+            "name": "Account ID",
+            "data_field": "ACCT-ID",
+            "format": "Numeric (11 digits)",
+            "aggregation": "None"
+          },
+          {
+            "name": "Active Status",
+            "data_field": "ACCT-ACTIVE-STATUS",
+            "format": "Alphanumeric",
+            "aggregation": "None"
+          },
+          {
+            "name": "Current Balance",
+            "data_field": "ACCT-CURR-BAL",
+            "format": "Numeric with decimals",
+            "aggregation": "None"
+          },
+          {
+            "name": "Credit Limit",
+            "data_field": "ACCT-CREDIT-LIMIT",
+            "format": "Numeric with decimals",
+            "aggregation": "None"
+          },
+          {
+            "name": "Cash Credit Limit",
+            "data_field": "ACCT-CASH-CREDIT-LIMIT",
+            "format": "Numeric with decimals",
+            "aggregation": "None"
+          },
+          {
+            "name": "Open Date",
+            "data_field": "ACCT-OPEN-DATE",
+            "format": "Date (YYYYMMDD or CCYYMMDD)",
+            "aggregation": "None"
+          },
+          {
+            "name": "Expiration Date",
+            "data_field": "ACCT-EXPIRAION-DATE",
+            "format": "Date (YYYYMMDD or CCYYMMDD)",
+            "aggregation": "None"
+          },
+          {
+            "name": "Reissue Date",
+            "data_field": "ACCT-REISSUE-DATE",
+            "format": "Date (YYYYMMDD or CCYYMMDD)",
+            "aggregation": "None"
+          },
+          {
+            "name": "Current Cycle Credit",
+            "data_field": "ACCT-CURR-CYC-CREDIT",
+            "format": "Numeric with decimals",
+            "aggregation": "None"
+          },
+          {
+            "name": "Current Cycle Debit",
+            "data_field": "ACCT-CURR-CYC-DEBIT",
+            "format": "Numeric with decimals",
+            "aggregation": "None"
+          },
+          {
+            "name": "Group ID",
+            "data_field": "ACCT-GROUP-ID",
+            "format": "Alphanumeric",
+            "aggregation": "None"
+          }
+        ],
+        "sorting": [
+          "Sequential by Account ID (record key order)"
+        ],
+        "grouping": []
+      }
+    ],
+    "navigation_flow": [],
+    "user_messages": [
+      {
+        "code": "ERR-OPEN",
+        "type": "Error",
+        "message": "ERROR OPENING ACCTFILE",
+        "context": "Displayed when account file cannot be opened"
+      },
+      {
+        "code": "ERR-READ",
+        "type": "Error",
+        "message": "ERROR READING ACCOUNT FILE",
+        "context": "Displayed when error occurs reading account record"
+      },
+      {
+        "code": "ERR-CLOSE",
+        "type": "Error",
+        "message": "ERROR CLOSING ACCOUNT FILE",
+        "context": "Displayed when account file cannot be closed"
+      },
+      {
+        "code": "INFO-STATUS",
+        "type": "Information",
+        "message": "FILE STATUS IS: NNNN [status code]",
+        "context": "Displayed to show file status code when error occurs"
+      },
+      {
+        "code": "ERR-ABEND",
+        "type": "Error",
+        "message": "ABENDING PROGRAM",
+        "context": "Displayed before abnormal program termination"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Account Data Retrieval Flow",
+      "description": "Sequential reading of account records from the account file for display",
+      "source": "ACCTFILE",
+      "destination": "Console Output",
+      "data_elements": [
+        "ACCT-ID",
+        "ACCT-ACTIVE-STATUS",
+        "ACCT-CURR-BAL",
+        "ACCT-CREDIT-LIMIT",
+        "ACCT-CASH-CREDIT-LIMIT",
+        "ACCT-OPEN-DATE",
+        "ACCT-EXPIRAION-DATE",
+        "ACCT-REISSUE-DATE",
+        "ACCT-CURR-CYC-CREDIT",
+        "ACCT-CURR-CYC-DEBIT",
+        "ACCT-GROUP-ID"
+      ],
+      "transformations": [
+        "Format account data for display output",
+        "Add field labels to each data element",
+        "Add separator lines between records"
+      ]
+    },
+    {
+      "name": "Error Status Flow",
+      "description": "Flow of file status information for error reporting",
+      "source": "File Operation Status",
+      "destination": "Console Output",
+      "data_elements": [
+        "ACCTFILE-STATUS",
+        "IO-STATUS",
+        "IO-STATUS-04"
+      ],
+      "transformations": [
+        "Convert two-byte file status to four-digit display format",
+        "Handle extended status codes (status starting with '9')",
+        "Format status message with 'FILE STATUS IS: NNNN' prefix"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Processing",
+      "description": "Records must be processed sequentially in the order they appear in the account file",
+      "impact": "Cannot randomly access or skip records during processing"
+    },
+    {
+      "type": "Data Access",
+      "description": "Account file must be opened before any records can be read",
+      "impact": "File open operation is a prerequisite for all data access"
+    },
+    {
+      "type": "Error Handling",
+      "description": "Any file operation error results in immediate program termination",
+      "impact": "No recovery mechanism for file errors; program abends with code 999"
+    },
+    {
+      "type": "Data Integrity",
+      "description": "All account fields must be displayed for each record processed",
+      "impact": "Complete account information visibility required for auditing and verification"
+    },
+    {
+      "type": "Operational",
+      "description": "Program serves as a diagnostic and verification tool, not a transactional processor",
+      "impact": "Read-only access to account data; no updates or modifications performed"
+    }
+  ]
+}

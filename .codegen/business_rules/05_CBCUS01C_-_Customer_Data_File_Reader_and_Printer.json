@@ -1,0 +1,405 @@
+{
+  "application_metadata": {
+    "name": "CBCUS01C - Customer Data File Reader and Printer",
+    "description": "Batch program designed to read and print customer data from an indexed file. Sequentially reads customer records and displays them, providing a simple way to view the contents of the customer database for diagnostic, reporting, auditing, or troubleshooting purposes.",
+    "domain": "CardDemo Application - Customer Data Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "Customer",
+        "description": "Core business entity representing customer information stored in the customer database",
+        "attributes": [
+          {
+            "name": "CUST-ID",
+            "type": "Numeric",
+            "length": 9,
+            "required": true,
+            "description": "Customer ID - Primary key for customer records"
+          },
+          {
+            "name": "CUST-DATA",
+            "type": "Alphanumeric",
+            "length": 491,
+            "required": true,
+            "description": "Customer data containing all other customer information"
+          }
+        ],
+        "relationships": []
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Sequential Customer Record Processing",
+        "description": "All customer records must be processed sequentially from the customer file until end of file is reached",
+        "category": "Data Processing",
+        "logic": "Read each customer record sequentially, display the record immediately after reading, and continue until end of file condition is detected",
+        "conditions": [
+          "Customer file must be successfully opened",
+          "Records are read in sequential order",
+          "Processing continues until end of file status '10' is received"
+        ],
+        "actions": [
+          "Read next customer record",
+          "Display customer record data",
+          "Continue to next record if successful",
+          "Stop processing when end of file is reached"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Customer File Access Control",
+        "description": "Customer file must be opened for input before any read operations and properly closed after all processing is complete",
+        "category": "Data Access",
+        "logic": "Open customer file at program start, verify successful open status, perform all read operations, then close file at program end",
+        "conditions": [
+          "File must exist and be accessible",
+          "File status must be '00' for successful operations",
+          "File must be closed after all records are processed"
+        ],
+        "actions": [
+          "Open customer file for input",
+          "Verify file open status",
+          "Process all records",
+          "Close customer file",
+          "Verify file close status"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Customer Data Display",
+        "description": "Each customer record must be displayed immediately after being successfully read from the file",
+        "category": "Data Output",
+        "logic": "Upon successful read of a customer record (status '00'), display the complete customer record data",
+        "conditions": [
+          "Record read operation must be successful",
+          "File status must be '00'"
+        ],
+        "actions": [
+          "Display complete customer record"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "End of File Detection",
+        "description": "Program must recognize and properly handle end of file condition to stop processing",
+        "category": "Process Control",
+        "logic": "When file status '10' is received during read operation, set end of file indicator and stop reading records",
+        "conditions": [
+          "File status equals '10'",
+          "All available records have been read"
+        ],
+        "actions": [
+          "Set end of file indicator to 'Y'",
+          "Exit read loop",
+          "Proceed to file close operation"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "CUSTFILE-STATUS",
+        "rule": "Must equal '00' for successful file open operation",
+        "error_message": "ERROR OPENING CUSTFILE",
+        "severity": "Critical"
+      },
+      {
+        "field": "CUSTFILE-STATUS",
+        "rule": "Must equal '00' for successful record read or '10' for end of file",
+        "error_message": "ERROR READING CUSTOMER FILE",
+        "severity": "Critical"
+      },
+      {
+        "field": "CUSTFILE-STATUS",
+        "rule": "Must equal '00' for successful file close operation",
+        "error_message": "ERROR CLOSING CUSTOMER FILE",
+        "severity": "Critical"
+      }
+    ],
+    "calculations": [],
+    "workflows": [
+      {
+        "name": "Customer Data File Processing Workflow",
+        "description": "Complete workflow for reading and displaying all customer records from the customer file",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Display program start message",
+            "conditions": [],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Open customer file for input",
+            "conditions": [
+              "File must be accessible"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Verify file open status",
+            "conditions": [
+              "If status is '00', proceed to step 4",
+              "If status is not '00', proceed to error handling"
+            ],
+            "next_step": "4 or Error"
+          },
+          {
+            "step_number": 4,
+            "action": "Read next customer record",
+            "conditions": [
+              "File is open",
+              "End of file not reached"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Evaluate read status",
+            "conditions": [
+              "If status is '00', proceed to step 6",
+              "If status is '10', proceed to step 7",
+              "If status is other, proceed to error handling"
+            ],
+            "next_step": "6, 7, or Error"
+          },
+          {
+            "step_number": 6,
+            "action": "Display customer record and return to step 4",
+            "conditions": [
+              "Record read was successful"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 7,
+            "action": "Set end of file indicator",
+            "conditions": [
+              "All records have been processed"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Close customer file",
+            "conditions": [],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "Verify file close status",
+            "conditions": [
+              "If status is '00', proceed to step 10",
+              "If status is not '00', proceed to error handling"
+            ],
+            "next_step": "10 or Error"
+          },
+          {
+            "step_number": 10,
+            "action": "Display program end message and terminate normally",
+            "conditions": [],
+            "next_step": "End"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "Customer Data File",
+        "type": "Indexed File",
+        "purpose": "Source of customer records for reading and display",
+        "data_exchanged": [
+          "Customer ID",
+          "Customer Data"
+        ],
+        "trigger_conditions": [
+          "Program execution initiated"
+        ]
+      },
+      {
+        "name": "Customer Record Structure Copybook",
+        "type": "Data Structure Definition",
+        "purpose": "Provides standardized customer record structure used across CardDemo application",
+        "data_exchanged": [
+          "Customer record layout definition"
+        ],
+        "trigger_conditions": [
+          "Program compilation"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [],
+      "permissions": [],
+      "authentication_requirements": []
+    },
+    "error_handling": [
+      {
+        "error_code": "APPL-RESULT-12",
+        "condition": "File open operation fails (status not '00')",
+        "business_impact": "Cannot access customer data, program cannot proceed with processing",
+        "suggested_action": "Display error message, show file status, terminate program abnormally with abend code 999"
+      },
+      {
+        "error_code": "APPL-RESULT-12",
+        "condition": "File read operation fails (status not '00' or '10')",
+        "business_impact": "Cannot retrieve customer record, data integrity may be compromised",
+        "suggested_action": "Display error message, show file status, terminate program abnormally with abend code 999"
+      },
+      {
+        "error_code": "APPL-RESULT-16",
+        "condition": "End of file reached (status '10')",
+        "business_impact": "All records have been processed, normal completion condition",
+        "suggested_action": "Set end of file indicator, exit read loop, proceed to file close"
+      },
+      {
+        "error_code": "APPL-RESULT-12",
+        "condition": "File close operation fails (status not '00')",
+        "business_impact": "File may not be properly closed, potential resource leak",
+        "suggested_action": "Display error message, show file status, terminate program abnormally with abend code 999"
+      },
+      {
+        "error_code": "FILE-STATUS-NON-NUMERIC",
+        "condition": "File status is not numeric or first character is '9'",
+        "business_impact": "Severe file operation error requiring special status formatting",
+        "suggested_action": "Format status as first character plus binary value of second character, display formatted status"
+      },
+      {
+        "error_code": "ABEND-999",
+        "condition": "Any critical file operation error",
+        "business_impact": "Program cannot continue, requires abnormal termination",
+        "suggested_action": "Display abend message, set abend code to 999, call abnormal termination service"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [],
+    "reports": [
+      {
+        "name": "Customer Data Listing",
+        "description": "Sequential display of all customer records from the customer file",
+        "type": "Console Output",
+        "data_sources": [
+          "CUSTFILE - Customer Data File"
+        ],
+        "filters": [],
+        "columns": [
+          {
+            "name": "Customer Record",
+            "data_field": "CUSTOMER-RECORD",
+            "format": "Raw data display",
+            "aggregation": "None"
+          }
+        ],
+        "sorting": [
+          "Sequential order as stored in file"
+        ],
+        "grouping": []
+      }
+    ],
+    "navigation_flow": [],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "Information",
+        "message": "Program start message",
+        "context": "Displayed at beginning of program execution"
+      },
+      {
+        "code": "MSG002",
+        "type": "Information",
+        "message": "Program end message",
+        "context": "Displayed at successful completion of program execution"
+      },
+      {
+        "code": "ERR001",
+        "type": "Error",
+        "message": "ERROR OPENING CUSTFILE",
+        "context": "Displayed when customer file cannot be opened"
+      },
+      {
+        "code": "ERR002",
+        "type": "Error",
+        "message": "ERROR READING CUSTOMER FILE",
+        "context": "Displayed when error occurs reading customer record"
+      },
+      {
+        "code": "ERR003",
+        "type": "Error",
+        "message": "ERROR CLOSING CUSTOMER FILE",
+        "context": "Displayed when customer file cannot be closed properly"
+      },
+      {
+        "code": "ERR004",
+        "type": "Error",
+        "message": "FILE STATUS IS: NNNN",
+        "context": "Displays formatted file status code for error diagnosis"
+      },
+      {
+        "code": "ERR005",
+        "type": "Critical",
+        "message": "ABENDING PROGRAM",
+        "context": "Displayed immediately before abnormal program termination"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Customer Record Retrieval Flow",
+      "description": "Flow of customer data from file to display output",
+      "source": "CUSTFILE - Customer Data File",
+      "destination": "Console Display Output",
+      "data_elements": [
+        "Customer ID (CUST-ID)",
+        "Customer Data (CUST-DATA)",
+        "Complete Customer Record"
+      ],
+      "transformations": [
+        "No transformation - raw data display"
+      ]
+    },
+    {
+      "name": "File Status Information Flow",
+      "description": "Flow of file operation status information for error reporting",
+      "source": "File Operation Status",
+      "destination": "Error Display Output",
+      "data_elements": [
+        "File Status Code (CUSTFILE-STATUS)",
+        "Formatted Status (IO-STATUS-04)"
+      ],
+      "transformations": [
+        "Status code formatting for non-numeric or severe errors",
+        "Binary to decimal conversion for status display"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Processing Order",
+      "description": "Customer records must be processed in sequential order as they appear in the file",
+      "impact": "Cannot randomly access or skip records, all records are processed in file order"
+    },
+    {
+      "type": "Error Tolerance",
+      "description": "Any file operation error results in immediate program termination",
+      "impact": "No partial processing allowed, program must complete successfully or abort entirely"
+    },
+    {
+      "type": "Data Access",
+      "description": "Program operates in read-only mode on customer data",
+      "impact": "Cannot modify, add, or delete customer records, only display existing data"
+    },
+    {
+      "type": "Execution Mode",
+      "description": "Program is designed as a batch process, not interactive",
+      "impact": "No user interaction during execution, runs to completion or error"
+    },
+    {
+      "type": "Data Structure Dependency",
+      "description": "Customer record structure is standardized across CardDemo application via copybook",
+      "impact": "Changes to customer data structure require coordinated updates across multiple programs"
+    }
+  ]
+}

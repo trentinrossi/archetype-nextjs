@@ -1,0 +1,426 @@
+{
+  "application_metadata": {
+    "name": "CBACT02C - Card Data File Reader and Printer",
+    "description": "Batch program designed to read and print card data from a VSAM KSDS file. Sequentially reads records from the card file and displays them, providing a simple way to view the contents of the card data file for data verification and auditing processes.",
+    "domain": "Card Management and Data Auditing"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "CardRecord",
+        "description": "Represents a complete card record stored in the card data file",
+        "attributes": [
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Card number serving as the record key identifier"
+          },
+          {
+            "name": "card_data",
+            "type": "string",
+            "length": 134,
+            "required": true,
+            "description": "Additional card-related information and attributes"
+          }
+        ],
+        "relationships": []
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Sequential Card Data Access",
+        "description": "Card records must be accessed sequentially from the beginning to the end of the file",
+        "category": "Data Access",
+        "logic": "Records are read one by one in sequential order until the end of file is reached",
+        "conditions": [
+          "File must be opened successfully",
+          "End of file flag is not set"
+        ],
+        "actions": [
+          "Read next sequential record",
+          "Display record contents",
+          "Continue until end of file"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Read-Only Card Data Access",
+        "description": "Card data file is accessed in read-only mode to prevent modifications during viewing",
+        "category": "Data Security",
+        "logic": "File is opened in INPUT mode only, ensuring no write operations can occur",
+        "conditions": [
+          "File access mode is INPUT"
+        ],
+        "actions": [
+          "Open file in read-only mode",
+          "Prevent any data modifications"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Complete File Display",
+        "description": "All card records in the file must be displayed for complete audit trail",
+        "category": "Auditing",
+        "logic": "Every record from start to end of file is read and displayed without filtering",
+        "conditions": [
+          "File is successfully opened",
+          "Records exist in the file"
+        ],
+        "actions": [
+          "Display each card record",
+          "Continue until all records are processed"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Sensitive Data Display Authorization",
+        "description": "Card data display should be restricted to authorized personnel only due to sensitive information",
+        "category": "Security",
+        "logic": "Program displays all card data including potentially sensitive information",
+        "conditions": [
+          "User must be authorized personnel",
+          "Access should be logged for audit purposes"
+        ],
+        "actions": [
+          "Display card number",
+          "Display card data",
+          "Log access for audit trail"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "file_status",
+        "rule": "File status must be '00' for successful operations",
+        "error_message": "ERROR OPENING CARDFILE / ERROR READING CARDFILE / ERROR CLOSING CARDFILE",
+        "severity": "critical"
+      },
+      {
+        "field": "file_status",
+        "rule": "File status '10' indicates end of file reached",
+        "error_message": "End of file condition",
+        "severity": "info"
+      },
+      {
+        "field": "application_result",
+        "rule": "Application result must be 0 for successful operations, 16 for EOF, 12 for errors",
+        "error_message": "Operation failed with error code",
+        "severity": "critical"
+      }
+    ],
+    "calculations": [],
+    "workflows": [
+      {
+        "name": "Card Data Display Workflow",
+        "description": "Complete workflow for reading and displaying all card records from the card data file",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Display program start message",
+            "conditions": [],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Open card data file in INPUT mode",
+            "conditions": [
+              "File exists and is accessible"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Check file open status",
+            "conditions": [
+              "File status is '00'"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Read next card record sequentially",
+            "conditions": [
+              "End of file not reached"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Check read status",
+            "conditions": [
+              "File status is '00' or '10'"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Display card record contents",
+            "conditions": [
+              "Read was successful (status '00')"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 7,
+            "action": "Set end of file flag",
+            "conditions": [
+              "File status is '10'"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Close card data file",
+            "conditions": [
+              "All records processed or error occurred"
+            ],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "Display program end message",
+            "conditions": [
+              "File closed successfully"
+            ],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "CARDFILE Data Source",
+        "type": "File System",
+        "purpose": "Access card data records for display and auditing",
+        "data_exchanged": [
+          "Card number (16 characters)",
+          "Card data (134 characters)"
+        ],
+        "trigger_conditions": [
+          "Program execution initiated",
+          "Sequential read operation requested"
+        ]
+      },
+      {
+        "name": "CVACT02Y Copybook",
+        "type": "Data Structure Definition",
+        "purpose": "Define card record structure for data access",
+        "data_exchanged": [
+          "Card record layout definition"
+        ],
+        "trigger_conditions": [
+          "Program compilation",
+          "Record structure reference needed"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "System Administrator",
+        "Auditor",
+        "Authorized Personnel"
+      ],
+      "permissions": [
+        {
+          "role": "System Administrator",
+          "resource": "Card Data File",
+          "actions": [
+            "view",
+            "audit"
+          ]
+        },
+        {
+          "role": "Auditor",
+          "resource": "Card Data File",
+          "actions": [
+            "view",
+            "audit"
+          ]
+        },
+        {
+          "role": "Authorized Personnel",
+          "resource": "Card Data File",
+          "actions": [
+            "view"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be authorized to view sensitive card data",
+        "Access should be logged for audit trail",
+        "Restricted to authorized personnel only"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "OPEN_ERROR",
+        "condition": "File status not '00' when opening CARDFILE",
+        "business_impact": "Cannot access card data for viewing or auditing",
+        "suggested_action": "Display error message, show file status, terminate program with abend code 999"
+      },
+      {
+        "error_code": "READ_ERROR",
+        "condition": "File status not '00' or '10' when reading CARDFILE",
+        "business_impact": "Cannot retrieve card records for display",
+        "suggested_action": "Display error message, show file status, terminate program with abend code 999"
+      },
+      {
+        "error_code": "CLOSE_ERROR",
+        "condition": "File status not '00' when closing CARDFILE",
+        "business_impact": "File resources may not be properly released",
+        "suggested_action": "Display error message, show file status, terminate program with abend code 999"
+      },
+      {
+        "error_code": "EOF",
+        "condition": "File status '10' indicating end of file reached",
+        "business_impact": "All records have been processed",
+        "suggested_action": "Set end of file flag, proceed to close file"
+      },
+      {
+        "error_code": "ABEND_999",
+        "condition": "Unrecoverable error during file operations",
+        "business_impact": "Program cannot continue execution",
+        "suggested_action": "Display abend message, set abend code to 999, call abnormal termination routine"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [],
+    "reports": [
+      {
+        "name": "Card Data Display Report",
+        "description": "Sequential display of all card records from the card data file",
+        "type": "Batch Output",
+        "data_sources": [
+          "CARDFILE"
+        ],
+        "filters": [],
+        "columns": [
+          {
+            "name": "Card Number",
+            "data_field": "card_number",
+            "format": "Alphanumeric(16)",
+            "aggregation": "none"
+          },
+          {
+            "name": "Card Data",
+            "data_field": "card_data",
+            "format": "Alphanumeric(134)",
+            "aggregation": "none"
+          }
+        ],
+        "sorting": [
+          "Sequential order as stored in file"
+        ],
+        "grouping": []
+      }
+    ],
+    "navigation_flow": [],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "info",
+        "message": "START OF EXECUTION OF PROGRAM CBACT02C",
+        "context": "Program initialization"
+      },
+      {
+        "code": "MSG002",
+        "type": "info",
+        "message": "END OF EXECUTION OF PROGRAM CBACT02C",
+        "context": "Program normal termination"
+      },
+      {
+        "code": "ERR001",
+        "type": "error",
+        "message": "ERROR OPENING CARDFILE",
+        "context": "File open operation failed"
+      },
+      {
+        "code": "ERR002",
+        "type": "error",
+        "message": "ERROR READING CARDFILE",
+        "context": "File read operation failed"
+      },
+      {
+        "code": "ERR003",
+        "type": "error",
+        "message": "ERROR CLOSING CARDFILE",
+        "context": "File close operation failed"
+      },
+      {
+        "code": "ERR004",
+        "type": "error",
+        "message": "FILE STATUS IS: NNNN",
+        "context": "Detailed file status information for error diagnosis"
+      },
+      {
+        "code": "ERR005",
+        "type": "critical",
+        "message": "ABENDING PROGRAM",
+        "context": "Program abnormal termination due to unrecoverable error"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Card Record Retrieval Flow",
+      "description": "Sequential retrieval of card records from storage to display output",
+      "source": "CARDFILE",
+      "destination": "Display Output",
+      "data_elements": [
+        "card_number",
+        "card_data"
+      ],
+      "transformations": [
+        "Read record from file",
+        "Format for display output"
+      ]
+    },
+    {
+      "name": "Error Status Flow",
+      "description": "Flow of file operation status information for error handling",
+      "source": "File Operation",
+      "destination": "Error Display",
+      "data_elements": [
+        "file_status",
+        "application_result",
+        "io_status"
+      ],
+      "transformations": [
+        "Check file status code",
+        "Format status for display",
+        "Convert binary status to readable format"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Performance",
+      "description": "Program reads and displays every record in the file, may not be suitable for very large datasets without modification",
+      "impact": "Processing time increases linearly with file size"
+    },
+    {
+      "type": "Security",
+      "description": "Program displays all card data including potentially sensitive information",
+      "impact": "Usage must be restricted to authorized personnel only with proper audit logging"
+    },
+    {
+      "type": "Data Access",
+      "description": "File must be accessed sequentially from beginning to end",
+      "impact": "Cannot skip records or access specific records directly"
+    },
+    {
+      "type": "Data Integrity",
+      "description": "File is opened in read-only mode to prevent modifications",
+      "impact": "No data updates or deletions can occur during program execution"
+    },
+    {
+      "type": "Error Recovery",
+      "description": "Any file operation error results in immediate program termination",
+      "impact": "No partial processing or error recovery mechanisms available"
+    }
+  ]
+}

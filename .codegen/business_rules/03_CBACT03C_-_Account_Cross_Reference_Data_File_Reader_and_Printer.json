@@ -1,0 +1,375 @@
+{
+  "application_metadata": {
+    "name": "CBACT03C - Account Cross Reference Data File Reader and Printer",
+    "description": "Batch program designed to read and print account cross-reference data from an indexed file. Processes and displays account cross-reference information linking credit card numbers to other account details for data verification and reporting within the CardDemo system.",
+    "domain": "Credit Card Account Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "AccountCrossReference",
+        "description": "Cross-reference data linking credit card numbers to associated account information",
+        "attributes": [
+          {
+            "name": "card_number",
+            "type": "string",
+            "length": 16,
+            "required": true,
+            "description": "Credit card number serving as primary identifier"
+          },
+          {
+            "name": "cross_reference_data",
+            "type": "string",
+            "length": 34,
+            "required": true,
+            "description": "Additional account cross-reference information"
+          }
+        ],
+        "relationships": []
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "Sequential Record Processing",
+        "description": "All account cross-reference records must be processed sequentially from the indexed file",
+        "category": "Data Processing",
+        "logic": "Read records sequentially using card number as the record key until end of file is reached",
+        "conditions": [
+          "File must be successfully opened",
+          "Records are accessed in sequential order"
+        ],
+        "actions": [
+          "Read next record from file",
+          "Display record content",
+          "Continue until end of file"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Complete Data Display",
+        "description": "Every cross-reference record must be displayed for verification purposes",
+        "category": "Reporting",
+        "logic": "Each successfully read record is immediately displayed without filtering or sorting",
+        "conditions": [
+          "Record read operation is successful",
+          "File status is '00'"
+        ],
+        "actions": [
+          "Display complete record content including card number and cross-reference data"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Data Integrity Verification",
+        "description": "Program serves as utility for viewing and verifying contents of account cross-reference file to maintain integrity of relationship between card numbers and account details",
+        "category": "Data Quality",
+        "logic": "All records are processed and displayed to allow complete verification of cross-reference data",
+        "conditions": [
+          "File is accessible",
+          "All records can be read"
+        ],
+        "actions": [
+          "Process all records without exception",
+          "Display all cross-reference relationships"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "file_status",
+        "rule": "File status must be '00' for successful operations or '10' for end of file",
+        "error_message": "ERROR OPENING XREFFILE or ERROR READING XREFFILE or ERROR CLOSING XREFFILE",
+        "severity": "critical"
+      },
+      {
+        "field": "card_number",
+        "rule": "Must be 16 characters in length",
+        "error_message": "Invalid card number format",
+        "severity": "critical"
+      }
+    ],
+    "calculations": [],
+    "workflows": [
+      {
+        "name": "Account Cross Reference Data Processing",
+        "description": "Main workflow for reading and displaying all account cross-reference records",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize program and display start message",
+            "conditions": [],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Open XREFFILE for input",
+            "conditions": [
+              "File exists and is accessible"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Validate file open operation",
+            "conditions": [
+              "File status is '00'"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Read next record from XREFFILE",
+            "conditions": [
+              "End of file not reached"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Display record content",
+            "conditions": [
+              "Read operation successful (status '00')"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 6,
+            "action": "Close XREFFILE",
+            "conditions": [
+              "End of file reached (status '10')"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Display completion message and terminate",
+            "conditions": [
+              "File closed successfully"
+            ],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "XREFFILE Data Source",
+        "type": "Indexed File",
+        "purpose": "Source of account cross-reference data linking card numbers to account details",
+        "data_exchanged": [
+          "Card number (16 characters)",
+          "Cross-reference data (34 characters)"
+        ],
+        "trigger_conditions": [
+          "Program execution initiated"
+        ]
+      },
+      {
+        "name": "CVACT03Y Copybook",
+        "type": "Data Structure Definition",
+        "purpose": "Provides record structure definitions for cross-reference data",
+        "data_exchanged": [
+          "CARD-XREF-RECORD structure"
+        ],
+        "trigger_conditions": [
+          "Program compilation and execution"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Batch Processor",
+        "System Administrator",
+        "Data Verifier"
+      ],
+      "permissions": [
+        {
+          "role": "Batch Processor",
+          "resource": "XREFFILE",
+          "actions": [
+            "read"
+          ]
+        },
+        {
+          "role": "System Administrator",
+          "resource": "XREFFILE",
+          "actions": [
+            "read",
+            "monitor"
+          ]
+        },
+        {
+          "role": "Data Verifier",
+          "resource": "Cross Reference Reports",
+          "actions": [
+            "view"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "Authorized batch job execution privileges",
+        "Access to XREFFILE resource"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "OPEN_ERROR",
+        "condition": "File status is not '00' after open operation",
+        "business_impact": "Cannot access cross-reference data; verification process cannot proceed",
+        "suggested_action": "Display error message, show file status, terminate program abnormally with code 999"
+      },
+      {
+        "error_code": "READ_ERROR",
+        "condition": "File status is not '00' or '10' after read operation",
+        "business_impact": "Data integrity verification incomplete; some cross-reference records may not be processed",
+        "suggested_action": "Display error message, show file status, terminate program abnormally with code 999"
+      },
+      {
+        "error_code": "CLOSE_ERROR",
+        "condition": "File status is not '00' after close operation",
+        "business_impact": "File resources may not be properly released",
+        "suggested_action": "Display error message, show file status, terminate program abnormally with code 999"
+      },
+      {
+        "error_code": "EOF",
+        "condition": "File status is '10' indicating end of file",
+        "business_impact": "Normal completion of processing; all records have been read",
+        "suggested_action": "Set end-of-file indicator, proceed to close file and terminate normally"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [],
+    "reports": [
+      {
+        "name": "Account Cross Reference Data Report",
+        "description": "Simple report displaying all cross-reference data linking card numbers to account details",
+        "type": "batch_output",
+        "data_sources": [
+          "XREFFILE"
+        ],
+        "filters": [],
+        "columns": [
+          {
+            "name": "Card Number",
+            "data_field": "FD-XREF-CARD-NUM",
+            "format": "alphanumeric(16)",
+            "aggregation": "none"
+          },
+          {
+            "name": "Cross Reference Data",
+            "data_field": "FD-XREF-DATA",
+            "format": "alphanumeric(34)",
+            "aggregation": "none"
+          }
+        ],
+        "sorting": [
+          "Sequential order by card number (record key)"
+        ],
+        "grouping": []
+      }
+    ],
+    "navigation_flow": [],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "informational",
+        "message": "Program execution started",
+        "context": "Program initialization"
+      },
+      {
+        "code": "MSG002",
+        "type": "informational",
+        "message": "Program execution completed",
+        "context": "Normal program termination"
+      },
+      {
+        "code": "ERR001",
+        "type": "error",
+        "message": "ERROR OPENING XREFFILE",
+        "context": "File open operation failed"
+      },
+      {
+        "code": "ERR002",
+        "type": "error",
+        "message": "ERROR READING XREFFILE",
+        "context": "File read operation failed"
+      },
+      {
+        "code": "ERR003",
+        "type": "error",
+        "message": "ERROR CLOSING XREFFILE",
+        "context": "File close operation failed"
+      },
+      {
+        "code": "ERR004",
+        "type": "error",
+        "message": "FILE STATUS IS: NNNN",
+        "context": "Detailed file status display for error diagnosis"
+      },
+      {
+        "code": "ERR005",
+        "type": "critical",
+        "message": "ABENDING PROGRAM",
+        "context": "Abnormal program termination due to unrecoverable error"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Cross Reference Data Retrieval",
+      "description": "Sequential retrieval of account cross-reference records from indexed file",
+      "source": "XREFFILE",
+      "destination": "Display Output",
+      "data_elements": [
+        "Card Number (16 characters)",
+        "Cross Reference Data (34 characters)"
+      ],
+      "transformations": [
+        "No transformations applied; data displayed as-is"
+      ]
+    },
+    {
+      "name": "Error Status Reporting",
+      "description": "Flow of file operation status codes to error display routines",
+      "source": "File Operations",
+      "destination": "Error Display",
+      "data_elements": [
+        "File Status Code (2 characters)",
+        "Application Result Code"
+      ],
+      "transformations": [
+        "Format file status for display as 4-digit code",
+        "Handle numeric and non-numeric status codes differently"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "processing",
+      "description": "All records must be processed sequentially without filtering or sorting",
+      "impact": "Complete data verification requires processing entire file in order"
+    },
+    {
+      "type": "data_integrity",
+      "description": "Card number serves as primary key for cross-reference records",
+      "impact": "Each card number must uniquely identify cross-reference relationship"
+    },
+    {
+      "type": "error_tolerance",
+      "description": "Any file operation error results in immediate program termination",
+      "impact": "No partial processing allowed; ensures data verification is complete or not performed"
+    },
+    {
+      "type": "performance",
+      "description": "Sequential access method used for efficiency when reading all records",
+      "impact": "Optimized for batch processing of entire file rather than selective access"
+    },
+    {
+      "type": "reporting",
+      "description": "Every record must be displayed for verification purposes",
+      "impact": "Output volume directly proportional to number of cross-reference records"
+    }
+  ]
+}
