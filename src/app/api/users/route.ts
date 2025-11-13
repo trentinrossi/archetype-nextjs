@@ -1,0 +1,35 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { forwardAuthRequest, handleAuthApiResponse } from '@/lib/auth-middleware';
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const page = searchParams.get('page') || '0';
+    const size = searchParams.get('size') || '20';
+    const sort = searchParams.get('sort') || '';
+    
+    let url = `/api/users?page=${page}&size=${size}`;
+    if (sort) {
+      url += `&sort=${sort}`;
+    }
+    
+    const response = await forwardAuthRequest(url, 'GET', request);
+    const result = await handleAuthApiResponse(response);
+    return NextResponse.json(result.data, { status: result.status });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const response = await forwardAuthRequest('/api/users', 'POST', request, body);
+    const result = await handleAuthApiResponse(response);
+    return NextResponse.json(result.data, { status: result.status });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
+  }
+}

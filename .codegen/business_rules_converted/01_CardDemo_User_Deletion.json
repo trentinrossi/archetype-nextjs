@@ -1,0 +1,912 @@
+{
+  "application_metadata": {
+    "name": "CardDemo User Deletion",
+    "description": "CICS COBOL program that allows administrators to delete user accounts from the USRSEC file, ensuring proper management of user access and maintaining data integrity",
+    "domain": "User Management and Security"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "User",
+        "description": "Represents a user account in the security system",
+        "attributes": [
+          {
+            "name": "user_id",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "Unique identifier for the user"
+          },
+          {
+            "name": "first_name",
+            "type": "string",
+            "length": 20,
+            "required": false,
+            "description": "User's first name"
+          },
+          {
+            "name": "last_name",
+            "type": "string",
+            "length": 20,
+            "required": false,
+            "description": "User's last name"
+          },
+          {
+            "name": "user_type",
+            "type": "string",
+            "length": 1,
+            "required": false,
+            "description": "Type of user account"
+          }
+        ],
+        "relationships": []
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "User ID Required for Deletion",
+        "description": "A valid user ID must be provided before any deletion operation can be performed",
+        "category": "Validation",
+        "logic": "User ID field must not be empty or contain low-values",
+        "conditions": [
+          "User ID field is not empty",
+          "User ID field does not contain low-values"
+        ],
+        "actions": [
+          "If validation fails, display error message 'User ID can NOT be empty...'",
+          "Set cursor to User ID field",
+          "Prevent deletion operation"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "User Existence Verification",
+        "description": "Before deletion, the system must verify that the user exists in the USRSEC file",
+        "category": "Validation",
+        "logic": "System reads USRSEC file with provided User ID to verify existence",
+        "conditions": [
+          "User ID is provided",
+          "User record exists in USRSEC file"
+        ],
+        "actions": [
+          "If user found, display user details (first name, last name, user type)",
+          "If user not found, display error message 'User ID NOT found...'",
+          "If database error, display error message 'Unable to lookup User...'"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Deletion Confirmation Required",
+        "description": "User deletion requires explicit confirmation via PF5 key press to prevent accidental deletions",
+        "category": "Security",
+        "logic": "Deletion only proceeds when PF5 key is pressed after user information is displayed",
+        "conditions": [
+          "User information has been retrieved and displayed",
+          "PF5 key is pressed"
+        ],
+        "actions": [
+          "Execute deletion from USRSEC file",
+          "Display confirmation message with deleted user ID",
+          "Clear all input fields after successful deletion"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Data Integrity Maintenance",
+        "description": "System ensures only existing users can be deleted to maintain data integrity",
+        "category": "Data Integrity",
+        "logic": "System validates user existence before allowing deletion operation",
+        "conditions": [
+          "User record exists in USRSEC file",
+          "User ID is valid"
+        ],
+        "actions": [
+          "Prevent deletion of non-existent users",
+          "Display appropriate error messages for invalid operations"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Administrator Access Only",
+        "description": "User deletion functionality is restricted to authorized administrators",
+        "category": "Security",
+        "logic": "Program is part of admin menu, accessible only to authorized personnel",
+        "conditions": [
+          "User has administrator privileges",
+          "Access through admin menu"
+        ],
+        "actions": [
+          "Allow access to deletion functionality",
+          "Maintain audit trail of deletion activities"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Navigation Control",
+        "description": "System provides multiple navigation options for user convenience and workflow management",
+        "category": "Navigation",
+        "logic": "Different function keys trigger different navigation paths",
+        "conditions": [
+          "PF3 returns to previous screen or admin menu",
+          "PF4 clears current screen",
+          "PF12 returns to admin menu"
+        ],
+        "actions": [
+          "PF3: Navigate to previous screen (CDEMO-FROM-PROGRAM) or admin menu (COADM01C)",
+          "PF4: Clear all fields and reset screen",
+          "PF12: Return to admin menu (COADM01C)"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Screen Initialization",
+        "description": "Screen must be properly initialized on first entry and re-entry",
+        "category": "User Interface",
+        "logic": "System checks if it's first entry or re-entry and initializes accordingly",
+        "conditions": [
+          "EIBCALEN is 0 for first entry",
+          "CDEMO-PGM-REENTER flag indicates re-entry"
+        ],
+        "actions": [
+          "First entry: Clear screen, set cursor position, check for pre-selected user",
+          "Re-entry: Process user input based on function key pressed"
+        ]
+      },
+      {
+        "id": "BR008",
+        "name": "Error Message Display",
+        "description": "System provides clear error messages for various error conditions",
+        "category": "Error Handling",
+        "logic": "Different error conditions trigger specific error messages with appropriate color coding",
+        "conditions": [
+          "User ID empty",
+          "User not found",
+          "Database access error",
+          "Invalid key pressed"
+        ],
+        "actions": [
+          "Display appropriate error message",
+          "Set cursor to relevant field",
+          "Use color coding (green for success, neutral for information)"
+        ]
+      },
+      {
+        "id": "BR009",
+        "name": "Successful Deletion Feedback",
+        "description": "System provides clear confirmation when user is successfully deleted",
+        "category": "User Feedback",
+        "logic": "After successful deletion, display confirmation message with user ID",
+        "conditions": [
+          "User record successfully deleted from USRSEC file"
+        ],
+        "actions": [
+          "Display message 'User [user-id] has been deleted ...'",
+          "Set message color to green",
+          "Clear all input fields",
+          "Reset screen to initial state"
+        ]
+      },
+      {
+        "id": "BR010",
+        "name": "Pre-selected User Processing",
+        "description": "System can process pre-selected user from previous screen",
+        "category": "Integration",
+        "logic": "If user ID is passed from previous screen, automatically process it",
+        "conditions": [
+          "CDEMO-CU03-USR-SELECTED is not empty",
+          "First entry to program"
+        ],
+        "actions": [
+          "Move pre-selected user ID to input field",
+          "Automatically process Enter key logic",
+          "Display user information"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "user_id",
+        "rule": "Must not be empty or contain low-values",
+        "error_message": "User ID can NOT be empty...",
+        "severity": "error"
+      },
+      {
+        "field": "user_id",
+        "rule": "Must exist in USRSEC file",
+        "error_message": "User ID NOT found...",
+        "severity": "error"
+      },
+      {
+        "field": "user_id",
+        "rule": "Must be accessible in database",
+        "error_message": "Unable to lookup User...",
+        "severity": "error"
+      },
+      {
+        "field": "user_id",
+        "rule": "Must be deletable from database",
+        "error_message": "Unable to Update User...",
+        "severity": "error"
+      }
+    ],
+    "calculations": [],
+    "workflows": [
+      {
+        "name": "User Deletion Workflow",
+        "description": "Complete workflow for deleting a user from the system",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize program and check entry type",
+            "conditions": [
+              "Check if first entry (EIBCALEN = 0) or re-entry"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Display user deletion screen",
+            "conditions": [
+              "Screen initialized with header information",
+              "Cursor positioned at User ID field"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Receive user input",
+            "conditions": [
+              "User enters User ID",
+              "User presses Enter key"
+            ],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Validate User ID",
+            "conditions": [
+              "User ID is not empty",
+              "User ID does not contain low-values"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Retrieve user information",
+            "conditions": [
+              "User exists in USRSEC file"
+            ],
+            "next_step": "6"
+          },
+          {
+            "step_number": 6,
+            "action": "Display user details",
+            "conditions": [
+              "First name, last name, and user type displayed",
+              "Message 'Press PF5 key to delete this user ...' shown"
+            ],
+            "next_step": "7"
+          },
+          {
+            "step_number": 7,
+            "action": "Wait for deletion confirmation",
+            "conditions": [
+              "User presses PF5 key"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Delete user from USRSEC file",
+            "conditions": [
+              "User record successfully deleted"
+            ],
+            "next_step": "9"
+          },
+          {
+            "step_number": 9,
+            "action": "Display confirmation and reset screen",
+            "conditions": [
+              "Confirmation message displayed",
+              "All fields cleared"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Screen Navigation Workflow",
+        "description": "Workflow for navigating between screens",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "User presses navigation key",
+            "conditions": [
+              "PF3, PF4, or PF12 pressed"
+            ],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Determine target screen",
+            "conditions": [
+              "PF3: Previous screen or admin menu",
+              "PF4: Clear current screen",
+              "PF12: Admin menu"
+            ],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Execute navigation",
+            "conditions": [
+              "Transfer control to target program or refresh screen"
+            ],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "USRSEC File Integration",
+        "type": "Database",
+        "purpose": "Store and manage user security information",
+        "data_exchanged": [
+          "User ID",
+          "First Name",
+          "Last Name",
+          "User Type"
+        ],
+        "trigger_conditions": [
+          "User lookup on Enter key press",
+          "User deletion on PF5 key press"
+        ]
+      },
+      {
+        "name": "Admin Menu Integration",
+        "type": "Program Transfer",
+        "purpose": "Navigate to and from admin menu",
+        "data_exchanged": [
+          "Transaction ID",
+          "Program name",
+          "Communication area"
+        ],
+        "trigger_conditions": [
+          "PF3 key press",
+          "PF12 key press",
+          "Return from deletion operation"
+        ]
+      },
+      {
+        "name": "Previous Screen Integration",
+        "type": "Program Transfer",
+        "purpose": "Return to calling program",
+        "data_exchanged": [
+          "Communication area",
+          "Program context"
+        ],
+        "trigger_conditions": [
+          "PF3 key press when previous program is set"
+        ]
+      },
+      {
+        "name": "Sign-on Screen Integration",
+        "type": "Program Transfer",
+        "purpose": "Return to sign-on screen when no previous program",
+        "data_exchanged": [
+          "Communication area"
+        ],
+        "trigger_conditions": [
+          "First entry with EIBCALEN = 0",
+          "PF3 when no previous program set"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Administrator"
+      ],
+      "permissions": [
+        {
+          "role": "Administrator",
+          "resource": "User Deletion",
+          "actions": [
+            "View user information",
+            "Delete user accounts",
+            "Navigate admin functions"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must have administrator privileges",
+        "Access through admin menu only",
+        "Audit trail should be maintained for deletion activities"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "ERR001",
+        "condition": "User ID field is empty or contains low-values",
+        "business_impact": "Cannot proceed with user lookup or deletion",
+        "suggested_action": "Display error message 'User ID can NOT be empty...', set cursor to User ID field"
+      },
+      {
+        "error_code": "ERR002",
+        "condition": "User ID not found in USRSEC file",
+        "business_impact": "Cannot display or delete non-existent user",
+        "suggested_action": "Display error message 'User ID NOT found...', set cursor to User ID field"
+      },
+      {
+        "error_code": "ERR003",
+        "condition": "Database access error during user lookup",
+        "business_impact": "Cannot retrieve user information",
+        "suggested_action": "Display error message 'Unable to lookup User...', log response and reason codes"
+      },
+      {
+        "error_code": "ERR004",
+        "condition": "Database access error during user deletion",
+        "business_impact": "User account not deleted",
+        "suggested_action": "Display error message 'Unable to Update User...', log response and reason codes"
+      },
+      {
+        "error_code": "ERR005",
+        "condition": "Invalid function key pressed",
+        "business_impact": "Unrecognized user action",
+        "suggested_action": "Display error message for invalid key, refresh screen"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "COUSR3A",
+        "name": "User Deletion Screen",
+        "purpose": "Allow administrators to delete user accounts from the system",
+        "screen_type": "Transaction",
+        "navigation_from": [
+          "Admin Menu (COADM01C)",
+          "Previous screen with pre-selected user"
+        ],
+        "navigation_to": [
+          "Admin Menu (COADM01C)",
+          "Previous screen",
+          "Sign-on screen (COSGN00C)"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "title_line_1",
+                "label": "Title 1",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "From CCDA-TITLE01",
+                "validation": "",
+                "help_text": "First line of screen title"
+              },
+              {
+                "name": "title_line_2",
+                "label": "Title 2",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "From CCDA-TITLE02",
+                "validation": "",
+                "help_text": "Second line of screen title"
+              },
+              {
+                "name": "transaction_name",
+                "label": "Transaction",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "CU03",
+                "validation": "",
+                "help_text": "Current transaction ID"
+              },
+              {
+                "name": "program_name",
+                "label": "Program",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "COUSR03C",
+                "validation": "",
+                "help_text": "Current program name"
+              },
+              {
+                "name": "current_date",
+                "label": "Date",
+                "type": "date",
+                "input_output": "output",
+                "required": true,
+                "default_value": "Current system date",
+                "validation": "Format: MM/DD/YY",
+                "help_text": "Current date"
+              },
+              {
+                "name": "current_time",
+                "label": "Time",
+                "type": "time",
+                "input_output": "output",
+                "required": true,
+                "default_value": "Current system time",
+                "validation": "Format: HH:MM:SS",
+                "help_text": "Current time"
+              }
+            ]
+          },
+          {
+            "name": "User Information",
+            "type": "Input/Display",
+            "fields": [
+              {
+                "name": "user_id",
+                "label": "User ID",
+                "type": "text",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must not be empty, must exist in USRSEC file",
+                "help_text": "Enter the User ID to delete"
+              },
+              {
+                "name": "first_name",
+                "label": "First Name",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "User's first name (display only)"
+              },
+              {
+                "name": "last_name",
+                "label": "Last Name",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "User's last name (display only)"
+              },
+              {
+                "name": "user_type",
+                "label": "User Type",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Type of user account (display only)"
+              }
+            ]
+          },
+          {
+            "name": "Messages",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "error_message",
+                "label": "Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays error, information, or success messages"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Enter",
+            "trigger": "Enter key",
+            "description": "Validate user ID and retrieve user information for display",
+            "backend_process": "PROCESS-ENTER-KEY",
+            "success_navigation": "Stay on current screen with user details displayed",
+            "error_handling": "Display error message and set cursor to User ID field"
+          },
+          {
+            "name": "Delete User",
+            "trigger": "PF5 key",
+            "description": "Delete the specified user from the USRSEC file",
+            "backend_process": "DELETE-USER-INFO",
+            "success_navigation": "Stay on current screen with confirmation message and cleared fields",
+            "error_handling": "Display error message if user not found or deletion fails"
+          },
+          {
+            "name": "Return to Previous",
+            "trigger": "PF3 key",
+            "description": "Return to previous screen or admin menu",
+            "backend_process": "RETURN-TO-PREV-SCREEN",
+            "success_navigation": "Navigate to previous screen or COADM01C",
+            "error_handling": "None"
+          },
+          {
+            "name": "Clear Screen",
+            "trigger": "PF4 key",
+            "description": "Clear all input fields and reset screen",
+            "backend_process": "CLEAR-CURRENT-SCREEN",
+            "success_navigation": "Stay on current screen with all fields cleared",
+            "error_handling": "None"
+          },
+          {
+            "name": "Return to Admin Menu",
+            "trigger": "PF12 key",
+            "description": "Return to admin menu",
+            "backend_process": "RETURN-TO-PREV-SCREEN",
+            "success_navigation": "Navigate to COADM01C",
+            "error_handling": "None"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "User ID is entered and Enter key is pressed",
+            "affected_fields": [
+              "first_name",
+              "last_name",
+              "user_type",
+              "error_message"
+            ],
+            "behavior": "Display user details if found, otherwise display error message"
+          },
+          {
+            "condition": "User is successfully deleted",
+            "affected_fields": [
+              "user_id",
+              "first_name",
+              "last_name",
+              "user_type",
+              "error_message"
+            ],
+            "behavior": "Clear all fields and display success message in green"
+          },
+          {
+            "condition": "Error occurs",
+            "affected_fields": [
+              "error_message"
+            ],
+            "behavior": "Display error message in neutral color"
+          },
+          {
+            "condition": "PF4 is pressed",
+            "affected_fields": [
+              "user_id",
+              "first_name",
+              "last_name",
+              "user_type",
+              "error_message"
+            ],
+            "behavior": "Clear all fields"
+          },
+          {
+            "condition": "User information is retrieved",
+            "affected_fields": [
+              "error_message"
+            ],
+            "behavior": "Display 'Press PF5 key to delete this user ...' in neutral color"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "Admin Menu (COADM01C)",
+        "to_screen": "User Deletion Screen (COUSR3A)",
+        "trigger": "Menu selection",
+        "conditions": [
+          "User has administrator privileges"
+        ]
+      },
+      {
+        "from_screen": "User Deletion Screen (COUSR3A)",
+        "to_screen": "Admin Menu (COADM01C)",
+        "trigger": "PF3 or PF12 key",
+        "conditions": [
+          "PF3 pressed and no previous program set",
+          "PF12 pressed"
+        ]
+      },
+      {
+        "from_screen": "User Deletion Screen (COUSR3A)",
+        "to_screen": "Previous Screen",
+        "trigger": "PF3 key",
+        "conditions": [
+          "Previous program is set in communication area"
+        ]
+      },
+      {
+        "from_screen": "User Deletion Screen (COUSR3A)",
+        "to_screen": "Sign-on Screen (COSGN00C)",
+        "trigger": "First entry with no communication area",
+        "conditions": [
+          "EIBCALEN = 0"
+        ]
+      },
+      {
+        "from_screen": "Previous Screen with User Selection",
+        "to_screen": "User Deletion Screen (COUSR3A)",
+        "trigger": "User selection",
+        "conditions": [
+          "User ID is pre-selected and passed in communication area"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "error",
+        "message": "User ID can NOT be empty...",
+        "context": "User ID field is empty or contains low-values"
+      },
+      {
+        "code": "MSG002",
+        "type": "error",
+        "message": "User ID NOT found...",
+        "context": "User ID does not exist in USRSEC file"
+      },
+      {
+        "code": "MSG003",
+        "type": "error",
+        "message": "Unable to lookup User...",
+        "context": "Database error occurred during user lookup"
+      },
+      {
+        "code": "MSG004",
+        "type": "error",
+        "message": "Unable to Update User...",
+        "context": "Database error occurred during user deletion"
+      },
+      {
+        "code": "MSG005",
+        "type": "information",
+        "message": "Press PF5 key to delete this user ...",
+        "context": "User information successfully retrieved and displayed"
+      },
+      {
+        "code": "MSG006",
+        "type": "success",
+        "message": "User [user-id] has been deleted ...",
+        "context": "User successfully deleted from USRSEC file"
+      },
+      {
+        "code": "MSG007",
+        "type": "error",
+        "message": "Invalid key pressed",
+        "context": "User pressed an unrecognized function key"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "User Lookup Flow",
+      "description": "Flow of data when looking up a user for deletion",
+      "source": "User Deletion Screen",
+      "destination": "USRSEC File",
+      "data_elements": [
+        "User ID"
+      ],
+      "transformations": [
+        "User ID from screen input moved to file key field",
+        "User record retrieved from USRSEC file",
+        "First name, last name, and user type extracted and displayed on screen"
+      ]
+    },
+    {
+      "name": "User Deletion Flow",
+      "description": "Flow of data when deleting a user",
+      "source": "User Deletion Screen",
+      "destination": "USRSEC File",
+      "data_elements": [
+        "User ID"
+      ],
+      "transformations": [
+        "User ID from screen input moved to file key field",
+        "User record read from USRSEC file",
+        "User record deleted from USRSEC file",
+        "Confirmation message constructed with deleted user ID",
+        "Screen fields cleared"
+      ]
+    },
+    {
+      "name": "Pre-selected User Flow",
+      "description": "Flow of data when user is pre-selected from previous screen",
+      "source": "Previous Screen",
+      "destination": "User Deletion Screen",
+      "data_elements": [
+        "User ID",
+        "Communication area"
+      ],
+      "transformations": [
+        "User ID from communication area moved to screen input field",
+        "Automatic processing of Enter key logic",
+        "User information retrieved and displayed"
+      ]
+    },
+    {
+      "name": "Navigation Flow",
+      "description": "Flow of data during screen navigation",
+      "source": "User Deletion Screen",
+      "destination": "Target Screen",
+      "data_elements": [
+        "Transaction ID",
+        "Program name",
+        "Communication area"
+      ],
+      "transformations": [
+        "Current transaction and program information stored in communication area",
+        "Target program determined based on navigation key",
+        "Control transferred to target program with communication area"
+      ]
+    },
+    {
+      "name": "Header Information Flow",
+      "description": "Flow of data for populating screen header",
+      "source": "System and Common Areas",
+      "destination": "User Deletion Screen",
+      "data_elements": [
+        "Title lines",
+        "Transaction ID",
+        "Program name",
+        "Current date",
+        "Current time"
+      ],
+      "transformations": [
+        "Title information from common area",
+        "Date formatted as MM/DD/YY",
+        "Time formatted as HH:MM:SS",
+        "All header fields populated before screen display"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Security",
+      "description": "User deletion functionality must be restricted to authorized administrators only",
+      "impact": "Prevents unauthorized deletion of user accounts and maintains system security"
+    },
+    {
+      "type": "Data Integrity",
+      "description": "Only existing users can be deleted from the system",
+      "impact": "Ensures data consistency and prevents errors from attempting to delete non-existent records"
+    },
+    {
+      "type": "User Confirmation",
+      "description": "Deletion requires explicit confirmation via PF5 key press",
+      "impact": "Prevents accidental deletions and ensures intentional user actions"
+    },
+    {
+      "type": "Audit Trail",
+      "description": "User deletion activities should be logged for audit purposes",
+      "impact": "Provides accountability and traceability for security-sensitive operations"
+    },
+    {
+      "type": "User Interface",
+      "description": "User information must be displayed before deletion to allow verification",
+      "impact": "Ensures administrators can verify they are deleting the correct user account"
+    },
+    {
+      "type": "Navigation",
+      "description": "Multiple navigation paths must be available for user convenience",
+      "impact": "Allows flexible workflow and easy return to previous screens or admin menu"
+    },
+    {
+      "type": "Error Handling",
+      "description": "All error conditions must be handled with appropriate user feedback",
+      "impact": "Ensures users understand what went wrong and how to correct issues"
+    },
+    {
+      "type": "Screen State",
+      "description": "Screen must be properly initialized and cleared between operations",
+      "impact": "Prevents data confusion and ensures clean state for each operation"
+    }
+  ]
+}

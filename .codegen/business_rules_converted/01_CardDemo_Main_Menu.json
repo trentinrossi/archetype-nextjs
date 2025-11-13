@@ -1,0 +1,1143 @@
+{
+  "application_metadata": {
+    "name": "CardDemo Main Menu",
+    "description": "Main menu interface for regular users in the CardDemo application, providing navigation to various functions with authentication and access control",
+    "domain": "Financial Services - Card Management"
+  },
+  "backend": {
+    "business_entities": [
+      {
+        "name": "UserSession",
+        "description": "Represents an active user session with navigation and authentication context",
+        "attributes": [
+          {
+            "name": "from_program",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "Name of the calling program"
+          },
+          {
+            "name": "to_program",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "Name of the program to transfer to"
+          },
+          {
+            "name": "program_reenter_flag",
+            "type": "string",
+            "length": 1,
+            "required": true,
+            "description": "Indicates if the program is being reentered"
+          },
+          {
+            "name": "user_type",
+            "type": "string",
+            "length": 1,
+            "required": true,
+            "description": "User type indicator (regular user or admin)"
+          },
+          {
+            "name": "transaction_id",
+            "type": "string",
+            "length": 4,
+            "required": true,
+            "description": "Current transaction identifier"
+          },
+          {
+            "name": "from_transaction_id",
+            "type": "string",
+            "length": 4,
+            "required": true,
+            "description": "Transaction ID of the calling program"
+          },
+          {
+            "name": "program_context",
+            "type": "numeric",
+            "length": 0,
+            "required": true,
+            "description": "Context information for program execution"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "MenuOption",
+            "relationship_type": "has_many",
+            "cardinality": "1:N"
+          },
+          {
+            "related_entity": "User",
+            "relationship_type": "belongs_to",
+            "cardinality": "N:1"
+          }
+        ]
+      },
+      {
+        "name": "MenuOption",
+        "description": "Represents a menu option available to users based on their access level",
+        "attributes": [
+          {
+            "name": "option_number",
+            "type": "numeric",
+            "length": 2,
+            "required": true,
+            "description": "Sequential number of the menu option"
+          },
+          {
+            "name": "option_name",
+            "type": "string",
+            "length": 40,
+            "required": true,
+            "description": "Display name of the menu option"
+          },
+          {
+            "name": "program_name",
+            "type": "string",
+            "length": 8,
+            "required": true,
+            "description": "Program to execute when option is selected"
+          },
+          {
+            "name": "user_type_required",
+            "type": "string",
+            "length": 1,
+            "required": true,
+            "description": "User type required to access this option (A for admin, U for user)"
+          },
+          {
+            "name": "option_count",
+            "type": "numeric",
+            "length": 2,
+            "required": true,
+            "description": "Total number of menu options available"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "UserSession",
+            "relationship_type": "belongs_to",
+            "cardinality": "N:1"
+          }
+        ]
+      },
+      {
+        "name": "User",
+        "description": "Represents a user with authentication and authorization information",
+        "attributes": [
+          {
+            "name": "user_type",
+            "type": "string",
+            "length": 1,
+            "required": true,
+            "description": "Type of user (regular or admin)"
+          },
+          {
+            "name": "authenticated",
+            "type": "boolean",
+            "length": 1,
+            "required": true,
+            "description": "Whether the user is authenticated"
+          }
+        ],
+        "relationships": [
+          {
+            "related_entity": "UserSession",
+            "relationship_type": "has_many",
+            "cardinality": "1:N"
+          }
+        ]
+      }
+    ],
+    "business_rules": [
+      {
+        "id": "BR001",
+        "name": "User Authentication Check",
+        "description": "Verifies that the user is authenticated before allowing access to the main menu",
+        "category": "Security",
+        "logic": "Check if COMMAREA length is 0 to determine authentication status. If not authenticated, redirect to sign-on screen.",
+        "conditions": [
+          "COMMAREA length equals 0"
+        ],
+        "actions": [
+          "Set from_program to COSGN00C",
+          "Return to sign-on screen"
+        ]
+      },
+      {
+        "id": "BR002",
+        "name": "Menu Option Validation",
+        "description": "Validates that the user-entered option is numeric and within valid range",
+        "category": "Validation",
+        "logic": "Check if entered option is numeric, greater than zero, and less than or equal to total menu option count",
+        "conditions": [
+          "Option is not numeric",
+          "Option is greater than menu option count",
+          "Option equals zero"
+        ],
+        "actions": [
+          "Set error flag to Y",
+          "Display error message: Please enter a valid option number",
+          "Redisplay menu screen"
+        ]
+      },
+      {
+        "id": "BR003",
+        "name": "Access Control by User Type",
+        "description": "Enforces access control by preventing regular users from accessing admin-only options",
+        "category": "Security",
+        "logic": "Check if user is regular user attempting to access admin-only option. If true, deny access and display error message.",
+        "conditions": [
+          "User type is regular user",
+          "Selected option requires admin access"
+        ],
+        "actions": [
+          "Set error flag to Y",
+          "Display error message: No access - Admin Only option",
+          "Redisplay menu screen"
+        ]
+      },
+      {
+        "id": "BR004",
+        "name": "Program Navigation",
+        "description": "Routes user to selected program based on valid menu option selection",
+        "category": "Navigation",
+        "logic": "Transfer control to the program associated with the selected menu option if not a dummy placeholder",
+        "conditions": [
+          "Error flag is off",
+          "Program name does not start with DUMMY"
+        ],
+        "actions": [
+          "Set from_transaction_id to current transaction",
+          "Set from_program to current program",
+          "Reset program context to zeros",
+          "Transfer control to selected program"
+        ]
+      },
+      {
+        "id": "BR005",
+        "name": "Coming Soon Feature Handling",
+        "description": "Displays informational message for menu options that are not yet implemented",
+        "category": "User Experience",
+        "logic": "When a menu option with DUMMY program is selected, display coming soon message instead of executing",
+        "conditions": [
+          "Selected program name starts with DUMMY"
+        ],
+        "actions": [
+          "Clear error message",
+          "Set message color to green",
+          "Display message: This option [name] is coming soon",
+          "Redisplay menu screen"
+        ]
+      },
+      {
+        "id": "BR006",
+        "name": "Session Initialization",
+        "description": "Initializes the menu screen on first entry to the program",
+        "category": "Session Management",
+        "logic": "Check if program is being entered for the first time in the session and initialize screen accordingly",
+        "conditions": [
+          "Program reenter flag is false"
+        ],
+        "actions": [
+          "Set program reenter flag to true",
+          "Initialize screen output area to low values",
+          "Send menu screen to user"
+        ]
+      },
+      {
+        "id": "BR007",
+        "name": "Exit to Sign-on",
+        "description": "Allows user to exit the menu and return to sign-on screen",
+        "category": "Navigation",
+        "logic": "When PF3 key is pressed, transfer control back to sign-on screen",
+        "conditions": [
+          "PF3 key is pressed"
+        ],
+        "actions": [
+          "Set to_program to COSGN00C",
+          "Return to sign-on screen"
+        ]
+      },
+      {
+        "id": "BR008",
+        "name": "Invalid Key Handling",
+        "description": "Handles invalid function key presses by displaying error message",
+        "category": "Error Handling",
+        "logic": "When any key other than Enter or PF3 is pressed, display invalid key error",
+        "conditions": [
+          "Key pressed is not Enter",
+          "Key pressed is not PF3"
+        ],
+        "actions": [
+          "Set error flag to Y",
+          "Display invalid key error message",
+          "Redisplay menu screen"
+        ]
+      },
+      {
+        "id": "BR009",
+        "name": "Menu Option Input Processing",
+        "description": "Processes user input by trimming spaces and converting to numeric value",
+        "category": "Data Processing",
+        "logic": "Trim trailing spaces from input, replace internal spaces with zeros, and convert to numeric",
+        "conditions": [
+          "User has entered option value"
+        ],
+        "actions": [
+          "Determine length by finding rightmost non-space character",
+          "Move trimmed input to working storage",
+          "Replace all spaces with zeros",
+          "Convert to numeric value"
+        ]
+      },
+      {
+        "id": "BR010",
+        "name": "Dynamic Menu Building",
+        "description": "Dynamically constructs menu options based on available functions and user access level",
+        "category": "User Interface",
+        "logic": "Iterate through available menu options and format each with number and description",
+        "conditions": [
+          "Menu option count is greater than zero"
+        ],
+        "actions": [
+          "Loop through each menu option up to option count",
+          "Format option text as: [number]. [name]",
+          "Assign formatted text to corresponding screen field"
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "field": "option",
+        "rule": "Must be numeric",
+        "error_message": "Please enter a valid option number...",
+        "severity": "error"
+      },
+      {
+        "field": "option",
+        "rule": "Must be greater than zero",
+        "error_message": "Please enter a valid option number...",
+        "severity": "error"
+      },
+      {
+        "field": "option",
+        "rule": "Must not exceed menu option count",
+        "error_message": "Please enter a valid option number...",
+        "severity": "error"
+      },
+      {
+        "field": "user_access",
+        "rule": "Regular users cannot access admin-only options",
+        "error_message": "No access - Admin Only option... ",
+        "severity": "error"
+      },
+      {
+        "field": "authentication",
+        "rule": "User must be authenticated to access menu",
+        "error_message": "Redirect to sign-on screen",
+        "severity": "critical"
+      }
+    ],
+    "calculations": [
+      {
+        "name": "Input Length Determination",
+        "description": "Calculates the actual length of user input by finding the rightmost non-space character",
+        "formula": "Iterate from right to left until non-space character found or beginning reached",
+        "input_fields": [
+          "option_input"
+        ],
+        "output_field": "input_length"
+      },
+      {
+        "name": "Date Formatting",
+        "description": "Formats current date to MM/DD/YY format",
+        "formula": "Extract month, day, and last 2 digits of year from current date",
+        "input_fields": [
+          "current_date"
+        ],
+        "output_field": "formatted_date"
+      },
+      {
+        "name": "Time Formatting",
+        "description": "Formats current time to HH:MM:SS format",
+        "formula": "Extract hours, minutes, and seconds from current time",
+        "input_fields": [
+          "current_time"
+        ],
+        "output_field": "formatted_time"
+      }
+    ],
+    "workflows": [
+      {
+        "name": "Main Menu Flow",
+        "description": "Primary workflow for displaying menu and processing user selections",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Initialize error flag and clear messages",
+            "conditions": [],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Check user authentication",
+            "conditions": [
+              "COMMAREA length equals 0"
+            ],
+            "next_step": "3_or_4"
+          },
+          {
+            "step_number": 3,
+            "action": "Return to sign-on screen if not authenticated",
+            "conditions": [
+              "User not authenticated"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 4,
+            "action": "Load COMMAREA data",
+            "conditions": [
+              "User authenticated"
+            ],
+            "next_step": "5"
+          },
+          {
+            "step_number": 5,
+            "action": "Check if first entry to program",
+            "conditions": [
+              "Program reenter flag is false"
+            ],
+            "next_step": "6_or_7"
+          },
+          {
+            "step_number": 6,
+            "action": "Initialize and send menu screen on first entry",
+            "conditions": [
+              "First entry"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 7,
+            "action": "Receive user input from menu screen",
+            "conditions": [
+              "Not first entry"
+            ],
+            "next_step": "8"
+          },
+          {
+            "step_number": 8,
+            "action": "Evaluate user action (Enter, PF3, or other key)",
+            "conditions": [],
+            "next_step": "9_or_10_or_11"
+          },
+          {
+            "step_number": 9,
+            "action": "Process Enter key - validate and route to selected option",
+            "conditions": [
+              "Enter key pressed"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 10,
+            "action": "Process PF3 key - return to sign-on",
+            "conditions": [
+              "PF3 key pressed"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 11,
+            "action": "Display invalid key error",
+            "conditions": [
+              "Other key pressed"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Option Selection Processing",
+        "description": "Workflow for processing user menu option selection",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Trim and convert user input to numeric",
+            "conditions": [],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Validate option is numeric and in valid range",
+            "conditions": [],
+            "next_step": "3_or_4"
+          },
+          {
+            "step_number": 3,
+            "action": "Display validation error if invalid",
+            "conditions": [
+              "Option invalid"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 4,
+            "action": "Check user access permissions for selected option",
+            "conditions": [
+              "Option valid"
+            ],
+            "next_step": "5_or_6"
+          },
+          {
+            "step_number": 5,
+            "action": "Display access denied error if insufficient permissions",
+            "conditions": [
+              "Regular user accessing admin option"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 6,
+            "action": "Check if option is implemented or coming soon",
+            "conditions": [
+              "User has access"
+            ],
+            "next_step": "7_or_8"
+          },
+          {
+            "step_number": 7,
+            "action": "Transfer control to selected program",
+            "conditions": [
+              "Program not DUMMY"
+            ],
+            "next_step": "end"
+          },
+          {
+            "step_number": 8,
+            "action": "Display coming soon message",
+            "conditions": [
+              "Program is DUMMY"
+            ],
+            "next_step": "end"
+          }
+        ]
+      },
+      {
+        "name": "Screen Display Preparation",
+        "description": "Workflow for preparing and displaying the menu screen",
+        "steps": [
+          {
+            "step_number": 1,
+            "action": "Populate header information with titles, date, time, and program details",
+            "conditions": [],
+            "next_step": "2"
+          },
+          {
+            "step_number": 2,
+            "action": "Build menu options dynamically based on available functions",
+            "conditions": [],
+            "next_step": "3"
+          },
+          {
+            "step_number": 3,
+            "action": "Set error or informational message if applicable",
+            "conditions": [],
+            "next_step": "4"
+          },
+          {
+            "step_number": 4,
+            "action": "Send formatted screen to user terminal",
+            "conditions": [],
+            "next_step": "end"
+          }
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "name": "Sign-on Screen Integration",
+        "type": "Internal Program",
+        "purpose": "Handle user authentication and return to sign-on when needed",
+        "data_exchanged": [
+          "from_program",
+          "to_program",
+          "session_data"
+        ],
+        "trigger_conditions": [
+          "User not authenticated",
+          "PF3 key pressed",
+          "User exits menu"
+        ]
+      },
+      {
+        "name": "User Security File",
+        "type": "Data File",
+        "purpose": "Validate user credentials and access permissions",
+        "data_exchanged": [
+          "user_type",
+          "authentication_status"
+        ],
+        "trigger_conditions": [
+          "User authentication check required"
+        ]
+      },
+      {
+        "name": "Menu Option Programs",
+        "type": "Internal Programs",
+        "purpose": "Execute selected menu functions",
+        "data_exchanged": [
+          "session_context",
+          "from_program",
+          "from_transaction_id",
+          "program_context"
+        ],
+        "trigger_conditions": [
+          "Valid menu option selected",
+          "User has appropriate access",
+          "Enter key pressed"
+        ]
+      }
+    ],
+    "security": {
+      "roles": [
+        "Regular User",
+        "Administrator"
+      ],
+      "permissions": [
+        {
+          "role": "Regular User",
+          "resource": "Menu Options",
+          "actions": [
+            "view_user_options",
+            "select_user_options"
+          ]
+        },
+        {
+          "role": "Administrator",
+          "resource": "Menu Options",
+          "actions": [
+            "view_all_options",
+            "select_all_options",
+            "access_admin_functions"
+          ]
+        }
+      ],
+      "authentication_requirements": [
+        "User must be authenticated before accessing main menu",
+        "Session must have valid COMMAREA with length greater than 0",
+        "User type must be validated against menu option requirements"
+      ]
+    },
+    "error_handling": [
+      {
+        "error_code": "ERR001",
+        "condition": "User not authenticated (COMMAREA length is 0)",
+        "business_impact": "User cannot access menu functions",
+        "suggested_action": "Redirect to sign-on screen (COSGN00C)"
+      },
+      {
+        "error_code": "ERR002",
+        "condition": "Invalid menu option entered (non-numeric, zero, or exceeds count)",
+        "business_impact": "User cannot navigate to desired function",
+        "suggested_action": "Display error message and redisplay menu for correct input"
+      },
+      {
+        "error_code": "ERR003",
+        "condition": "Regular user attempting to access admin-only option",
+        "business_impact": "Unauthorized access attempt blocked",
+        "suggested_action": "Display access denied message and redisplay menu"
+      },
+      {
+        "error_code": "ERR004",
+        "condition": "Invalid function key pressed (not Enter or PF3)",
+        "business_impact": "User action not recognized",
+        "suggested_action": "Display invalid key message and redisplay menu"
+      },
+      {
+        "error_code": "INFO001",
+        "condition": "Menu option selected is not yet implemented (DUMMY program)",
+        "business_impact": "Feature not available to user",
+        "suggested_action": "Display coming soon message and redisplay menu"
+      }
+    ]
+  },
+  "frontend": {
+    "screens": [
+      {
+        "id": "COMEN1A",
+        "name": "Main Menu Screen",
+        "purpose": "Display menu options and allow user to select desired function",
+        "screen_type": "Menu",
+        "navigation_from": [
+          "COSGN00C (Sign-on Screen)",
+          "Various application programs"
+        ],
+        "navigation_to": [
+          "COSGN00C (Sign-on Screen)",
+          "Selected menu option programs"
+        ],
+        "sections": [
+          {
+            "name": "Header",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "transaction_name",
+                "label": "Transaction",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "CM00",
+                "validation": "",
+                "help_text": "Current transaction identifier"
+              },
+              {
+                "name": "title_line_1",
+                "label": "Title 1",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "",
+                "help_text": "First line of screen title"
+              },
+              {
+                "name": "title_line_2",
+                "label": "Title 2",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Second line of screen title"
+              },
+              {
+                "name": "current_date",
+                "label": "Date",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "MM/DD/YY format",
+                "help_text": "Current system date"
+              },
+              {
+                "name": "current_time",
+                "label": "Time",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "",
+                "validation": "HH:MM:SS format",
+                "help_text": "Current system time"
+              },
+              {
+                "name": "program_name",
+                "label": "Program",
+                "type": "text",
+                "input_output": "output",
+                "required": true,
+                "default_value": "COMEN01C",
+                "validation": "",
+                "help_text": "Current program name"
+              }
+            ]
+          },
+          {
+            "name": "Menu Options",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "option_001",
+                "label": "Option 1",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "First menu option"
+              },
+              {
+                "name": "option_002",
+                "label": "Option 2",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Second menu option"
+              },
+              {
+                "name": "option_003",
+                "label": "Option 3",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Third menu option"
+              },
+              {
+                "name": "option_004",
+                "label": "Option 4",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Fourth menu option"
+              },
+              {
+                "name": "option_005",
+                "label": "Option 5",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Fifth menu option"
+              },
+              {
+                "name": "option_006",
+                "label": "Option 6",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Sixth menu option"
+              },
+              {
+                "name": "option_007",
+                "label": "Option 7",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Seventh menu option"
+              },
+              {
+                "name": "option_008",
+                "label": "Option 8",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Eighth menu option"
+              },
+              {
+                "name": "option_009",
+                "label": "Option 9",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Ninth menu option"
+              },
+              {
+                "name": "option_010",
+                "label": "Option 10",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Tenth menu option"
+              },
+              {
+                "name": "option_011",
+                "label": "Option 11",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Eleventh menu option"
+              },
+              {
+                "name": "option_012",
+                "label": "Option 12",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Twelfth menu option"
+              }
+            ]
+          },
+          {
+            "name": "User Input",
+            "type": "Input",
+            "fields": [
+              {
+                "name": "selected_option",
+                "label": "Option",
+                "type": "numeric",
+                "input_output": "input",
+                "required": true,
+                "default_value": "",
+                "validation": "Must be numeric, greater than 0, and not exceed menu option count",
+                "help_text": "Enter the number of your selection"
+              }
+            ]
+          },
+          {
+            "name": "Messages",
+            "type": "Display",
+            "fields": [
+              {
+                "name": "error_message",
+                "label": "Message",
+                "type": "text",
+                "input_output": "output",
+                "required": false,
+                "default_value": "",
+                "validation": "",
+                "help_text": "Displays error or informational messages to user"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "Select Menu Option",
+            "trigger": "Enter Key",
+            "description": "Process user's menu selection and navigate to selected function",
+            "backend_process": "PROCESS-ENTER-KEY",
+            "success_navigation": "Selected program or redisplay menu with message",
+            "error_handling": "Display validation or access error and redisplay menu"
+          },
+          {
+            "name": "Exit to Sign-on",
+            "trigger": "PF3 Key",
+            "description": "Return to sign-on screen",
+            "backend_process": "RETURN-TO-SIGNON-SCREEN",
+            "success_navigation": "COSGN00C",
+            "error_handling": "None"
+          },
+          {
+            "name": "Invalid Key",
+            "trigger": "Other Function Keys",
+            "description": "Handle invalid function key press",
+            "backend_process": "Display error message",
+            "success_navigation": "Redisplay menu",
+            "error_handling": "Display invalid key message"
+          }
+        ],
+        "display_rules": [
+          {
+            "condition": "Error flag is set to Y",
+            "affected_fields": [
+              "error_message"
+            ],
+            "behavior": "Display error message in error message field"
+          },
+          {
+            "condition": "User type is regular user",
+            "affected_fields": [
+              "menu_options"
+            ],
+            "behavior": "Display only options accessible to regular users"
+          },
+          {
+            "condition": "User type is administrator",
+            "affected_fields": [
+              "menu_options"
+            ],
+            "behavior": "Display all menu options including admin-only options"
+          },
+          {
+            "condition": "First entry to program",
+            "affected_fields": [
+              "all_fields"
+            ],
+            "behavior": "Initialize all output fields and display fresh menu"
+          },
+          {
+            "condition": "Coming soon option selected",
+            "affected_fields": [
+              "error_message"
+            ],
+            "behavior": "Display coming soon message in green color"
+          }
+        ]
+      }
+    ],
+    "reports": [],
+    "navigation_flow": [
+      {
+        "from_screen": "COSGN00C",
+        "to_screen": "COMEN1A",
+        "trigger": "Successful authentication",
+        "conditions": [
+          "User authenticated successfully"
+        ]
+      },
+      {
+        "from_screen": "COMEN1A",
+        "to_screen": "COSGN00C",
+        "trigger": "PF3 key or authentication failure",
+        "conditions": [
+          "User presses PF3",
+          "User not authenticated"
+        ]
+      },
+      {
+        "from_screen": "COMEN1A",
+        "to_screen": "Selected Program",
+        "trigger": "Valid menu option selected",
+        "conditions": [
+          "Option is numeric and in valid range",
+          "User has appropriate access",
+          "Program is not DUMMY"
+        ]
+      },
+      {
+        "from_screen": "COMEN1A",
+        "to_screen": "COMEN1A",
+        "trigger": "Invalid input or coming soon option",
+        "conditions": [
+          "Validation error",
+          "Access denied",
+          "Program is DUMMY"
+        ]
+      }
+    ],
+    "user_messages": [
+      {
+        "code": "MSG001",
+        "type": "error",
+        "message": "Please enter a valid option number...",
+        "context": "User entered invalid menu option (non-numeric, zero, or exceeds count)"
+      },
+      {
+        "code": "MSG002",
+        "type": "error",
+        "message": "No access - Admin Only option... ",
+        "context": "Regular user attempted to access admin-only menu option"
+      },
+      {
+        "code": "MSG003",
+        "type": "error",
+        "message": "Invalid key pressed",
+        "context": "User pressed function key other than Enter or PF3"
+      },
+      {
+        "code": "MSG004",
+        "type": "info",
+        "message": "This option [option name] is coming soon ...",
+        "context": "User selected menu option that is not yet implemented"
+      }
+    ]
+  },
+  "data_flows": [
+    {
+      "name": "Authentication Check Flow",
+      "description": "Validates user authentication status and redirects if necessary",
+      "source": "User Session",
+      "destination": "Sign-on Screen or Main Menu",
+      "data_elements": [
+        "COMMAREA length",
+        "from_program",
+        "authentication_status"
+      ],
+      "transformations": [
+        "Check if COMMAREA length is 0",
+        "Set from_program to COSGN00C if not authenticated"
+      ]
+    },
+    {
+      "name": "Menu Option Selection Flow",
+      "description": "Processes user menu selection and routes to appropriate program",
+      "source": "Main Menu Screen",
+      "destination": "Selected Program",
+      "data_elements": [
+        "selected_option",
+        "user_type",
+        "menu_option_data",
+        "session_context"
+      ],
+      "transformations": [
+        "Trim and convert input to numeric",
+        "Validate option range",
+        "Check user access permissions",
+        "Set navigation context"
+      ]
+    },
+    {
+      "name": "Screen Display Flow",
+      "description": "Prepares and displays menu screen with dynamic content",
+      "source": "Program Logic",
+      "destination": "Main Menu Screen",
+      "data_elements": [
+        "header_information",
+        "menu_options",
+        "current_date_time",
+        "error_messages"
+      ],
+      "transformations": [
+        "Format date as MM/DD/YY",
+        "Format time as HH:MM:SS",
+        "Build menu option text with numbers and names",
+        "Set message colors based on message type"
+      ]
+    },
+    {
+      "name": "Session Context Flow",
+      "description": "Maintains session information across program transfers",
+      "source": "Current Program",
+      "destination": "Target Program",
+      "data_elements": [
+        "from_program",
+        "to_program",
+        "from_transaction_id",
+        "program_context",
+        "user_type"
+      ],
+      "transformations": [
+        "Set from_program to current program name",
+        "Set from_transaction_id to current transaction",
+        "Reset program_context to zeros"
+      ]
+    }
+  ],
+  "business_constraints": [
+    {
+      "type": "Security",
+      "description": "Regular users cannot access admin-only menu options",
+      "impact": "Limits functionality available to regular users, enforces role-based access control"
+    },
+    {
+      "type": "Navigation",
+      "description": "Users must be authenticated to access main menu",
+      "impact": "Requires valid session with COMMAREA data before menu access is granted"
+    },
+    {
+      "type": "Menu Options",
+      "description": "Maximum of 12 menu options can be displayed",
+      "impact": "Limits the number of functions that can be presented on a single menu screen"
+    },
+    {
+      "type": "Input Validation",
+      "description": "Menu option selection must be numeric and within valid range",
+      "impact": "Prevents invalid navigation attempts and ensures data integrity"
+    },
+    {
+      "type": "Session Management",
+      "description": "Program reenter flag controls first-time initialization",
+      "impact": "Ensures proper screen initialization on first entry and correct processing on subsequent entries"
+    },
+    {
+      "type": "Feature Availability",
+      "description": "Some menu options may be placeholders for future functionality",
+      "impact": "Users may see options that display coming soon messages instead of executing"
+    }
+  ]
+}
